@@ -1,0 +1,86 @@
+package visualizer
+
+import java.awt.Color
+
+import visualizer.components._
+import visualizer.models._
+
+import scala.collection.mutable.ArrayBuffer
+import scala.swing.Swing._
+import scala.swing._
+import treadle._
+import treadle.executable.WaveformValues
+import treadle.repl.HasReplConfig
+
+object Main extends SimpleSwingApplication {
+
+  val dataModel = new InspectionDataModel
+  val displayModel = new InspectionDisplayModel
+  val directoryContainer = new DirectoryComponent(dataModel, displayModel)
+  val inspectionContainer = new InspectionContainer(dataModel, displayModel)
+
+  val toolbar = new ToolBar() {
+    contents += Button("Zoom In") {
+      displayModel.zoomIn(this)
+    }
+  }
+
+  lazy val ui = new BorderPanel {
+    import BorderPanel.Position._
+
+    background = Color.white
+    preferredSize = (800, 600)
+
+    focusable = true
+
+    layout(toolbar) = North
+    layout(directoryContainer) = West
+    layout(inspectionContainer) = Center
+
+  }
+
+  def top = new MainFrame {
+    title = "Chisel Visualizer"
+
+    menuBar = new MenuBar {
+      contents += new Menu("File")
+    }
+
+    contents = ui
+
+    hacky
+  }
+
+  def hacky : Unit = {
+    runSomeTreadle match {
+      case Some(wv : WaveformValues) => {
+        dataModel.allWaves ++= Util.toValueChange(wv)
+        directoryContainer.update
+      }
+      case _ =>
+    }
+  }
+
+  def runSomeTreadle : Option[WaveformValues] = {
+    val w = 40
+    val clkSteps = 5
+
+    val optionsManager = new TreadleOptionsManager with HasReplConfig {
+      treadleOptions = treadleOptions.copy(rollbackBuffers = clkSteps * 900)
+    }
+
+    val treadleAPI = new TreadleAPI(optionsManager)
+    treadleAPI.executeCommand(Array("load", "../../treadle/samples/gcd.fir"))
+
+    for (a <- 10 to 20; b <- 20 to 30) {
+      treadleAPI.executeCommand(Array("poke", "io_e", "1"))
+      treadleAPI.executeCommand(Array("poke", "io_a", a.toString))
+      treadleAPI.executeCommand(Array("poke", "io_b", b.toString))
+      treadleAPI.executeCommand(Array("step"))
+      treadleAPI.executeCommand(Array("poke", "io_e", "0"))
+      treadleAPI.executeCommand(Array("step", clkSteps.toString))
+    }
+
+    treadleAPI.executeCommand(Array("waves", "0", w.toString, "io_a", "io_b", "io_e", "x", "y", "io_z", "io_v"))
+  }
+}
