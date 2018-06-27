@@ -13,6 +13,9 @@ class WaveComponent(dataModel : InspectionDataModel, displayModel : InspectionDi
   val WaveformVerticalSpacing = 10
   val Arial = new Font("Arial", 0, 12)
 
+  //
+  // View
+  //
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)
 
@@ -20,38 +23,58 @@ class WaveComponent(dataModel : InspectionDataModel, displayModel : InspectionDi
       val y = row * (WaveformHeight + WaveformVerticalSpacing)
 
       waveform.transitions.sliding(2).foreach { transitionPair =>
-        val x1 : Int = ((transitionPair(0).timestamp) * 2).toInt
-        val x2 : Int = ((transitionPair(1).timestamp) * 2).toInt
+        val x0 : Int = timeToXCoord(transitionPair(0).timestamp)
+        val x1 : Int = timeToXCoord(transitionPair(1).timestamp)
 
-        g.drawPolygon(new Polygon(Array(x1, x1+Foo, x2-Foo, x2, x2-Foo, x1+Foo),
+        g.drawPolygon(new Polygon(Array(x0, x0+Foo, x1-Foo, x1, x1-Foo, x0+Foo),
           Array(y + WaveformHeight / 2, y, y, y + WaveformHeight / 2, y + WaveformHeight, y + WaveformHeight),
           6)
         )
 
         drawStringCentered(g, transitionPair(0).value.toString,
-          new Rectangle(x1, y, (x2 - x1), WaveformHeight),
+          new Rectangle(x0, y, x1 - x0, WaveformHeight),
           Arial)
       }
     }
   }
 
-
   def drawStringCentered(g: Graphics2D, text: String, rect: Rectangle, font : Font): Unit = {
     val metrics: FontMetrics = g.getFontMetrics(font)
     val x = rect.x + (rect.width - metrics.stringWidth(text)) / 2
-    val y = rect.y + ((rect.height - metrics.getHeight()) / 2) + metrics.getAscent
+    val y = rect.y + ((rect.height - metrics.getHeight) / 2) + metrics.getAscent
     g.setFont(font)
     g.drawString(text, x, y)
   }
 
+  //
+  // Helper functions
+  //
+
+  def timeToXCoord(timestamp : Long): Int = {
+    (timestamp * displayModel.scale).toInt
+  }
+
+  def computeBounds : Unit = {
+    preferredSize = new Dimension(timeToXCoord(dataModel.maxTimestamp), displayModel.inspectedWaves.size * (WaveformHeight + WaveformVerticalSpacing))
+    revalidate()
+    println(s"(${preferredSize.width}, ${preferredSize.height})")
+  }
+
+  //
+  // Controller
+  //
+
   listenTo(displayModel)
   reactions += {
-    case e : WavesAdded => {
-      repaint()
+    case e : WavesAdded => wavesAdded
+    case e : ScaleChanged => {
+      computeBounds
+      repaint
     }
   }
 
-  def wavesAdded = {
-    repaint()
+  def wavesAdded : Unit = {
+    computeBounds
+    repaint
   }
 }

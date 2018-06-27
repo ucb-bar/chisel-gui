@@ -7,7 +7,7 @@ import scala.swing.event.ActionEvent
 class InspectionDisplayModel extends Publisher {
   // TODO: change to tree rather than arraybuffer
   val inspectedWaves = new ArrayBuffer[Waveform]()
-  var scale = 2
+  var scale : Double = 2
 
   // private val reactors = new ArrayBuffer[InspectionDisplayModel.Listener]()
 
@@ -20,8 +20,13 @@ class InspectionDisplayModel extends Publisher {
   }
 
   def zoomIn(source : Component) : Unit = {
-    scale *= 2
-    publish(ZoomedIn(source))
+    scale *= 1.25
+    publish(ScaleChanged(source))
+  }
+
+  def zoomOut(source : Component) : Unit = {
+    scale *= 0.8
+    publish(ScaleChanged(source))
   }
 
 }
@@ -37,4 +42,4 @@ case class Marker(id : Int, description: String, timestamp : Long)
 
 // Events
 case class WavesAdded(override val source: Component) extends ActionEvent(source)
-case class ZoomedIn(override val source: Component) extends ActionEvent(source)
+case class ScaleChanged(override val source: Component) extends ActionEvent(source)

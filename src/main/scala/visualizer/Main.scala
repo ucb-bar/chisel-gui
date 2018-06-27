@@ -23,6 +23,9 @@ object Main extends SimpleSwingApplication {
     contents += Button("Zoom In") {
       displayModel.zoomIn(this)
     }
+    contents += Button("Zoom Out") {
+      displayModel.zoomOut(this)
+    }
   }
 
   lazy val ui = new BorderPanel {
@@ -55,6 +58,7 @@ object Main extends SimpleSwingApplication {
     runSomeTreadle match {
       case Some(wv : WaveformValues) => {
         dataModel.allWaves ++= Util.toValueChange(wv)
+        dataModel.updateMaxTimestamp
         directoryContainer.update
       }
       case _ =>

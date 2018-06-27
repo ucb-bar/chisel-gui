@@ -1,6 +1,7 @@
 package visualizer.components
 
-import visualizer.models.{InspectionDataModel, InspectionDisplayModel, WavesAdded}
+import visualizer.models._
+import scalaswingcontrib.tree._
 
 import scala.swing._
 import BorderPanel.Position.Center
@@ -13,8 +14,6 @@ class SignalComponent(dataModel : InspectionDataModel, displayModel : Inspection
   }
 
   add(signalView, Center)
-
-
 
 
   listenTo(displayModel)

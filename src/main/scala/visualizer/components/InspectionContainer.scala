@@ -11,6 +11,9 @@ class InspectionContainer(dataModel : InspectionDataModel, displayModel : Inspec
     new ScrollPane(new SignalComponent(dataModel, displayModel)),
     new ScrollPane(new WaveComponent(dataModel, displayModel)) {
       horizontalScrollBar.unitIncrement = 16
+      verticalScrollBar.unitIncrement = 16
+      horizontalScrollBarPolicy = ScrollPane.BarPolicy.Always
+      verticalScrollBarPolicy = ScrollPane.BarPolicy.AsNeeded
     }
   )
 
