@@ -2,6 +2,8 @@ package visualizer
 
 import java.awt.Color
 
+import javax.swing.tree.DefaultMutableTreeNode
+import scalaswingcontrib.tree._
 import visualizer.components._
 import visualizer.models._
 
@@ -37,8 +39,14 @@ object Main extends SimpleSwingApplication {
     focusable = true
 
     layout(toolbar) = North
-    layout(directoryContainer) = West
-    layout(inspectionContainer) = Center
+
+    val splitPane = new SplitPane(Orientation.Vertical,
+      new ScrollPane(directoryContainer), inspectionContainer)
+
+    layout(splitPane) = Center
+
+//    layout(directoryContainer) = West
+//    layout(inspectionContainer) = Center
 
   }
 
@@ -52,14 +60,31 @@ object Main extends SimpleSwingApplication {
     contents = ui
 
     hacky
+
   }
 
   def hacky : Unit = {
     runSomeTreadle match {
       case Some(wv : WaveformValues) => {
-        dataModel.allWaves ++= Util.toValueChange(wv)
+
+        Util.toValueChange(wv).values.zipWithIndex.foreach { case (waveform, index) =>
+          dataModel.waveforms(index) = waveform
+          dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, TreeNode(waveform.name, index), index)
+        }
         dataModel.updateMaxTimestamp
         directoryContainer.update
+
+
+        // testing submodules
+        val module = TreeNode("module", -1)
+        dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, module, 0)
+        dataModel.waveforms(100) = Waveform("fake", ArrayBuffer[Transition](Transition(0, 0), Transition(106, 99)))
+        dataModel.directoryTreeModel.insertUnder(Tree.Path(module), TreeNode("io_fake", 100), 0)
+
+        // very hacky. The directory is not painted if there are no initial nodes. So we add a temporary node and remove it
+        // need to move inside InspectionDataModel
+        dataModel.directoryTreeModel.remove(Tree.Path(dataModel.temporaryNode))
+
       }
       case _ =>
     }

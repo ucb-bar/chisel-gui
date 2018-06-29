@@ -1,5 +1,7 @@
 package visualizer.models
 
+import scalaswingcontrib.tree._
+
 import scala.collection.mutable.ArrayBuffer
 import scala.swing._
 import scala.swing.event.ActionEvent
@@ -7,16 +9,37 @@ import scala.swing.event.ActionEvent
 class InspectionDisplayModel extends Publisher {
   // TODO: change to tree rather than arraybuffer
   val inspectedWaves = new ArrayBuffer[Waveform]()
+
+  // Replacing inspectedWaves with a TREE
+  val temporaryNode = TreeNode("temp", -2)
+  val displayTreeModel : InternalTreeModel[TreeNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[TreeNode])
+  val RootPath = Tree.Path.empty[TreeNode]
+  val tree = new Tree[TreeNode] {
+    model = displayTreeModel
+    renderer = Tree.Renderer(_.name) // TODO: use custom renderer to adjust height of row and include value at cursor
+    showsRootHandles = true
+  }
+
+
+
+
+
+
+
+
+
+
   var scale : Double = 2
 
-  // private val reactors = new ArrayBuffer[InspectionDisplayModel.Listener]()
+  def addSignal(node : TreeNode, source : Component) = {
+    displayTreeModel.insertUnder(RootPath, node, displayTreeModel.getChildrenOf(RootPath).size)
+    publish(SignalsAdded(source))
+  }
 
-  def addWave(waveform : Waveform, source : Component) : Unit = {
-    inspectedWaves += waveform
-    publish(WavesAdded(source))
-//    reactors.foreach { reactor =>
-//      reactor.wavesAdded
-//    }
+  def addModule(moduleNode : TreeNode, source : Component) : Unit = {
+    displayTreeModel.insertUnder(RootPath, moduleNode, displayTreeModel.getChildrenOf(RootPath).size)
+
+    publish(SignalsAdded(source))
   }
 
   def zoomIn(source : Component) : Unit = {
@@ -39,7 +62,6 @@ object InspectionDisplayModel {
 
 case class Marker(id : Int, description: String, timestamp : Long)
 
-
 // Events
-case class WavesAdded(override val source: Component) extends ActionEvent(source)
+case class SignalsAdded(override val source: Component) extends ActionEvent(source)
 case class ScaleChanged(override val source: Component) extends ActionEvent(source)

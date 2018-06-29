@@ -19,22 +19,29 @@ class WaveComponent(dataModel : InspectionDataModel, displayModel : InspectionDi
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)
 
-    displayModel.inspectedWaves.zipWithIndex.foreach{ case (waveform : Waveform, row : Int) =>
+    displayModel.displayTreeModel.depthFirstIterator.zipWithIndex.foreach { case (node, row) =>
+
       val y = row * (WaveformHeight + WaveformVerticalSpacing)
 
-      waveform.transitions.sliding(2).foreach { transitionPair =>
-        val x0 : Int = timeToXCoord(transitionPair(0).timestamp)
-        val x1 : Int = timeToXCoord(transitionPair(1).timestamp)
+      if (node.id >= 0) {
+        dataModel.waveforms(node.id).transitions.sliding(2).foreach { transitionPair =>
+          val x0 : Int = timeToXCoord(transitionPair(0).timestamp)
+          val x1 : Int = timeToXCoord(transitionPair(1).timestamp)
 
-        g.drawPolygon(new Polygon(Array(x0, x0+Foo, x1-Foo, x1, x1-Foo, x0+Foo),
-          Array(y + WaveformHeight / 2, y, y, y + WaveformHeight / 2, y + WaveformHeight, y + WaveformHeight),
-          6)
-        )
+          g.drawPolygon(new Polygon(Array(x0, x0+Foo, x1-Foo, x1, x1-Foo, x0+Foo),
+            Array(y + WaveformHeight / 2, y, y, y + WaveformHeight / 2, y + WaveformHeight, y + WaveformHeight),
+            6)
+          )
 
-        drawStringCentered(g, transitionPair(0).value.toString,
-          new Rectangle(x0, y, x1 - x0, WaveformHeight),
-          Arial)
+          drawStringCentered(g, transitionPair(0).value.toString,
+            new Rectangle(x0, y, x1 - x0, WaveformHeight),
+            Arial)
+        }
+      } else { // it's a group!
+        // do nothing i think?
       }
+
+
     }
   }
 
@@ -66,7 +73,7 @@ class WaveComponent(dataModel : InspectionDataModel, displayModel : InspectionDi
 
   listenTo(displayModel)
   reactions += {
-    case e : WavesAdded => wavesAdded
+    case e : SignalsAdded => wavesAdded
     case e : ScaleChanged => {
       computeBounds
       repaint

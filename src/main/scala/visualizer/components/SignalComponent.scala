@@ -9,19 +9,21 @@ import BorderPanel.Position.Center
 class SignalComponent(dataModel : InspectionDataModel, displayModel : InspectionDisplayModel)
   extends BorderPanel {
 
-  val signalView = new ListView[String]() {
-    listData = displayModel.inspectedWaves.map(_.name)
-  }
+//  val signalView = new ListView[String]() {
+//    listData = displayModel.inspectedWaves.map(_.name)
+//  }
+  val signalView = displayModel.tree
 
   add(signalView, Center)
 
 
   listenTo(displayModel)
   reactions += {
-    case e : WavesAdded => wavesAdded
+    case e : SignalsAdded => signalsAdded
   }
-  def wavesAdded = {
-    signalView.listData = displayModel.inspectedWaves.map(_.name)
-    repaint()
+  def signalsAdded = {
+//    signalView.listData = displayModel.inspectedWaves.map(_.name)
+//    repaint()
   }
+
 }

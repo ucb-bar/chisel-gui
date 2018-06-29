@@ -1,22 +1,20 @@
 package visualizer.components
 
+import scalaswingcontrib.tree._
 import visualizer.models._
 
+import scala.swing.BorderPanel.Position._
 import scala.swing._
 import scala.swing.event.ButtonClicked
 
 class DirectoryComponent(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel) extends BoxPanel(Orientation.Vertical) {
-
   //
   // View
   //
 
   val addSymbolsButton = new Button("Add")
 
-  val listView = new ListView[String]() {
-    listData = dataModel.allWaves.keySet.toSeq
-  }
-  val symbolList = new ScrollPane(listView)
+  val symbolList = new ScrollPane(dataModel.tree)
 
   contents += symbolList
   contents += addSymbolsButton
@@ -26,16 +24,22 @@ class DirectoryComponent(dataModel: InspectionDataModel, displayModel: Inspectio
   //
 
   def update : Unit = {
-    listView.listData = dataModel.allWaves.keySet.toSeq
     repaint()
   }
 
   listenTo(addSymbolsButton)
   reactions += {
     case ButtonClicked(`addSymbolsButton`) => {
-      listView.selection.items.foreach { item =>
-        displayModel.addWave(dataModel.allWaves(item), this)
+      dataModel.tree.selection.cellValues.foreach{v =>
+        if (v.id >= 0) {
+//          displayModel.displayTreeModel.insertUnder(displayModel.RootPath, v, 0)
+          displayModel.addSignal(v, this)
+        } else {
+          displayModel.addModule(v, this)
+        }
       }
     }
   }
+
+
 }
