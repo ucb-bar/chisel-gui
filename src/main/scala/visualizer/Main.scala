@@ -63,9 +63,9 @@ object Main extends SimpleSwingApplication {
 
   }
 
-  def hacky : Unit = {
+  def hacky: Unit = {
     runSomeTreadle match {
-      case Some(wv : WaveformValues) => {
+      case Some(wv: WaveformValues) => {
 
         Util.toValueChange(wv).values.zipWithIndex.foreach { case (waveform, index) =>
           dataModel.waveforms(index) = waveform
@@ -90,7 +90,7 @@ object Main extends SimpleSwingApplication {
     }
   }
 
-  def runSomeTreadle : Option[WaveformValues] = {
+  def runSomeTreadle: Option[WaveformValues] = {
     val w = 40
     val clkSteps = 5
 

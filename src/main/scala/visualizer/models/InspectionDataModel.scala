@@ -5,11 +5,11 @@ import scalaswingcontrib.tree._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-case class Transition(timestamp : Long, value : BigInt)
+case class Transition(timestamp: Long, value: BigInt)
 
-case class Waveform(name : String, transitions : ArrayBuffer[Transition])
+case class Waveform(name: String, transitions: ArrayBuffer[Transition])
 
-case class TreeNode(name : String, id : Int)
+case class TreeNode(name: String, id: Int)
 
 class InspectionDataModel {
   val allWaves = new mutable.HashMap[String, Waveform]
@@ -21,7 +21,7 @@ class InspectionDataModel {
 
 
   val temporaryNode = TreeNode("root", -1)
-  val directoryTreeModel : InternalTreeModel[TreeNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[TreeNode])
+  val directoryTreeModel: InternalTreeModel[TreeNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[TreeNode])
   val RootPath = Tree.Path.empty[TreeNode]
   val tree = new Tree[TreeNode] {
     model = directoryTreeModel
@@ -32,9 +32,13 @@ class InspectionDataModel {
 
   var maxTimestamp: Long = 0
 
-  def updateMaxTimestamp : Unit = {
+  def updateMaxTimestamp: Unit = {
 //    maxTimestamp = allWaves.values.map { w => w.transitions(w.transitions.size - 1).timestamp }.max
     maxTimestamp = waveforms.values.map{ w => w.transitions(w.transitions.size - 1).timestamp }.max
     println(s"new max timestamp: $maxTimestamp")
   }
+
+
+  var timescale: Int = -9
+
 }

@@ -23,7 +23,7 @@ class DirectoryComponent(dataModel: InspectionDataModel, displayModel: Inspectio
   // Controller
   //
 
-  def update : Unit = {
+  def update: Unit = {
     repaint()
   }
 

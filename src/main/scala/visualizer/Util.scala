@@ -7,7 +7,7 @@ import visualizer.models._
 import scala.collection.mutable.ArrayBuffer
 
 object Util {
-  def toValueChange(waveformValues: WaveformValues) : mutable.HashMap[String, Waveform] = {
+  def toValueChange(waveformValues: WaveformValues): mutable.HashMap[String, Waveform] = {
     val hashMap = new mutable.HashMap[String, Waveform]()
     waveformValues.symbols.zip(waveformValues.symbolValues).foreach {
       case (symbol, values) => {
@@ -19,11 +19,11 @@ object Util {
     hashMap
   }
 
-  def allValuesToTransitionVec(clkValues : Array[BigInt], vals : Array[BigInt]) : ArrayBuffer[Transition] = {
+  def allValuesToTransitionVec(clkValues: Array[BigInt], vals: Array[BigInt]): ArrayBuffer[Transition] = {
     val buf = new ArrayBuffer[Transition]()
 
-    var values : Array[BigInt] = vals
-    var clockValues : Array[BigInt] = clkValues
+    var values: Array[BigInt] = vals
+    var clockValues: Array[BigInt] = clkValues
 
     if (clockValues(0) != 0) {
       clockValues +:= BigInt(0)
