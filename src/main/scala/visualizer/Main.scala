@@ -28,6 +28,9 @@ object Main extends SimpleSwingApplication {
     contents += Button("Zoom Out") {
       displayModel.zoomOut(this)
     }
+    contents += Button("Add Marker") {
+      displayModel.addMarker("ad", displayModel.cursorPosition)
+    }
   }
 
   lazy val ui = new BorderPanel {

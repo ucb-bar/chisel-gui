@@ -25,18 +25,12 @@ class TimelineComponent(dataModel: InspectionDataModel, displayModel: Inspection
     super.paintComponent(g)
 
     val visibleRect = peer.getVisibleRect
-    println(s"preferred size: (${preferredSize.width}, ${preferredSize.height})")
-    println(s"Visible rect: (${visibleRect.x}, ${visibleRect.y}, ${visibleRect.width}, ${visibleRect.height}}")
     val metrics = g.getFontMetrics
 
     // The -100 in start time keeps labels that are to the left of the window from not being drawn
     // (which causes artifacts when scrolling).  It needs to be bigger than the largest label.
     val startTime: Long = math.max(((visibleRect.x - 100) / displayModel.scale).toLong, 0) / displayModel.minorTickInterval * displayModel.minorTickInterval
     val endTime: Long = ((visibleRect.x + visibleRect.width) / displayModel.scale).toLong
-
-    println(s"scale = ${displayModel.scale}")
-//    println(s"start/end time = (${startTime}, ${endTime})")
-//    println(s"minor tick interval = ${displayModel.minorTickInterval}")
 
     for (ts: Long <- startTime until endTime by displayModel.minorTickInterval) {
       val x: Int = (ts * displayModel.scale).toInt
@@ -93,10 +87,6 @@ class TimelineComponent(dataModel: InspectionDataModel, displayModel: Inspection
 
     unitMagnitude = unitMagnitudeFs / femtoSecondsPerTimeUnit
     preferredSize = new Dimension((dataModel.maxTimestamp * displayModel.scale).toInt, preferredSize.height)
-    println(s"new preferred with: (${(dataModel.maxTimestamp * displayModel.scale).toInt})")
-    println(s"${preferredSize.width}")
-
-
     revalidate
     repaint
   }
