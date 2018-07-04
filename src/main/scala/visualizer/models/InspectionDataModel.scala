@@ -7,11 +7,37 @@ import scala.collection.mutable.ArrayBuffer
 
 case class Transition(timestamp: Long, value: BigInt)
 
-case class Waveform(name: String, transitions: ArrayBuffer[Transition])
+case class Waveform(name: String, transitions: ArrayBuffer[Transition]) {
+
+  // Return iterator starting from the transition at the timestamp or the
+  // transition before the timestamp. If timestamp is before the first transition,
+  // retun the first transition
+  def findTransition(timestamp: Long): Iterator[Transition] = {
+    println(s"Looking for transition in $name at time $timestamp")
+    transitions.foreach{transtion => print(s"(${transtion.timestamp}, ${transtion.value}) ")}
+    println()
+    def search(low: Int = 0, high: Int = transitions.size - 1): ArrayBuffer[Transition] = {
+      val mid = (low + high)/2
+
+      if (low > high) {
+        if (low == 0) transitions else transitions.drop(low - 1)
+      } else if (transitions(mid).timestamp == timestamp) {
+        transitions.drop(mid)
+      } else if (transitions(mid).timestamp > timestamp) {
+        search(low, mid - 1)
+      } else {
+        search(mid + 1, high)
+      }
+    }
+    search().iterator
+  }
+}
 
 case class TreeNode(name: String, id: Int)
 
 class InspectionDataModel {
+
+  // TODO: remove allWaves
   val allWaves = new mutable.HashMap[String, Waveform]
 
   // A signal's waveform will be stored here. Avoids duplicating data if signal is going to be drawn 2+ more times.
@@ -40,5 +66,7 @@ class InspectionDataModel {
 
 
   var timescale: Int = -9
+
+
 
 }

@@ -2,6 +2,7 @@ package visualizer.components
 
 import java.awt.{FontMetrics, Polygon}
 
+import visualizer._
 import visualizer.models._
 
 import scala.swing._
@@ -9,9 +10,6 @@ import scala.swing.event._
 
 class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel)
   extends BorderPanel {
-  val Foo = 5
-  val WaveformHeight = 20
-  val WaveformVerticalSpacing = 10
   val Arial = new Font("Arial", 0, 12)
 
   //
@@ -25,20 +23,20 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
 
     // Drawing the waves
     displayModel.displayTreeModel.depthFirstIterator.zipWithIndex.foreach { case (node, row) =>
-      val y = row * (WaveformHeight + WaveformVerticalSpacing)
+      val y = row * (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing)
 
       if (node.id >= 0) {
         dataModel.waveforms(node.id).transitions.sliding(2).foreach { transitionPair =>
           val x0: Int = timeToXCoord(transitionPair(0).timestamp)
           val x1: Int = timeToXCoord(transitionPair(1).timestamp)
 
-          g.drawPolygon(new Polygon(Array(x0, x0+Foo, x1-Foo, x1, x1-Foo, x0+Foo),
-            Array(y + WaveformHeight / 2, y, y, y + WaveformHeight / 2, y + WaveformHeight, y + WaveformHeight),
+          g.drawPolygon(new Polygon(Array(x0, x0+DrawMetrics.Foo, x1-DrawMetrics.Foo, x1, x1-DrawMetrics.Foo, x0+DrawMetrics.Foo),
+            Array(y + DrawMetrics.WaveformHeight / 2, y, y, y + DrawMetrics.WaveformHeight / 2, y + DrawMetrics.WaveformHeight, y + DrawMetrics.WaveformHeight),
             6)
           )
 
           drawStringCentered(g, transitionPair(0).value.toString,
-            new Rectangle(x0, y, x1 - x0, WaveformHeight),
+            new Rectangle(x0, y, x1 - x0, DrawMetrics.WaveformHeight),
             Arial)
         }
       } else { // it's a group!
@@ -52,7 +50,6 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
 
     // Draw cursor
     val cursorX = timestampToXCoordinate(displayModel.cursorPosition)
-    println(s"(${cursorX}, ${visibleRect.y}, ${cursorX}, ${visibleRect.y + visibleRect.height})")
     g.drawLine(cursorX, visibleRect.y, cursorX, visibleRect.y + visibleRect.height)
   }
 
@@ -68,15 +65,8 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
     val startTime = xCoordinateToTimestamp(visibleRect.x)
     val endTime = xCoordinateToTimestamp(visibleRect.x + visibleRect.width)
 
-    var startIndex = displayModel.getMarkerAtTime(startTime)
-    var endIndex = displayModel.getMarkerAtTime(endTime)
-
-    displayModel.markers.zipWithIndex.foreach{ case (marker, index) =>
-      println(s"${index}: ${marker.id}, ${marker.timestamp}")
-    }
-
-    println(s"start,end time = $startTime, $endTime")
-    println(s"start,end index = $startIndex, $endIndex")
+    val startIndex = displayModel.getMarkerAtTime(startTime)
+    val endIndex = displayModel.getMarkerAtTime(endTime)
 
     displayModel.markers.slice(startIndex, endIndex + 1).foreach { marker =>
       val x = timestampToXCoordinate(marker.timestamp)
@@ -92,9 +82,9 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
     (timestamp * displayModel.scale).toInt
   }
 
-  def computeBounds: Unit = {
+  def computeBounds(): Unit = {
     preferredSize = new Dimension(timeToXCoord(dataModel.maxTimestamp),
-      displayModel.inspectedWaves.size * (WaveformHeight + WaveformVerticalSpacing))
+      displayModel.inspectedWaves.size * (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing))
     revalidate()
   }
 
@@ -107,18 +97,18 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
   reactions += {
     case e @ (_:SignalsAdded | _:ScaleChanged) => wavesAdded
     case e: CursorSet => {
-      computeBounds
-      repaint
+      computeBounds()
+      repaint()
     }
     case e: MarkerChanged => {
-      if (e.timestamp < 0) repaint
+      if (e.timestamp < 0) repaint()
       else
         repaint(new Rectangle(timestampToXCoordinate(e.timestamp) - 1, 0, 2, peer.getVisibleRect.height))
     }
     case e: MousePressed => {
       val timestamp = xCoordinateToTimestamp(e.peer.getX)
       if (displayModel.cursorPosition != displayModel.selectionStart)
-        repaint
+        repaint()
       if (!e.peer.isShiftDown)
         displayModel.selectionStart = timestamp
       displayModel.setCursorPosition(timestamp)
@@ -133,8 +123,8 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
   }
 
   def wavesAdded: Unit = {
-    computeBounds
-    repaint
+    computeBounds()
+    repaint()
   }
 
   def xCoordinateToTimestamp(coordinate: Int): Long = { (coordinate / displayModel.scale).toLong }

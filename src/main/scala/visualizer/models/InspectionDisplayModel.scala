@@ -1,9 +1,10 @@
 package visualizer.models
 
 
-
 import javax.swing._
 import scalaswingcontrib.tree._
+import visualizer.DrawMetrics
+import visualizer.components.SignalNameRenderer
 
 import scala.collection.SortedMap
 import scala.collection.mutable.ArrayBuffer
@@ -20,6 +21,8 @@ class InspectionDisplayModel extends Publisher {
     model = displayTreeModel
     renderer = Tree.Renderer(_.name) // TODO: use custom renderer to adjust height of row and include value at cursor
     showsRootHandles = true
+
+    peer.setRowHeight(DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformHeight)
 
     // Make it rearrangeable
     peer.setDragEnabled(true)
