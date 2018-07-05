@@ -13,9 +13,6 @@ case class Waveform(name: String, transitions: ArrayBuffer[Transition]) {
   // transition before the timestamp. If timestamp is before the first transition,
   // retun the first transition
   def findTransition(timestamp: Long): Iterator[Transition] = {
-    println(s"Looking for transition in $name at time $timestamp")
-    transitions.foreach{transtion => print(s"(${transtion.timestamp}, ${transtion.value}) ")}
-    println()
     def search(low: Int = 0, high: Int = transitions.size - 1): ArrayBuffer[Transition] = {
       val mid = (low + high)/2
 

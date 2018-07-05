@@ -1,10 +1,7 @@
 package visualizer.components
 
-import java.awt
 import java.awt.{Color, Font}
 
-import javax.swing.JTree
-import javax.swing.tree.{DefaultMutableTreeNode, TreeCellRenderer}
 import scalaswingcontrib.tree.Tree
 import visualizer._
 import visualizer.models._
@@ -20,10 +17,16 @@ class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDi
 
   add(signalView, Center)
 
+  ///////////////////////////////////////////////////////////////////////////
+  // Controller
+  ///////////////////////////////////////////////////////////////////////////
 
   listenTo(displayModel)
   reactions += {
-    case e: SignalsAdded => signalsAdded
+    case e: SignalsChanged => signalsAdded
+    case e: CursorSet => {
+      repaint()
+    }
   }
   def signalsAdded: Unit = { }
 
@@ -39,20 +42,6 @@ class SignalNameRenderer(
   var valueBaseLine = 0
   val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)
   val ValueFont = new Font("SansSerif", Font.PLAIN, 8)
-
-//  override def getTreeCellRendererComponent(
-//      tree: JTree,
-//      value: scala.Any,
-//      sel: Boolean,
-//      expanded: Boolean,
-//      leaf: Boolean,
-//      row: Int,
-//      hasFocus: Boolean): awt.Component = {
-//
-//    currentSignalNode = value.asInstanceOf[DefaultMutableTreeNode].getUserObject.asInstanceOf[TreeNode]
-//    currentSignalIsSelected = sel
-//    this.peer
-//  }
 
   override def componentFor(
       owner: Tree[_],

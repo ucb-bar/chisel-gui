@@ -12,9 +12,10 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
   extends BorderPanel {
   val Arial = new Font("Arial", 0, 12)
 
-  //
+  ///////////////////////////////////////////////////////////////////////////
   // View
-  //
+  ///////////////////////////////////////////////////////////////////////////
+
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)
 
@@ -88,14 +89,17 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
     revalidate()
   }
 
-  //
+  ///////////////////////////////////////////////////////////////////////////
   // Controller
-  //
+  ///////////////////////////////////////////////////////////////////////////
 
   listenTo(displayModel)
   listenTo(mouse.clicks, mouse.moves)
   reactions += {
-    case e @ (_:SignalsAdded | _:ScaleChanged) => wavesAdded
+    case e @ (_:SignalsChanged | _:ScaleChanged) => {
+      computeBounds()
+      repaint()
+    }
     case e: CursorSet => {
       computeBounds()
       repaint()
@@ -113,6 +117,7 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
         displayModel.selectionStart = timestamp
       displayModel.setCursorPosition(timestamp)
       // displayModel.adjustingCursor = true
+
     }
     case e: MouseReleased => // displayModel.adjustingCursor = false
     case e: MouseDragged => {
@@ -120,11 +125,6 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
       displayModel.setCursorPosition(timestamp)
       peer.scrollRectToVisible(new Rectangle(e.peer.getX, e.peer.getY, 1, 1))
     }
-  }
-
-  def wavesAdded: Unit = {
-    computeBounds()
-    repaint()
   }
 
   def xCoordinateToTimestamp(coordinate: Int): Long = { (coordinate / displayModel.scale).toLong }

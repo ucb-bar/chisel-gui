@@ -11,7 +11,7 @@ import scala.collection.mutable.ArrayBuffer
 //
 // Transfer handler to make tree rearrangeable
 //
-class TreeTransferHandler extends TransferHandler {
+class TreeTransferHandler(displayModel: InspectionDisplayModel) extends TransferHandler {
   val mimeType: String = DataFlavor.javaJVMLocalObjectMimeType + ";class=\"" +
     classOf[Array[DefaultMutableTreeNode]].toString.drop(6) + "\""
   val nodesFlavor: DataFlavor = new DataFlavor(mimeType)
@@ -55,7 +55,9 @@ class TreeTransferHandler extends TransferHandler {
   override def createTransferable(c: JComponent): Transferable = {
     val tree = c.asInstanceOf[JTree]
     val paths = tree.getSelectionPaths
-    if (paths != null) {
+    if (paths == null) {
+      null
+    } else {
       val copies = ArrayBuffer[DefaultMutableTreeNode]()
       val toRemove = ArrayBuffer[DefaultMutableTreeNode]()
       var node = paths(0).getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
@@ -74,7 +76,6 @@ class TreeTransferHandler extends TransferHandler {
       nodesToRemove = toRemove.toArray
       return new NodesTransferable(nodes)
     }
-    null
   }
 
   def copy(node: DefaultMutableTreeNode): DefaultMutableTreeNode = {
@@ -88,6 +89,7 @@ class TreeTransferHandler extends TransferHandler {
       nodesToRemove.foreach { node =>
         model.removeNodeFromParent(node)
       }
+      displayModel.moveSignals(null)
     }
   }
 
@@ -108,6 +110,7 @@ class TreeTransferHandler extends TransferHandler {
       val tree = support.getComponent.asInstanceOf[JTree]
       val model = tree.getModel.asInstanceOf[DefaultTreeModel]
 
+      // childIndex is -1 if the selected nodes are being inserted rather than placed within another node
       var index = if (childIndex == -1) parent.getChildCount else childIndex
       nodes.foreach {node =>
         model.insertNodeInto(node, parent, index)

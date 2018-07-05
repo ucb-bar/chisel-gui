@@ -1,5 +1,6 @@
 package visualizer.components
 
+import visualizer._
 import visualizer.models._
 
 import scala.swing._
@@ -20,6 +21,10 @@ class TimelineComponent(dataModel: InspectionDataModel, displayModel: Inspection
   preferredSize = new Dimension(200, TimescaleHeight)
   scaleChanged
 
+
+  ///////////////////////////////////////////////////////////////////////////
+  // View
+  ///////////////////////////////////////////////////////////////////////////
 
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)
@@ -52,17 +57,16 @@ class TimelineComponent(dataModel: InspectionDataModel, displayModel: Inspection
 
 
 
-  //
+  ///////////////////////////////////////////////////////////////////////////
   // Controller
-  //
+  ///////////////////////////////////////////////////////////////////////////
 
   listenTo(displayModel)
   reactions += {
-    case e: SignalsAdded => scaleChanged
     case e: ScaleChanged => scaleChanged
   }
 
-  def scaleChanged: Unit = {
+  private def scaleChanged: Unit = {
     val femtoSecondsPerTimeUnit = math.pow(10, dataModel.timescale + 15).toLong
     val minorTickIntervalFs = displayModel.minorTickInterval * femtoSecondsPerTimeUnit
     val unitMagnitudeFs = if (minorTickIntervalFs < 100L) {

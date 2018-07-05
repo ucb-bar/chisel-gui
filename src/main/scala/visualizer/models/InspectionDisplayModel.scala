@@ -1,17 +1,16 @@
 package visualizer.models
 
+import javax.swing.DropMode
+import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
+import scalaswingcontrib.event.TreeExpanded
 
-import javax.swing._
-import scalaswingcontrib.tree._
-import visualizer.DrawMetrics
-import visualizer.components.SignalNameRenderer
-
-import scala.collection.SortedMap
 import scala.collection.mutable.ArrayBuffer
 import scala.swing._
-import scala.swing.event.ActionEvent
+import scalaswingcontrib.tree._
+import visualizer._
 
 class InspectionDisplayModel extends Publisher {
+  // TODO: remove inspectedWaves
   val inspectedWaves = new ArrayBuffer[Waveform]()
 
   val temporaryNode = TreeNode("temp", -2)
@@ -22,19 +21,23 @@ class InspectionDisplayModel extends Publisher {
     renderer = Tree.Renderer(_.name) // TODO: use custom renderer to adjust height of row and include value at cursor
     showsRootHandles = true
 
+//    protected val expansionListener = new TreeExpansionListener {
+//      override def treeExpanded(event: TreeExpansionEvent): Unit = {
+//        publish(TreeExpanded[TreeNode](this, ))
+//      }
+//
+//      override def treeCollapsed(event: TreeExpansionEvent): Unit = ???
+//    }
+
     peer.setRowHeight(DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformHeight)
 
     // Make it rearrangeable
     peer.setDragEnabled(true)
     peer.setDropMode(DropMode.ON_OR_INSERT)
-    peer.setTransferHandler(new TreeTransferHandler)
+    // Is there a better way to pass the display model to the transfer handler?
+    // Transfer handler could be nested within display model?
+    peer.setTransferHandler(new TreeTransferHandler(InspectionDisplayModel.this))
   }
-
-
-
-
-
-
 
   var scale: Double = 2
   var minorTickInterval: Long = 0
@@ -44,19 +47,33 @@ class InspectionDisplayModel extends Publisher {
   setScale(10)
 
 
-  //
+
+
+
+
+
+  ///////////////////////////////////////////////////////////////////////////
   // Signals
-  //
-  def addSignal(node: TreeNode, source: Component) = {
+  ///////////////////////////////////////////////////////////////////////////
+
+  def addSignal(node: TreeNode, source: Component): Unit = {
     displayTreeModel.insertUnder(RootPath, node, displayTreeModel.getChildrenOf(RootPath).size)
-    publish(SignalsAdded(source))
+    publish(SignalsChanged(source))
   }
 
   def addModule(moduleNode: TreeNode, source: Component): Unit = {
     displayTreeModel.insertUnder(RootPath, moduleNode, displayTreeModel.getChildrenOf(RootPath).size)
 
-    publish(SignalsAdded(source))
+    publish(SignalsChanged(source))
   }
+
+  def moveSignals(source: Component): Unit = {
+    publish(SignalsChanged(source))
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Scale
+  ///////////////////////////////////////////////////////////////////////////
 
   def setScale(newScale: Double): Unit = {
     scale = newScale
@@ -74,9 +91,10 @@ class InspectionDisplayModel extends Publisher {
     publish(ScaleChanged(source))
   }
 
-  //
+  ///////////////////////////////////////////////////////////////////////////
   // Cursor
-  //
+  ///////////////////////////////////////////////////////////////////////////
+
   var cursorPosition: Long = 0
   def setCursorPosition(timestamp: Long) = {
     cursorPosition = timestamp
@@ -85,9 +103,10 @@ class InspectionDisplayModel extends Publisher {
 
   var selectionStart: Long = 0
 
-  //
+  ///////////////////////////////////////////////////////////////////////////
   // Markers
-  //
+  ///////////////////////////////////////////////////////////////////////////
+
   var markers = ArrayBuffer[Marker]()
   var nextMarkerId = 1
 
@@ -176,11 +195,3 @@ class InspectionDisplayModel extends Publisher {
 }
 
 case class Marker(id: Int, var description: String, timestamp: Long)
-
-//
-// Events
-//
-case class SignalsAdded(override val source: Component) extends ActionEvent(source)
-case class ScaleChanged(override val source: Component) extends ActionEvent(source)
-case class CursorSet(override val source: Component) extends ActionEvent(source)
-case class MarkerChanged(timestamp: Long, override val source: Component) extends ActionEvent(source)
