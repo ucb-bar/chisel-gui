@@ -72,17 +72,17 @@ object Main extends SimpleSwingApplication {
 
         Util.toValueChange(wv).values.zipWithIndex.foreach { case (waveform, index) =>
           dataModel.waveforms(index) = waveform
-          dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, TreeNode(waveform.name, index), index)
+          dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, DirectoryNode(index, waveform.name), index)
         }
         dataModel.updateMaxTimestamp
         directoryContainer.update
 
 
         // testing submodules
-        val module = TreeNode("module", -1)
+        val module = DirectoryNode(-1, "module")
         dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, module, 0)
         dataModel.waveforms(100) = Waveform("fake", ArrayBuffer[Transition](Transition(0, 0), Transition(106, 99)))
-        dataModel.directoryTreeModel.insertUnder(Tree.Path(module), TreeNode("io_fake", 100), 0)
+        dataModel.directoryTreeModel.insertUnder(Tree.Path(module), DirectoryNode(100, "io_fake"), 0)
 
         // very hacky. The directory is not painted if there are no initial nodes. So we add a temporary node and remove it
         // need to move inside InspectionDataModel

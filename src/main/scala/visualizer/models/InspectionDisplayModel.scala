@@ -2,7 +2,8 @@ package visualizer.models
 
 import javax.swing.DropMode
 import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
-import scalaswingcontrib.event.TreeExpanded
+import scalaswingcontrib.event.{TreeCollapsed, TreeExpanded}
+import scalaswingcontrib.tree.Tree.Path
 
 import scala.collection.mutable.ArrayBuffer
 import scala.swing._
@@ -10,24 +11,25 @@ import scalaswingcontrib.tree._
 import visualizer._
 
 class InspectionDisplayModel extends Publisher {
-  // TODO: remove inspectedWaves
-  val inspectedWaves = new ArrayBuffer[Waveform]()
+  val temporaryNode = InspectedNode(-2, "temp")
+  val displayTreeModel: InternalTreeModel[InspectedNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[InspectedNode])
 
-  val temporaryNode = TreeNode("temp", -2)
-  val displayTreeModel: InternalTreeModel[TreeNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[TreeNode])
-  val RootPath = Tree.Path.empty[TreeNode]
-  val tree = new Tree[TreeNode] {
+  val RootPath = Tree.Path.empty[InspectedNode]
+  val tree: Tree[InspectedNode] = new Tree[InspectedNode] {
     model = displayTreeModel
     renderer = Tree.Renderer(_.name) // TODO: use custom renderer to adjust height of row and include value at cursor
     showsRootHandles = true
 
-//    protected val expansionListener = new TreeExpansionListener {
-//      override def treeExpanded(event: TreeExpansionEvent): Unit = {
-//        publish(TreeExpanded[TreeNode](this, ))
-//      }
-//
-//      override def treeCollapsed(event: TreeExpansionEvent): Unit = ???
-//    }
+    protected val expansionListener: TreeExpansionListener = new TreeExpansionListener {
+      override def treeExpanded(event: TreeExpansionEvent): Unit = {
+        publish(TreeExpanded[InspectedNode](InspectionDisplayModel.this.tree, treePathToPath(event.getPath)))
+      }
+      override def treeCollapsed(event: TreeExpansionEvent): Unit = {
+        publish(TreeCollapsed[InspectedNode](InspectionDisplayModel.this.tree, treePathToPath(event.getPath)))
+      }
+    }
+
+    peer.addTreeExpansionListener(expansionListener)
 
     peer.setRowHeight(DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformHeight)
 
@@ -55,14 +57,13 @@ class InspectionDisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Signals
   ///////////////////////////////////////////////////////////////////////////
-
-  def addSignal(node: TreeNode, source: Component): Unit = {
-    displayTreeModel.insertUnder(RootPath, node, displayTreeModel.getChildrenOf(RootPath).size)
+  def addSignal(node: DirectoryNode, source: Component): Unit = {
+    displayTreeModel.insertUnder(RootPath, node.toInspected, displayTreeModel.getChildrenOf(RootPath).size)
     publish(SignalsChanged(source))
   }
 
-  def addModule(moduleNode: TreeNode, source: Component): Unit = {
-    displayTreeModel.insertUnder(RootPath, moduleNode, displayTreeModel.getChildrenOf(RootPath).size)
+  def addModule(moduleNode: DirectoryNode, source: Component): Unit = {
+    displayTreeModel.insertUnder(RootPath, moduleNode.toInspected, displayTreeModel.getChildrenOf(RootPath).size)
 
     publish(SignalsChanged(source))
   }
@@ -190,6 +191,30 @@ class InspectionDisplayModel extends Publisher {
       setCursorPosition(timestamp)
       if (!extendSelection)
         selectionStart = timestamp
+    }
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Random tree helper
+  ///////////////////////////////////////////////////////////////////////////
+  def viewableDepthFristIterator(
+      tree: Tree[InspectedNode] = tree,
+      treeModel: TreeModel[InspectedNode] = displayTreeModel): Iterator[InspectedNode] = new Iterator[InspectedNode] {
+
+    var openNodes: Iterator[Path[InspectedNode]] = treeModel.roots.map(Path(_)).iterator
+
+    def hasNext: Boolean = openNodes.nonEmpty
+    def next(): InspectedNode = if (openNodes.hasNext) {
+      val path = openNodes.next()
+      pushChildren(path)
+      path.last
+    } else throw new NoSuchElementException("No more items")
+
+    def pushChildren(path: Path[InspectedNode]): Unit = {
+      if (tree.isExpanded(path)) {
+        val open = openNodes
+        openNodes = treeModel.getChildPathsOf(path).toIterator ++ open
+      }
     }
   }
 }

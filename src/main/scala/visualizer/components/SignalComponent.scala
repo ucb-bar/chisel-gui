@@ -34,8 +34,8 @@ class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDi
 
 class SignalNameRenderer(
     dataModel: InspectionDataModel, displayModel: InspectionDisplayModel)
-    extends Tree.Renderer[TreeNode] {
-  var currentSignalNode = TreeNode("asdf", -10)
+    extends Tree.Renderer[InspectedNode] {
+  var currentSignalNode = InspectedNode(-10, "asdf")
   var currentSignalIsSelected = false
 
   var labelBaseLine = -1
@@ -45,7 +45,7 @@ class SignalNameRenderer(
 
   override def componentFor(
       owner: Tree[_],
-      value: TreeNode,
+      value: InspectedNode,
       cellInfo: companion.CellInfo): Component = {
 
     currentSignalNode = value
@@ -60,7 +60,7 @@ class SignalNameRenderer(
     override def paintComponent(g: Graphics2D): Unit = {
       super.paintComponent(g)
 
-      if (currentSignalNode.id >= 0) { // paint only signals, not groups
+      if (currentSignalNode.waveId >= 0) { // paint only signals, not groups
 
         if (labelBaseLine == -1) {
           // Initialized once
@@ -90,7 +90,7 @@ class SignalNameRenderer(
 
         g.setFont(ValueFont)
         if (currentSignalIsSelected) g.setColor(Color.white) else g.setColor(Color.blue)
-        val t = dataModel.waveforms(currentSignalNode.id).findTransition(displayModel.cursorPosition).next()
+        val t = dataModel.waveforms(currentSignalNode.waveId).findTransition(displayModel.cursorPosition).next()
         g.drawString(t.value.toString, 1, valueBaseLine)
       }
 

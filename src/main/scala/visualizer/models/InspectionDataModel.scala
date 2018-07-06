@@ -30,7 +30,27 @@ case class Waveform(name: String, transitions: ArrayBuffer[Transition]) {
   }
 }
 
-case class TreeNode(name: String, id: Int)
+class InspectedNode(val nodeId: Int, val waveId: Int, val name: String) {
+  def copy: InspectedNode = {
+    InspectedNode(waveId, name)
+  }
+}
+
+object InspectedNode {
+  private var nextNodeId = 0
+
+  def apply(waveId: Int, name: String): InspectedNode = {
+    val retVal = new InspectedNode(nextNodeId, waveId, name)
+    nextNodeId += 1
+    retVal
+  }
+}
+
+case class DirectoryNode(waveId: Int, name: String) {
+  def toInspected: InspectedNode = {
+    InspectedNode(waveId, name)
+  }
+}
 
 class InspectionDataModel {
 
@@ -43,10 +63,10 @@ class InspectionDataModel {
   val waveforms = new mutable.HashMap[Int, Waveform]
 
 
-  val temporaryNode = TreeNode("root", -1)
-  val directoryTreeModel: InternalTreeModel[TreeNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[TreeNode])
-  val RootPath = Tree.Path.empty[TreeNode]
-  val tree = new Tree[TreeNode] {
+  val temporaryNode = DirectoryNode(-1, "root")
+  val directoryTreeModel: InternalTreeModel[DirectoryNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[DirectoryNode])
+  val RootPath = Tree.Path.empty[DirectoryNode]
+  val tree = new Tree[DirectoryNode] {
     model = directoryTreeModel
     renderer = Tree.Renderer(_.name)
     showsRootHandles = true

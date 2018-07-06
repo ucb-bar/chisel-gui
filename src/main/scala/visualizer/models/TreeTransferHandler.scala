@@ -74,12 +74,12 @@ class TreeTransferHandler(displayModel: InspectionDisplayModel) extends Transfer
       }
       val nodes = copies.toArray
       nodesToRemove = toRemove.toArray
-      return new NodesTransferable(nodes)
+      new NodesTransferable(nodes)
     }
   }
 
   def copy(node: DefaultMutableTreeNode): DefaultMutableTreeNode = {
-    node.clone().asInstanceOf[DefaultMutableTreeNode]
+    new DefaultMutableTreeNode(node.getUserObject.asInstanceOf[InspectedNode].copy)
   }
 
   override def exportDone(source: JComponent, data: Transferable, action: Int): Unit = {
