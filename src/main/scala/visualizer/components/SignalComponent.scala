@@ -12,10 +12,13 @@ import BorderPanel.Position.Center
 class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel)
   extends BorderPanel {
 
-  val signalView = displayModel.tree
-  signalView.renderer = new SignalNameRenderer(dataModel, displayModel)
+  ///////////////////////////////////////////////////////////////////////////
+  // View
+  ///////////////////////////////////////////////////////////////////////////
 
-  add(signalView, Center)
+  displayModel.tree.renderer = new SignalNameRenderer(dataModel, displayModel)
+  add(displayModel.tree, Center)
+
 
   ///////////////////////////////////////////////////////////////////////////
   // Controller
@@ -23,13 +26,9 @@ class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDi
 
   listenTo(displayModel)
   reactions += {
-    case e: SignalsChanged => signalsAdded
-    case e: CursorSet => {
+    case e: CursorSet =>
       repaint()
-    }
   }
-  def signalsAdded: Unit = { }
-
 }
 
 class SignalNameRenderer(
@@ -38,8 +37,8 @@ class SignalNameRenderer(
   var currentSignalNode = InspectedNode(-10, "asdf")
   var currentSignalIsSelected = false
 
-  var labelBaseLine = -1
-  var valueBaseLine = 0
+  private var labelBaseLine = -1
+  private var valueBaseLine = 0
   val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)
   val ValueFont = new Font("SansSerif", Font.PLAIN, 8)
 

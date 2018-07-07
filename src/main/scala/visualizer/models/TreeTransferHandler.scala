@@ -16,7 +16,7 @@ class TreeTransferHandler(displayModel: InspectionDisplayModel) extends Transfer
     classOf[Array[DefaultMutableTreeNode]].toString.drop(6) + "\""
   val nodesFlavor: DataFlavor = new DataFlavor(mimeType)
   val flavors: Array[DataFlavor] = Array[DataFlavor](nodesFlavor)
-  var nodesToRemove = Array[DefaultMutableTreeNode]()
+  var nodesToRemove: Array[DefaultMutableTreeNode] = Array[DefaultMutableTreeNode]()
 
   override def canImport(support: TransferSupport): Boolean = {
     val res = support.isDrop && {
@@ -60,7 +60,7 @@ class TreeTransferHandler(displayModel: InspectionDisplayModel) extends Transfer
     } else {
       val copies = ArrayBuffer[DefaultMutableTreeNode]()
       val toRemove = ArrayBuffer[DefaultMutableTreeNode]()
-      var node = paths(0).getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
+      val node = paths(0).getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
       copies.append(copy(node))
       toRemove.append(node)
       paths.tail.foreach { path =>
@@ -96,7 +96,6 @@ class TreeTransferHandler(displayModel: InspectionDisplayModel) extends Transfer
   override def getSourceActions(c: JComponent): Int = {
     TransferHandler.COPY_OR_MOVE
   }
-
 
   override def importData(support: TransferSupport): Boolean = {
     canImport(support) && support.isDrop && {
@@ -134,7 +133,7 @@ class TreeTransferHandler(displayModel: InspectionDisplayModel) extends Transfer
       flavors
     }
 
-    override def isDataFlavorSupported(flavor: DataFlavor) = {
+    override def isDataFlavorSupported(flavor: DataFlavor): Boolean = {
       nodesFlavor.equals(flavor)
     }
   }

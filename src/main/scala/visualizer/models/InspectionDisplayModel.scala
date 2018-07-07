@@ -14,7 +14,7 @@ class InspectionDisplayModel extends Publisher {
   val temporaryNode = InspectedNode(-2, "temp")
   val displayTreeModel: InternalTreeModel[InspectedNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[InspectedNode])
 
-  val RootPath = Tree.Path.empty[InspectedNode]
+  val RootPath: Tree.Path[InspectedNode] = Tree.Path.empty[InspectedNode]
   val tree: Tree[InspectedNode] = new Tree[InspectedNode] {
     model = displayTreeModel
     renderer = Tree.Renderer(_.name) // TODO: use custom renderer to adjust height of row and include value at cursor
@@ -42,16 +42,14 @@ class InspectionDisplayModel extends Publisher {
   }
 
   var scale: Double = 2
-  var minorTickInterval: Long = 0
-  val MinMinorTickHSpace = 5
+  var minorTickInterval: Long = 1
+
+  var clkMinorTickInterval: Long = 1
+  var useClock: Boolean = false
+  var clock: Option[Clock] = None
 
   // initial/constructor
   setScale(10)
-
-
-
-
-
 
 
   ///////////////////////////////////////////////////////////////////////////
@@ -75,10 +73,9 @@ class InspectionDisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Scale
   ///////////////////////////////////////////////////////////////////////////
-
   def setScale(newScale: Double): Unit = {
     scale = newScale
-    val x = math.pow(10, math.ceil(math.log10(MinMinorTickHSpace / scale))).toLong
+    val x = math.pow(10, math.ceil(math.log10(DrawMetrics.MinMinorTickHSpace / scale))).toLong
     minorTickInterval = if (x <= 0) 1 else x
   }
 
@@ -93,11 +90,39 @@ class InspectionDisplayModel extends Publisher {
   }
 
   ///////////////////////////////////////////////////////////////////////////
+  // Timeline
+  ///////////////////////////////////////////////////////////////////////////
+  def setClock(waveId: Long): Unit = {
+    // Verify wave matches a clock?
+    clock = Some(Clock(6, 10))
+    useClock = true
+    publish(TimeUnitsChanged(null))
+  }
+
+  def removeClock(): Unit = {
+    clock match {
+      case Some(_) =>
+        clock = None
+        useClock = false
+        publish(TimeUnitsChanged(null))
+      case _ =>
+    }
+  }
+
+  def toggleClock(): Unit = {
+    clock match {
+      case Some(_) =>
+        useClock = !useClock
+        publish(TimeUnitsChanged(null))
+      case _ => // No clock set up
+    }
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
   // Cursor
   ///////////////////////////////////////////////////////////////////////////
-
   var cursorPosition: Long = 0
-  def setCursorPosition(timestamp: Long) = {
+  def setCursorPosition(timestamp: Long): Unit = {
     cursorPosition = timestamp
     publish(CursorSet(null))
   }
@@ -107,11 +132,10 @@ class InspectionDisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Markers
   ///////////////////////////////////////////////////////////////////////////
-
-  var markers = ArrayBuffer[Marker]()
+  var markers: ArrayBuffer[Marker] = ArrayBuffer[Marker]()
   var nextMarkerId = 1
 
-  def removeAllMarkers: Unit = {
+  def removeAllMarkers(): Unit = {
     markers.clear
     publish(MarkerChanged(-1, null))
     nextMarkerId = 1
@@ -139,7 +163,7 @@ class InspectionDisplayModel extends Publisher {
   def findMarkerNear(timestamp: Long): Int = {
     val MarkerRemoveSlack: Long = (5.0 / scale).toLong
 
-    if (markers.size == 0) {
+    if (markers.isEmpty) {
       -1
     } else {
       val index = getMarkerAtTime(timestamp)
@@ -220,3 +244,4 @@ class InspectionDisplayModel extends Publisher {
 }
 
 case class Marker(id: Int, var description: String, timestamp: Long)
+case class Clock(startTime: Long, cycleDuration: Long)

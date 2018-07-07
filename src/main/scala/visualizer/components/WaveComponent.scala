@@ -2,13 +2,10 @@ package visualizer.components
 
 import java.awt.{FontMetrics, Polygon}
 
-import javax.swing.tree.{DefaultMutableTreeNode, TreeNode => JTreeNode}
 import scalaswingcontrib.event.{TreeCollapsed, TreeExpanded}
-import scalaswingcontrib.tree.TreeModel
 import visualizer._
 import visualizer.models._
 
-import scala.collection.JavaConversions.enumerationAsScalaIterator
 import scala.swing._
 import scala.swing.event._
 
@@ -26,13 +23,8 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
     val visibleRect = peer.getVisibleRect
 
     // Drawing the waves
-    val dfsIterator = enumerationAsScalaIterator(displayModel.displayTreeModel.peer.getRoot.asInstanceOf[DefaultMutableTreeNode].preorderEnumeration)
-//    var y = 0
     displayModel.viewableDepthFristIterator().zipWithIndex.foreach { case (node, row) =>
-//    dfsIterator.zipWithIndex.foreach { case (jnode, row) =>
       try {
-//        val node = jnode.asInstanceOf[DefaultMutableTreeNode].getUserObject.asInstanceOf[TreeNode]
-//        print(s"($row, ${node.name}, ${node.nodeId}) ")
         val y = row * (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing)
         if (node.waveId >= 0) {
           dataModel.waveforms(node.waveId).transitions.sliding(2).foreach { transitionPair =>
@@ -49,20 +41,13 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
               Arial)
           }
 
-        } else { // it's a group!
-          // do nothing i think?
+        } else {
+          // node is a group. do nothing?
         }
-//        y += (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing)
       } catch {
-        case _: Throwable => //println(s"row: $row")
+        case _: Throwable =>
       }
     }
-//    println()
-//    displayModel.displayTreeModel.getChildrenOf(displayModel.RootPath).foreach{node =>
-//      print(s"${node.name} ")
-//    }
-//    println()
-
 
     // Draw markers
     drawMarkers(g, visibleRect)
@@ -105,7 +90,6 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
     preferredSize = new Dimension(timeToXCoord(dataModel.maxTimestamp),
       displayModel.viewableDepthFristIterator().size
         * (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing))
-    println(s"(${preferredSize.width}, ${preferredSize.height})")
     revalidate()
   }
 
@@ -116,24 +100,21 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
   listenTo(displayModel, displayModel.tree)
   listenTo(mouse.clicks, mouse.moves)
   reactions += {
-    case e @ (_:SignalsChanged | _:ScaleChanged) => {
+    case _ @ (_:SignalsChanged | _:ScaleChanged) =>
       computeBounds()
       repaint()
-    }
-    case e: CursorSet => {
+    case _: CursorSet =>
       computeBounds()
       repaint()
-    }
-    case e @ (_:TreeExpanded[InspectedNode] | _:TreeCollapsed[InspectedNode]) => {
+    case _ @ (_:TreeExpanded[InspectedNode] | _:TreeCollapsed[InspectedNode]) =>
       computeBounds()
       repaint()
-    }
-    case e: MarkerChanged => {
-      if (e.timestamp < 0) repaint()
+    case e: MarkerChanged =>
+      if (e.timestamp < 0)
+        repaint()
       else
         repaint(new Rectangle(timestampToXCoordinate(e.timestamp) - 1, 0, 2, peer.getVisibleRect.height))
-    }
-    case e: MousePressed => {
+    case e: MousePressed =>
       val timestamp = xCoordinateToTimestamp(e.peer.getX)
       if (displayModel.cursorPosition != displayModel.selectionStart)
         repaint()
@@ -141,14 +122,11 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
         displayModel.selectionStart = timestamp
       displayModel.setCursorPosition(timestamp)
       // displayModel.adjustingCursor = true
-
-    }
-    case e: MouseReleased => // displayModel.adjustingCursor = false
-    case e: MouseDragged => {
+    case _: MouseReleased => // displayModel.adjustingCursor = false
+    case e: MouseDragged =>
       val timestamp = xCoordinateToTimestamp(e.peer.getX)
       displayModel.setCursorPosition(timestamp)
       peer.scrollRectToVisible(new Rectangle(e.peer.getX, e.peer.getY, 1, 1))
-    }
   }
 
   def xCoordinateToTimestamp(coordinate: Int): Long = { (coordinate / displayModel.scale).toLong }

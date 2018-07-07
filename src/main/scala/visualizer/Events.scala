@@ -10,3 +10,4 @@ case class SignalsChanged(override val source: Component) extends ActionEvent(so
 case class ScaleChanged(override val source: Component) extends ActionEvent(source)
 case class CursorSet(override val source: Component) extends ActionEvent(source)
 case class MarkerChanged(timestamp: Long, override val source: Component) extends ActionEvent(source)
+case class TimeUnitsChanged(override val source: Component) extends ActionEvent(source)

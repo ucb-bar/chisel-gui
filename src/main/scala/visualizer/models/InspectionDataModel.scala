@@ -65,8 +65,8 @@ class InspectionDataModel {
 
   val temporaryNode = DirectoryNode(-1, "root")
   val directoryTreeModel: InternalTreeModel[DirectoryNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[DirectoryNode])
-  val RootPath = Tree.Path.empty[DirectoryNode]
-  val tree = new Tree[DirectoryNode] {
+  val RootPath: Tree.Path[DirectoryNode] = Tree.Path.empty[DirectoryNode]
+  val tree: Tree[DirectoryNode] = new Tree[DirectoryNode] {
     model = directoryTreeModel
     renderer = Tree.Renderer(_.name)
     showsRootHandles = true
@@ -75,15 +75,10 @@ class InspectionDataModel {
 
   var maxTimestamp: Long = 0
 
-  def updateMaxTimestamp: Unit = {
-//    maxTimestamp = allWaves.values.map { w => w.transitions(w.transitions.size - 1).timestamp }.max
-    maxTimestamp = waveforms.values.map{ w => w.transitions(w.transitions.size - 1).timestamp }.max
-    println(s"new max timestamp: $maxTimestamp")
+  def updateMaxTimestamp(): Unit = {
+    maxTimestamp = waveforms.values.map { w => w.transitions(w.transitions.size - 1).timestamp }.max
   }
 
-
   var timescale: Int = -9
-
-
 
 }

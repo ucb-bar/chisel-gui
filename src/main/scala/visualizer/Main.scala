@@ -2,7 +2,6 @@ package visualizer
 
 import java.awt.Color
 
-import javax.swing.tree.DefaultMutableTreeNode
 import scalaswingcontrib.tree._
 import visualizer.components._
 import visualizer.models._
@@ -21,7 +20,7 @@ object Main extends SimpleSwingApplication {
   val directoryContainer = new DirectoryComponent(dataModel, displayModel)
   val inspectionContainer = new InspectionContainer(dataModel, displayModel)
 
-  val toolbar = new ToolBar() {
+  private val toolbar = new ToolBar() {
     contents += Button("Zoom In") {
       displayModel.zoomIn(this)
     }
@@ -31,9 +30,15 @@ object Main extends SimpleSwingApplication {
     contents += Button("Add Marker") {
       displayModel.addMarker("ad", displayModel.cursorPosition)
     }
+    contents += Button("Setup mock clock") {
+      displayModel.setClock(-1)
+    }
+    contents += Button("Toggle Clock") {
+      displayModel.toggleClock()
+    }
   }
 
-  lazy val ui = new BorderPanel {
+  lazy val ui: BorderPanel = new BorderPanel {
     import BorderPanel.Position._
 
     background = Color.white
@@ -53,7 +58,7 @@ object Main extends SimpleSwingApplication {
 
   }
 
-  def top = new MainFrame {
+  def top: MainFrame = new MainFrame {
     title = "Chisel Visualizer"
 
     menuBar = new MenuBar {
@@ -62,21 +67,19 @@ object Main extends SimpleSwingApplication {
 
     contents = ui
 
-    hacky
+    hacky()
 
   }
 
-  def hacky: Unit = {
+  def hacky(): Unit = {
     runSomeTreadle match {
-      case Some(wv: WaveformValues) => {
-
+      case Some(wv: WaveformValues) =>
         Util.toValueChange(wv).values.zipWithIndex.foreach { case (waveform, index) =>
           dataModel.waveforms(index) = waveform
           dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, DirectoryNode(index, waveform.name), index)
         }
-        dataModel.updateMaxTimestamp
-        directoryContainer.update
-
+        dataModel.updateMaxTimestamp()
+        directoryContainer.repaint()
 
         // testing submodules
         val module = DirectoryNode(-1, "module")
@@ -87,8 +90,6 @@ object Main extends SimpleSwingApplication {
         // very hacky. The directory is not painted if there are no initial nodes. So we add a temporary node and remove it
         // need to move inside InspectionDataModel
         dataModel.directoryTreeModel.remove(Tree.Path(dataModel.temporaryNode))
-
-      }
       case _ =>
     }
   }
@@ -113,6 +114,6 @@ object Main extends SimpleSwingApplication {
       treadleAPI.executeCommand(Array("step", clkSteps.toString))
     }
 
-    treadleAPI.executeCommand(Array("waves", "0", w.toString, "io_a", "io_b", "io_e", "x", "y", "io_z", "io_v"))
+    treadleAPI.executeCommand(Array("waves", "0", w.toString, "clk", "io_a", "io_b", "io_e", "x", "y", "io_z", "io_v"))
   }
 }

@@ -10,11 +10,10 @@ object Util {
   def toValueChange(waveformValues: WaveformValues): mutable.HashMap[String, Waveform] = {
     val hashMap = new mutable.HashMap[String, Waveform]()
     waveformValues.symbols.zip(waveformValues.symbolValues).foreach {
-      case (symbol, values) => {
+      case (symbol, values) =>
         hashMap += symbol.name -> Waveform(symbol.name,
           allValuesToTransitionVec(waveformValues.clockValues, values)
         )
-      }
     }
     hashMap
   }
