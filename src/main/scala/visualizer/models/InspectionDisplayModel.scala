@@ -48,8 +48,10 @@ class InspectionDisplayModel extends Publisher {
   var useClock: Boolean = false
   var clock: Option[Clock] = None
 
+//  val waveDisplaySettings =
+
   // initial/constructor
-  setScale(10)
+  setScale(10, null)
 
 
   ///////////////////////////////////////////////////////////////////////////
@@ -73,19 +75,10 @@ class InspectionDisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Scale
   ///////////////////////////////////////////////////////////////////////////
-  def setScale(newScale: Double): Unit = {
+  def setScale(newScale: Double, source: Component): Unit = {
     scale = newScale
     val x = math.pow(10, math.ceil(math.log10(DrawMetrics.MinMinorTickHSpace / scale))).toLong
     minorTickInterval = if (x <= 0) 1 else x
-  }
-
-  def zoomIn(source: Component): Unit = {
-    setScale(scale * 1.25)
-    publish(ScaleChanged(source))
-  }
-
-  def zoomOut(source: Component): Unit = {
-    setScale(scale * 0.8)
     publish(ScaleChanged(source))
   }
 

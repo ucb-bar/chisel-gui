@@ -1,6 +1,6 @@
 package visualizer.components
 
-import java.awt.{FontMetrics, Polygon}
+import java.awt.{FontMetrics, Polygon, Rectangle}
 
 import scalaswingcontrib.event.{TreeCollapsed, TreeExpanded}
 import visualizer._
@@ -24,29 +24,26 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
 
     // Drawing the waves
     displayModel.viewableDepthFristIterator().zipWithIndex.foreach { case (node, row) =>
-      try {
-        val y = row * (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing)
-        if (node.waveId >= 0) {
-          dataModel.waveforms(node.waveId).transitions.sliding(2).foreach { transitionPair =>
-            val x0: Int = timeToXCoord(transitionPair(0).timestamp)
-            val x1: Int = timeToXCoord(transitionPair(1).timestamp)
+      val y = row * (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing)
+      if (node.waveId >= 0) {
+        dataModel.waveforms(node.waveId).transitions.sliding(2).foreach { transitionPair =>
+          val x0: Int = timeToXCoord(transitionPair(0).timestamp)
+          val x1: Int = timeToXCoord(transitionPair(1).timestamp)
 
-            g.drawPolygon(new Polygon(Array(x0, x0 + DrawMetrics.Foo, x1 - DrawMetrics.Foo, x1, x1 - DrawMetrics.Foo, x0 + DrawMetrics.Foo),
-              Array(y + DrawMetrics.WaveformHeight / 2, y, y, y + DrawMetrics.WaveformHeight / 2, y + DrawMetrics.WaveformHeight, y + DrawMetrics.WaveformHeight),
-              6)
-            )
+          g.drawPolygon(new Polygon(Array(x0, x0 + DrawMetrics.Foo, x1 - DrawMetrics.Foo, x1, x1 - DrawMetrics.Foo, x0 + DrawMetrics.Foo),
+            Array(y + DrawMetrics.WaveformHeight / 2, y, y, y + DrawMetrics.WaveformHeight / 2, y + DrawMetrics.WaveformHeight, y + DrawMetrics.WaveformHeight),
+            6)
+          )
 
-            drawStringCentered(g, transitionPair(0).value.toString,
-              new Rectangle(x0, y, x1 - x0, DrawMetrics.WaveformHeight),
-              Arial)
-          }
-
-        } else {
-          // node is a group. do nothing?
+          drawStringCentered(g, transitionPair(0).value.toString,
+            new Rectangle(x0, y, x1 - x0, DrawMetrics.WaveformHeight),
+            Arial)
         }
-      } catch {
-        case _: Throwable =>
+
+      } else {
+        // node is a group. do nothing?
       }
+
     }
 
     // Draw markers
@@ -103,6 +100,8 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
     case _ @ (_:SignalsChanged | _:ScaleChanged) =>
       computeBounds()
       repaint()
+    case _:ScaleChanged =>
+
     case _: CursorSet =>
       computeBounds()
       repaint()

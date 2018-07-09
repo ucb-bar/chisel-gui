@@ -22,10 +22,10 @@ object Main extends SimpleSwingApplication {
 
   private val toolbar = new ToolBar() {
     contents += Button("Zoom In") {
-      displayModel.zoomIn(this)
+      inspectionContainer.zoomIn(this)
     }
     contents += Button("Zoom Out") {
-      displayModel.zoomOut(this)
+      inspectionContainer.zoomOut(this)
     }
     contents += Button("Add Marker") {
       displayModel.addMarker("ad", displayModel.cursorPosition)
