@@ -5,17 +5,20 @@ import java.awt.{FontMetrics, Polygon, Rectangle}
 import scalaswingcontrib.event.{TreeCollapsed, TreeExpanded}
 import visualizer._
 import visualizer.models._
+import visualizer.painters.{MultiBitPainter, SingleBitPainter}
 
 import scala.swing._
 import scala.swing.event._
 
 class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel)
   extends BorderPanel {
-  val Arial = new Font("Arial", 0, 12)
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
+
+  private val multiBitPainter = new MultiBitPainter(displayModel)
+  private val singleBitPainter = new SingleBitPainter(displayModel)
 
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)
@@ -26,24 +29,16 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
     TreeHelper.viewableDepthFirstIterator(displayModel.tree).zipWithIndex.foreach { case (node, row) =>
       val y = row * (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing)
       if (node.waveId >= 0) {
-        dataModel.waveforms(node.waveId).transitions.sliding(2).foreach { transitionPair =>
-          val x0: Int = timeToXCoord(transitionPair(0).timestamp)
-          val x1: Int = timeToXCoord(transitionPair(1).timestamp)
-
-          g.drawPolygon(new Polygon(Array(x0, x0 + DrawMetrics.Foo, x1 - DrawMetrics.Foo, x1, x1 - DrawMetrics.Foo, x0 + DrawMetrics.Foo),
-            Array(y + DrawMetrics.WaveformHeight / 2, y, y, y + DrawMetrics.WaveformHeight / 2, y + DrawMetrics.WaveformHeight, y + DrawMetrics.WaveformHeight),
-            6)
-          )
-
-          drawStringCentered(g, transitionPair(0).value.toString,
-            new Rectangle(x0, y, x1 - x0, DrawMetrics.WaveformHeight),
-            Arial)
+        displayModel.waveDisplaySettings(node.waveId).painter match {
+          case _ =>
+            if (dataModel.waveforms(node.waveId).isBinary)
+              singleBitPainter.paintWaveform(g, dataModel.waveforms(node.waveId), y)
+            else
+              multiBitPainter.paintWaveform(g, dataModel.waveforms(node.waveId), y)
         }
-
       } else {
         // node is a group. do nothing?
       }
-
     }
 
     // Draw markers
@@ -52,14 +47,6 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
     // Draw cursor
     val cursorX = timestampToXCoordinate(displayModel.cursorPosition)
     g.drawLine(cursorX, visibleRect.y, cursorX, visibleRect.y + visibleRect.height)
-  }
-
-  def drawStringCentered(g: Graphics2D, text: String, rect: Rectangle, font: Font): Unit = {
-    val metrics: FontMetrics = g.getFontMetrics(font)
-    val x = rect.x + (rect.width - metrics.stringWidth(text)) / 2
-    val y = rect.y + ((rect.height - metrics.getHeight) / 2) + metrics.getAscent
-    g.setFont(font)
-    g.drawString(text, x, y)
   }
 
   def drawMarkers(g: Graphics2D, visibleRect: Rectangle): Unit = {
@@ -78,13 +65,8 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
   //
   // Helper functions
   //
-
-  def timeToXCoord(timestamp: Long): Int = {
-    (timestamp * displayModel.scale).toInt
-  }
-
   def computeBounds(): Unit = {
-    preferredSize = new Dimension(timeToXCoord(dataModel.maxTimestamp),
+    preferredSize = new Dimension(timestampToXCoordinate(dataModel.maxTimestamp),
       TreeHelper.viewableDepthFirstIterator(displayModel.tree).size
         * (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing))
     revalidate()

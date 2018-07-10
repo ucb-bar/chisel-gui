@@ -11,7 +11,7 @@ case class Waveform(name: String, transitions: ArrayBuffer[Transition]) {
 
   // Return iterator starting from the transition at the timestamp or the
   // transition before the timestamp. If timestamp is before the first transition,
-  // retun the first transition
+  // return the first transition
   def findTransition(timestamp: Long): Iterator[Transition] = {
     def search(low: Int = 0, high: Int = transitions.size - 1): ArrayBuffer[Transition] = {
       val mid = (low + high)/2
@@ -27,6 +27,18 @@ case class Waveform(name: String, transitions: ArrayBuffer[Transition]) {
       }
     }
     search().iterator
+  }
+
+  // TODO: should be replaced with information from VCD or treadle about num of bits
+  private var isBin: Option[Boolean] = None
+  def isBinary: Boolean = {
+    isBin match {
+      case Some(i) => i
+      case None =>
+        val res = !transitions.init.exists(t => t.value != 0 && t.value != 1)
+        isBin = Some(res)
+        res
+    }
   }
 }
 

@@ -9,9 +9,12 @@ import scala.swing._
 import scalaswingcontrib.tree._
 import visualizer._
 
-class InspectionDisplayModel extends Publisher {
-  val temporaryNode = InspectedNode(-2, "temp")
+import scala.collection.mutable
 
+class InspectionDisplayModel extends Publisher {
+  val waveDisplaySettings: mutable.HashMap[Int, WaveDisplaySetting] = new mutable.HashMap[Int, WaveDisplaySetting]()
+
+  val temporaryNode = InspectedNode(-2, "temp")
   val RootPath: Tree.Path[InspectedNode] = Tree.Path.empty[InspectedNode]
   val tree: Tree[InspectedNode] = new Tree[InspectedNode] {
     model = InternalTreeModel(temporaryNode)(_ => Seq.empty[InspectedNode])
@@ -57,6 +60,10 @@ class InspectionDisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   def addSignal(node: DirectoryNode, source: Component): Unit = {
     tree.model.insertUnder(RootPath, node.toInspected, tree.model.getChildrenOf(RootPath).size)
+    waveDisplaySettings.get(node.waveId) match {
+      case None => waveDisplaySettings += node.waveId -> WaveDisplaySetting()
+      case _ =>
+    }
     publish(SignalsChanged(source))
   }
 
@@ -219,3 +226,4 @@ class InspectionDisplayModel extends Publisher {
 
 case class Marker(id: Int, var description: String, timestamp: Long)
 case class Clock(startTime: Long, cycleDuration: Long)
+case class WaveDisplaySetting(painter: Option[Int] = None, dataFormat: Option[Int] = None)
