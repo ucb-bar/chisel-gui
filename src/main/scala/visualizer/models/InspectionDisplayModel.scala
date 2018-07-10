@@ -3,7 +3,6 @@ package visualizer.models
 import javax.swing.DropMode
 import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
 import scalaswingcontrib.event.{TreeCollapsed, TreeExpanded}
-import scalaswingcontrib.tree.Tree.Path
 
 import scala.collection.mutable.ArrayBuffer
 import scala.swing._
@@ -12,11 +11,10 @@ import visualizer._
 
 class InspectionDisplayModel extends Publisher {
   val temporaryNode = InspectedNode(-2, "temp")
-  val displayTreeModel: InternalTreeModel[InspectedNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[InspectedNode])
 
   val RootPath: Tree.Path[InspectedNode] = Tree.Path.empty[InspectedNode]
   val tree: Tree[InspectedNode] = new Tree[InspectedNode] {
-    model = displayTreeModel
+    model = InternalTreeModel(temporaryNode)(_ => Seq.empty[InspectedNode])
     renderer = Tree.Renderer(_.name) // TODO: use custom renderer to adjust height of row and include value at cursor
     showsRootHandles = true
 
@@ -58,13 +56,20 @@ class InspectionDisplayModel extends Publisher {
   // Signals
   ///////////////////////////////////////////////////////////////////////////
   def addSignal(node: DirectoryNode, source: Component): Unit = {
-    displayTreeModel.insertUnder(RootPath, node.toInspected, displayTreeModel.getChildrenOf(RootPath).size)
+    tree.model.insertUnder(RootPath, node.toInspected, tree.model.getChildrenOf(RootPath).size)
     publish(SignalsChanged(source))
   }
 
   def addModule(moduleNode: DirectoryNode, source: Component): Unit = {
-    displayTreeModel.insertUnder(RootPath, moduleNode.toInspected, displayTreeModel.getChildrenOf(RootPath).size)
+    tree.model.insertUnder(RootPath, moduleNode.toInspected, tree.model.getChildrenOf(RootPath).size)
+    publish(SignalsChanged(source))
+  }
 
+  // Removes all selected signals, selected groups, and children of selected groups
+  def removeSelectedSignals(source: Component): Unit = {
+    tree.selection.paths.foreach { path =>
+      tree.model.remove(path)
+    }
     publish(SignalsChanged(source))
   }
 
@@ -208,30 +213,6 @@ class InspectionDisplayModel extends Publisher {
       setCursorPosition(timestamp)
       if (!extendSelection)
         selectionStart = timestamp
-    }
-  }
-
-  ///////////////////////////////////////////////////////////////////////////
-  // Random tree helper
-  ///////////////////////////////////////////////////////////////////////////
-  def viewableDepthFristIterator(
-      tree: Tree[InspectedNode] = tree,
-      treeModel: TreeModel[InspectedNode] = displayTreeModel): Iterator[InspectedNode] = new Iterator[InspectedNode] {
-
-    var openNodes: Iterator[Path[InspectedNode]] = treeModel.roots.map(Path(_)).iterator
-
-    def hasNext: Boolean = openNodes.nonEmpty
-    def next(): InspectedNode = if (openNodes.hasNext) {
-      val path = openNodes.next()
-      pushChildren(path)
-      path.last
-    } else throw new NoSuchElementException("No more items")
-
-    def pushChildren(path: Path[InspectedNode]): Unit = {
-      if (tree.isExpanded(path)) {
-        val open = openNodes
-        openNodes = treeModel.getChildPathsOf(path).toIterator ++ open
-      }
     }
   }
 }

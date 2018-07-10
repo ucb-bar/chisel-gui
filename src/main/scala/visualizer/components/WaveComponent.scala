@@ -23,7 +23,7 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
     val visibleRect = peer.getVisibleRect
 
     // Drawing the waves
-    displayModel.viewableDepthFristIterator().zipWithIndex.foreach { case (node, row) =>
+    TreeHelper.viewableDepthFirstIterator(displayModel.tree).zipWithIndex.foreach { case (node, row) =>
       val y = row * (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing)
       if (node.waveId >= 0) {
         dataModel.waveforms(node.waveId).transitions.sliding(2).foreach { transitionPair =>
@@ -85,7 +85,7 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
 
   def computeBounds(): Unit = {
     preferredSize = new Dimension(timeToXCoord(dataModel.maxTimestamp),
-      displayModel.viewableDepthFristIterator().size
+      TreeHelper.viewableDepthFirstIterator(displayModel.tree).size
         * (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing))
     revalidate()
   }

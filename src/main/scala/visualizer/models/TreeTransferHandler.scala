@@ -5,6 +5,8 @@ import java.awt.datatransfer.{DataFlavor, Transferable, UnsupportedFlavorExcepti
 import javax.swing._
 import javax.swing.TransferHandler.TransferSupport
 import javax.swing.tree.{DefaultMutableTreeNode, DefaultTreeModel}
+import scalaswingcontrib.tree.Tree.Path
+import scalaswingcontrib.tree.{Tree, TreeModel}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -26,7 +28,7 @@ class TreeTransferHandler(displayModel: InspectionDisplayModel) extends Transfer
       val dropRow = tree.getRowForPath(dropLocation.getPath)
       val selRows = tree.getSelectionRows
       !selRows.contains(dropRow) && {
-        (support.getDropAction != TransferHandler.MOVE || hasCompleteNode(tree)) && {
+        (support.getDropAction != TransferHandler.MOVE || TreeHelper.hasCompleteNode(tree)) && {
           val dest = dropLocation.getPath
           val target = dest.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
           val path = tree.getPathForRow(selRows(0))
@@ -36,20 +38,6 @@ class TreeTransferHandler(displayModel: InspectionDisplayModel) extends Transfer
       }
     }
     res
-  }
-
-  private def hasCompleteNode(tree: JTree): Boolean = {
-    val selRows = tree.getSelectionRows
-    var path = tree.getPathForRow(selRows(0))
-    val first = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
-    val childCount = first.getChildCount
-    (childCount == 0 || selRows.length != 1) && {
-      !selRows.tail.exists { row =>
-        path = tree.getPathForRow(row)
-        val next = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
-        first.isNodeChild(next) && (childCount > selRows.length - 1)
-      }
-    }
   }
 
   override def createTransferable(c: JComponent): Transferable = {
@@ -138,4 +126,39 @@ class TreeTransferHandler(displayModel: InspectionDisplayModel) extends Transfer
     }
   }
 
+}
+
+object TreeHelper {
+  def viewableDepthFirstIterator(tree: Tree[InspectedNode]): Iterator[InspectedNode] = new Iterator[InspectedNode] {
+    val treeModel: TreeModel[InspectedNode] = tree.model
+    var openNodes: Iterator[Path[InspectedNode]] = treeModel.roots.map(Path(_)).iterator
+
+    def hasNext: Boolean = openNodes.nonEmpty
+    def next(): InspectedNode = if (openNodes.hasNext) {
+      val path = openNodes.next()
+      pushChildren(path)
+      path.last
+    } else throw new NoSuchElementException("No more items")
+
+    def pushChildren(path: Path[InspectedNode]): Unit = {
+      if (tree.isExpanded(path)) {
+        val open = openNodes
+        openNodes = treeModel.getChildPathsOf(path).toIterator ++ open
+      }
+    }
+  }
+
+  def hasCompleteNode(tree: JTree): Boolean = {
+    val selRows = tree.getSelectionRows
+    var path = tree.getSelectionPath
+    val first = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
+    val childCount = first.getChildCount
+    (childCount == 0 || selRows.length != 1) && {
+      !selRows.tail.exists { row =>
+        path = tree.getPathForRow(row)
+        val next = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
+        first.isNodeChild(next) && (childCount > selRows.length - 1)
+      }
+    }
+  }
 }

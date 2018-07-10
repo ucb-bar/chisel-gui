@@ -36,6 +36,9 @@ object Main extends SimpleSwingApplication {
     contents += Button("Toggle Clock") {
       displayModel.toggleClock()
     }
+    contents += Button("Remove signal(s)") {
+      displayModel.removeSelectedSignals(this)
+    }
   }
 
   lazy val ui: BorderPanel = new BorderPanel {
@@ -52,10 +55,6 @@ object Main extends SimpleSwingApplication {
       new ScrollPane(directoryContainer), inspectionContainer)
 
     layout(splitPane) = Center
-
-//    layout(directoryContainer) = West
-//    layout(inspectionContainer) = Center
-
   }
 
   def top: MainFrame = new MainFrame {

@@ -7,6 +7,7 @@ import visualizer._
 import visualizer.models._
 
 import scala.swing._
+import scala.swing.event._
 import BorderPanel.Position.Center
 
 class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel)
@@ -19,15 +20,19 @@ class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDi
   displayModel.tree.renderer = new SignalNameRenderer(dataModel, displayModel)
   add(displayModel.tree, Center)
 
+  focusable = true
 
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
 
   listenTo(displayModel)
+  listenTo(keys, displayModel.tree.keys)
   reactions += {
-    case e: CursorSet =>
+    case _: CursorSet =>
       repaint()
+    case KeyReleased(_, Key.BackSpace, _, _) =>
+      displayModel.removeSelectedSignals(this)
   }
 }
 
