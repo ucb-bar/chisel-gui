@@ -32,9 +32,9 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
         displayModel.waveDisplaySettings(node.waveId).painter match {
           case _ =>
             if (dataModel.waveforms(node.waveId).isBinary)
-              singleBitPainter.paintWaveform(g, dataModel.waveforms(node.waveId), y)
+              singleBitPainter.paintWaveform(g, visibleRect, dataModel.waveforms(node.waveId), y)
             else
-              multiBitPainter.paintWaveform(g, dataModel.waveforms(node.waveId), y)
+              multiBitPainter.paintWaveform(g, visibleRect, dataModel.waveforms(node.waveId), y)
         }
       } else {
         // node is a group. do nothing?

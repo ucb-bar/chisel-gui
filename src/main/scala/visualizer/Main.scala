@@ -94,7 +94,7 @@ object Main extends SimpleSwingApplication {
   }
 
   def runSomeTreadle: Option[WaveformValues] = {
-    val w = 40
+    val w = 100
     val clkSteps = 5
 
     val optionsManager = new TreadleOptionsManager with HasReplConfig {

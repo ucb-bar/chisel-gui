@@ -1,13 +1,21 @@
 package visualizer.painters
 
+import java.awt.Rectangle
+
 import visualizer.DrawMetrics
 import visualizer.models.{InspectionDisplayModel, Waveform}
 
 import scala.swing.Graphics2D
 
 class SingleBitPainter(displayModel: InspectionDisplayModel) extends Painter(displayModel) {
-  def paintWaveform(g: Graphics2D, waveform: Waveform, y: Int): Unit = {
-    waveform.transitions.sliding(2).foreach { transitionPair =>
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, waveform: Waveform, y: Int): Unit = {
+    val startTimestamp = xCoordinateToTimestamp(visibleRect.x)
+
+    // Only paint from first transition at or before the start timestamp
+    // up until the first transition after the end timestamp
+    waveform.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
+      timestampToXCoordinate(transitionPair(0).timestamp) < visibleRect.x + visibleRect.width
+    }.foreach { transitionPair =>
       val x0: Int = timestampToXCoordinate(transitionPair(0).timestamp)
       val x1: Int = timestampToXCoordinate(transitionPair(1).timestamp)
 
