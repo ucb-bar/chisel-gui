@@ -3,12 +3,13 @@ package visualizer.painters
 import java.awt.Rectangle
 
 import visualizer.DrawMetrics
-import visualizer.models.{InspectionDisplayModel, Waveform}
+import visualizer.models.{InspectionDataModel, InspectionDisplayModel}
 
 import scala.swing.Graphics2D
 
-class SingleBitPainter(displayModel: InspectionDisplayModel) extends Painter(displayModel) {
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, waveform: Waveform, y: Int): Unit = {
+class SingleBitPainter(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel) extends Painter(displayModel) {
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, signalId: Int, top: Int): Unit = {
+    val waveform = dataModel.waveforms(signalId)
     val startTimestamp = xCoordinateToTimestamp(visibleRect.x)
 
     // Only paint from first transition at or before the start timestamp
@@ -21,10 +22,10 @@ class SingleBitPainter(displayModel: InspectionDisplayModel) extends Painter(dis
 
       val z = if (transitionPair(0).value == 0) DrawMetrics.WaveformHeight else 0
 
-      g.drawLine(x0, y + z, x1, y + z)
+      g.drawLine(x0, top + z, x1, top + z)
 
       if (x0 != 0) {
-        g.drawLine(x0, y, x0, y + DrawMetrics.WaveformHeight)
+        g.drawLine(x0, top, x0, top + DrawMetrics.WaveformHeight)
       }
     }
   }

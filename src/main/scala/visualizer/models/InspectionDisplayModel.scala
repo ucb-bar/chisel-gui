@@ -1,9 +1,5 @@
 package visualizer.models
 
-import javax.swing.DropMode
-import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
-import scalaswingcontrib.event.{TreeCollapsed, TreeExpanded}
-
 import scala.collection.mutable.ArrayBuffer
 import scala.swing._
 import scalaswingcontrib.tree._
@@ -16,31 +12,7 @@ class InspectionDisplayModel extends Publisher {
 
   val temporaryNode = InspectedNode(-2, "temp")
   val RootPath: Tree.Path[InspectedNode] = Tree.Path.empty[InspectedNode]
-  val tree: Tree[InspectedNode] = new Tree[InspectedNode] {
-    model = InternalTreeModel(temporaryNode)(_ => Seq.empty[InspectedNode])
-    renderer = Tree.Renderer(_.name) // TODO: use custom renderer to adjust height of row and include value at cursor
-    showsRootHandles = true
-
-    protected val expansionListener: TreeExpansionListener = new TreeExpansionListener {
-      override def treeExpanded(event: TreeExpansionEvent): Unit = {
-        publish(TreeExpanded[InspectedNode](InspectionDisplayModel.this.tree, treePathToPath(event.getPath)))
-      }
-      override def treeCollapsed(event: TreeExpansionEvent): Unit = {
-        publish(TreeCollapsed[InspectedNode](InspectionDisplayModel.this.tree, treePathToPath(event.getPath)))
-      }
-    }
-
-    peer.addTreeExpansionListener(expansionListener)
-
-    peer.setRowHeight(DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformHeight)
-
-    // Make it rearrangeable
-    peer.setDragEnabled(true)
-    peer.setDropMode(DropMode.ON_OR_INSERT)
-    // Is there a better way to pass the display model to the transfer handler?
-    // Transfer handler could be nested within display model?
-    peer.setTransferHandler(new TreeTransferHandler(InspectionDisplayModel.this))
-  }
+  val treeModel: InternalTreeModel[InspectedNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[InspectedNode])
 
   var scale: Double = 2
   var minorTickInterval: Long = 1
@@ -48,8 +20,6 @@ class InspectionDisplayModel extends Publisher {
   var clkMinorTickInterval: Long = 1
   var useClock: Boolean = false
   var clock: Option[Clock] = None
-
-//  val waveDisplaySettings =
 
   // initial/constructor
   setScale(10, null)
@@ -59,29 +29,38 @@ class InspectionDisplayModel extends Publisher {
   // Signals
   ///////////////////////////////////////////////////////////////////////////
   def addSignal(node: DirectoryNode, source: Component): Unit = {
-    tree.model.insertUnder(RootPath, node.toInspected, tree.model.getChildrenOf(RootPath).size)
-    waveDisplaySettings.get(node.waveId) match {
-      case None => waveDisplaySettings += node.waveId -> WaveDisplaySetting()
+    treeModel.insertUnder(RootPath, node.toInspected, treeModel.getChildrenOf(RootPath).size)
+    waveDisplaySettings.get(node.signalId) match {
+      case None => waveDisplaySettings += node.signalId -> WaveDisplaySetting()
       case _ =>
     }
     publish(SignalsChanged(source))
   }
 
   def addModule(moduleNode: DirectoryNode, source: Component): Unit = {
-    tree.model.insertUnder(RootPath, moduleNode.toInspected, tree.model.getChildrenOf(RootPath).size)
+    treeModel.insertUnder(RootPath, moduleNode.toInspected, treeModel.getChildrenOf(RootPath).size)
     publish(SignalsChanged(source))
   }
 
   // Removes all selected signals, selected groups, and children of selected groups
-  def removeSelectedSignals(source: Component): Unit = {
-    tree.selection.paths.foreach { path =>
-      tree.model.remove(path)
+  // TODO: change type of paths?
+  def removeSelectedSignals(source: Component, paths: Iterator[Tree.Path[InspectedNode]]): Unit = {
+    paths.foreach { path =>
+      treeModel.remove(path)
     }
     publish(SignalsChanged(source))
   }
 
   def moveSignals(source: Component): Unit = {
     publish(SignalsChanged(source))
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Wave Display Format
+  ///////////////////////////////////////////////////////////////////////////
+  def setWaveFormat(source: Component, signalId: Int, format: Format): Unit = {
+    waveDisplaySettings(signalId).dataFormat = Some(format)
+    publish(WaveFormatChanged(source))
   }
 
   ///////////////////////////////////////////////////////////////////////////
@@ -97,8 +76,8 @@ class InspectionDisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Timeline
   ///////////////////////////////////////////////////////////////////////////
-  def setClock(waveId: Long): Unit = {
-    // Verify wave matches a clock?
+  def setClock(signalId: Long): Unit = {
+    // Verify wave matches a clock? (binary, oscillating)
     clock = Some(Clock(6, 10))
     useClock = true
     publish(TimeUnitsChanged(null))
@@ -226,4 +205,25 @@ class InspectionDisplayModel extends Publisher {
 
 case class Marker(id: Int, var description: String, timestamp: Long)
 case class Clock(startTime: Long, cycleDuration: Long)
-case class WaveDisplaySetting(painter: Option[Int] = None, dataFormat: Option[Int] = None)
+case class WaveDisplaySetting(var painter: Option[Int] = None, var dataFormat: Option[Format] = None)
+
+
+// May want to consider size of the wire
+sealed trait Format {
+  def apply(num: BigInt): String
+}
+case object BinFormat extends Format {
+  def apply(num: BigInt): String = {
+    "0b" + num.toString(2)
+  }
+}
+case object DecFormat extends Format {
+  def apply(num: BigInt): String = {
+    num.toString(10)
+  }
+}
+case object HexFormat extends Format {
+  def apply(num: BigInt): String = {
+    "0x" + num.toString(16)
+  }
+}

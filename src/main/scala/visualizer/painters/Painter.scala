@@ -7,7 +7,7 @@ import visualizer.models.{InspectionDisplayModel, Waveform}
 import scala.swing.{Font, Graphics2D}
 
 abstract class Painter(displayModel: InspectionDisplayModel) {
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, waveform: Waveform, y: Int): Unit
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, signalId: Int, top: Int): Unit
 
   def timestampToXCoordinate(timestamp: Long): Int = { (timestamp * displayModel.scale).toInt }
   def xCoordinateToTimestamp(coordinate: Int): Long = { (coordinate / displayModel.scale).toLong }

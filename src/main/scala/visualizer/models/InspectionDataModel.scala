@@ -42,25 +42,25 @@ case class Waveform(name: String, transitions: ArrayBuffer[Transition]) {
   }
 }
 
-class InspectedNode(val nodeId: Int, val waveId: Int, val name: String) {
+class InspectedNode(val nodeId: Int, val signalId: Int, val name: String) {
   def copy: InspectedNode = {
-    InspectedNode(waveId, name)
+    InspectedNode(signalId, name)
   }
 }
 
 object InspectedNode {
   private var nextNodeId = 0
 
-  def apply(waveId: Int, name: String): InspectedNode = {
-    val retVal = new InspectedNode(nextNodeId, waveId, name)
+  def apply(signalId: Int, name: String): InspectedNode = {
+    val retVal = new InspectedNode(nextNodeId, signalId, name)
     nextNodeId += 1
     retVal
   }
 }
 
-case class DirectoryNode(waveId: Int, name: String) {
+case class DirectoryNode(signalId: Int, name: String) {
   def toInspected: InspectedNode = {
-    InspectedNode(waveId, name)
+    InspectedNode(signalId, name)
   }
 }
 

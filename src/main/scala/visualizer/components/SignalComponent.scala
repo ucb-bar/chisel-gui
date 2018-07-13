@@ -10,15 +10,14 @@ import scala.swing._
 import scala.swing.event._
 import BorderPanel.Position.Center
 
-class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel)
+class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel, tree: Tree[InspectedNode])
   extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
 
-  displayModel.tree.renderer = new SignalNameRenderer(dataModel, displayModel)
-  add(displayModel.tree, Center)
+  add(tree, Center)
 
   focusable = true
 
@@ -27,12 +26,13 @@ class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDi
   ///////////////////////////////////////////////////////////////////////////
 
   listenTo(displayModel)
-  listenTo(keys, displayModel.tree.keys)
+  listenTo(keys, tree.keys)
+  listenTo(mouse.clicks)
   reactions += {
     case _: CursorSet =>
       repaint()
     case KeyReleased(_, Key.BackSpace, _, _) =>
-      displayModel.removeSelectedSignals(this)
+      displayModel.removeSelectedSignals(this, tree.selection.paths.iterator)
   }
 }
 
@@ -64,7 +64,7 @@ class SignalNameRenderer(
     override def paintComponent(g: Graphics2D): Unit = {
       super.paintComponent(g)
 
-      if (currentSignalNode.waveId >= 0) { // paint only signals, not groups
+      if (currentSignalNode.signalId >= 0) { // paint only signals, not groups
 
         if (labelBaseLine == -1) {
           // Initialized once
@@ -94,8 +94,12 @@ class SignalNameRenderer(
 
         g.setFont(ValueFont)
         if (currentSignalIsSelected) g.setColor(Color.white) else g.setColor(Color.blue)
-        val t = dataModel.waveforms(currentSignalNode.waveId).findTransition(displayModel.cursorPosition).next()
-        g.drawString(t.value.toString, 1, valueBaseLine)
+        val t = dataModel.waveforms(currentSignalNode.signalId).findTransition(displayModel.cursorPosition).next()
+        g.drawString(
+          displayModel.waveDisplaySettings(currentSignalNode.signalId).dataFormat.getOrElse(DecFormat)(t.value),
+          1,
+          valueBaseLine
+        )
       }
 
     }

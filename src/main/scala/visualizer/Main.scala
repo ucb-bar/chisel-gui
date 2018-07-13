@@ -37,7 +37,7 @@ object Main extends SimpleSwingApplication {
       displayModel.toggleClock()
     }
     contents += Button("Remove signal(s)") {
-      displayModel.removeSelectedSignals(this)
+      inspectionContainer.removeSignals(this)
     }
   }
 

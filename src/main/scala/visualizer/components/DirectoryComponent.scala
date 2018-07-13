@@ -24,7 +24,7 @@ class DirectoryComponent(dataModel: InspectionDataModel, displayModel: Inspectio
   reactions += {
     case ButtonClicked(`addSymbolsButton`) =>
       dataModel.tree.selection.cellValues.foreach{v =>
-        if (v.waveId >= 0) {
+        if (v.signalId >= 0) {
           displayModel.addSignal(v, this)
         } else {
           displayModel.addModule(v, this)

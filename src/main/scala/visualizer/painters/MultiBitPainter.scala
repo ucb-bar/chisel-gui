@@ -3,14 +3,18 @@ package visualizer.painters
 import java.awt.{Polygon, Rectangle}
 
 import visualizer.DrawMetrics
-import visualizer.models.{InspectionDisplayModel, Waveform}
+import visualizer.models.{DecFormat, InspectionDataModel, InspectionDisplayModel}
 
 import scala.swing.Graphics2D
 
-class MultiBitPainter(displayModel: InspectionDisplayModel) extends Painter(displayModel) {
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, waveform: Waveform, y: Int): Unit = {
-
+class MultiBitPainter(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel) extends Painter(displayModel) {
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, signalId: Int, top: Int): Unit = {
+    val waveform = dataModel.waveforms(signalId)
     val startTimestamp = xCoordinateToTimestamp(visibleRect.x)
+    val formatter = displayModel.waveDisplaySettings(signalId).dataFormat match {
+      case Some(format) => format
+      case None => DecFormat
+    }
 
     // Only paint from first transition at or before the start timestamp
     // up until the first transition after the end timestamp
@@ -21,7 +25,7 @@ class MultiBitPainter(displayModel: InspectionDisplayModel) extends Painter(disp
       val x1: Int = timestampToXCoordinate(transitionPair(1).timestamp)
 
       g.drawPolygon(new Polygon(Array(x0, x0 + DrawMetrics.Foo, x1 - DrawMetrics.Foo, x1, x1 - DrawMetrics.Foo, x0 + DrawMetrics.Foo),
-        Array(y + DrawMetrics.WaveformHeight / 2, y, y, y + DrawMetrics.WaveformHeight / 2, y + DrawMetrics.WaveformHeight, y + DrawMetrics.WaveformHeight),
+        Array(top + DrawMetrics.WaveformHeight / 2, top, top, top + DrawMetrics.WaveformHeight / 2, top + DrawMetrics.WaveformHeight, top + DrawMetrics.WaveformHeight),
         6)
       )
 
@@ -29,8 +33,8 @@ class MultiBitPainter(displayModel: InspectionDisplayModel) extends Painter(disp
         g,
         Math.max(visibleRect.x, x0 + DrawMetrics.Foo),
         Math.min(visibleRect.x + visibleRect.width, x1 - DrawMetrics.Foo),
-        y,
-        transitionPair(0).value.toString
+        top,
+        formatter(transitionPair(0).value)
       )
     }
   }
