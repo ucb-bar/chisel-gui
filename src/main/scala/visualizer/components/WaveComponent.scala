@@ -28,7 +28,7 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
 
     // Drawing the waves
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach { case (node, row) =>
-      val y = row * (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing)
+      val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
       if (node.signalId >= 0) {
         displayModel.waveDisplaySettings(node.signalId).painter match {
           case _ =>
@@ -69,7 +69,7 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
   def computeBounds(): Unit = {
     preferredSize = new Dimension(timestampToXCoordinate(dataModel.maxTimestamp),
       TreeHelper.viewableDepthFirstIterator(tree).size
-        * (DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing))
+        * DrawMetrics.WaveformVerticalSpacing)
     revalidate()
   }
 

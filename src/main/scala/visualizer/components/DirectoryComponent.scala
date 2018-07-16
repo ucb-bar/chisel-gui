@@ -5,12 +5,14 @@ import visualizer.models._
 import scala.swing._
 import scala.swing.event.ButtonClicked
 
-class DirectoryComponent(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel) extends BoxPanel(Orientation.Vertical) {
+class DirectoryComponent(
+  dataModel: InspectionDataModel,
+  displayModel: InspectionDisplayModel
+) extends BoxPanel(Orientation.Vertical) {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-
   val addSymbolsButton = new Button("Add")
   val symbolList = new ScrollPane(dataModel.tree)
   contents += symbolList
@@ -19,7 +21,6 @@ class DirectoryComponent(dataModel: InspectionDataModel, displayModel: Inspectio
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-
   listenTo(addSymbolsButton)
   reactions += {
     case ButtonClicked(`addSymbolsButton`) =>
@@ -31,6 +32,4 @@ class DirectoryComponent(dataModel: InspectionDataModel, displayModel: Inspectio
         }
       }
   }
-
-
 }

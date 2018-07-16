@@ -16,7 +16,6 @@ class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDi
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-
   add(tree, Center)
 
   focusable = true
@@ -24,11 +23,12 @@ class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDi
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-
   listenTo(displayModel)
   listenTo(keys, tree.keys)
   listenTo(mouse.clicks)
   reactions += {
+    case _: WaveFormatChanged =>
+      repaint()
     case _: CursorSet =>
       repaint()
     case KeyReleased(_, Key.BackSpace, _, _) =>
@@ -50,8 +50,8 @@ class SignalNameRenderer(
   override def componentFor(
       owner: Tree[_],
       value: InspectedNode,
-      cellInfo: companion.CellInfo): Component = {
-
+      cellInfo: companion.CellInfo
+  ): Component = {
     currentSignalNode = value
     currentSignalIsSelected = cellInfo.isSelected
     new SignalNamePanel
@@ -59,7 +59,7 @@ class SignalNameRenderer(
 
   class SignalNamePanel extends BorderPanel {
     peer.setOpaque(true)
-    preferredSize = new Dimension(200, DrawMetrics.WaveformHeight + DrawMetrics.WaveformVerticalSpacing)
+    preferredSize = new Dimension(200, DrawMetrics.WaveformVerticalSpacing)
 
     override def paintComponent(g: Graphics2D): Unit = {
       super.paintComponent(g)
@@ -74,7 +74,7 @@ class SignalNameRenderer(
           valueBaseLine = labelBaseLine + labelMetrics.getDescent +
             labelMetrics.getLeading + valueMetrics.getAscent
           val totalHeight = valueBaseLine + valueMetrics.getDescent
-          val border = (DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformHeight - totalHeight) / 2
+          val border = (DrawMetrics.WaveformVerticalSpacing - totalHeight) / 2
           labelBaseLine += border
           valueBaseLine += border
         }
@@ -86,7 +86,7 @@ class SignalNameRenderer(
         } else {
           g.setColor(Color.white)
         }
-        g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformHeight)
+        g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing)
 
         g.setFont(SignalNameFont)
         if (currentSignalIsSelected) g.setColor(Color.white) else g.setColor(Color.black)

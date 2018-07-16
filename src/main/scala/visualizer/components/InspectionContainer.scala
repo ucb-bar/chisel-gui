@@ -50,22 +50,39 @@ class InspectionContainer(dataModel: InspectionDataModel, displayModel: Inspecti
 
     peer.addTreeExpansionListener(expansionListener)
 
-    peer.setRowHeight(DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformHeight)
+    peer.setRowHeight(DrawMetrics.WaveformVerticalSpacing)
 
     // Make it rearrangeable
     peer.setDragEnabled(true)
     peer.setDropMode(DropMode.ON_OR_INSERT)
     peer.setTransferHandler(new TreeTransferHandler(displayModel))
 
+    def isPointInNode(point: Point): Boolean = {
+      val row = getClosestRowForLocation(point.x, point.y)
+      val rect = peer.getRowBounds(row)
+      rect.contains(point)
+    }
+
     listenTo(mouse.clicks)
     reactions += {
       case e: MouseClicked =>
         if (SwingUtilities.isRightMouseButton(e.peer)) {
-          if (selection.isEmpty) {
-            selectRows(getClosestRowForLocation(e.point.x, e.point.y))
+          if (isPointInNode(e.point)) {
+            val row = getClosestRowForLocation(e.point.x, e.point.y)
+
+            if (!selection.rows.contains(row)) {
+              // Right clicked in a node that isn't selected
+              // Then select only the node that was right clicked
+              selectRows(getClosestRowForLocation(e.point.x, e.point.y))
+            }
+
+            repaint()
+            popupMenu.show(this, e.point.x, e.point.y)
           }
-          println("hello")
-          popupMenu.show(this, e.point.x, e.point.y)
+        } else {
+          if (!isPointInNode(e.point)) {
+            selection.clear()
+          }
         }
     }
   }
@@ -77,20 +94,27 @@ class InspectionContainer(dataModel: InspectionDataModel, displayModel: Inspecti
   val waveComponent = new WaveComponent(dataModel, displayModel, tree)
   val signalComponent = new SignalComponent(dataModel, displayModel, tree)
 
-  val scrollPane: ScrollPane = new ScrollPane(waveComponent) {
+  val signalScrollPane: ScrollPane = new ScrollPane(signalComponent) {
+    verticalScrollBar.unitIncrement = 16
+  }
+  val waveScrollPane: ScrollPane = new ScrollPane(waveComponent) {
     horizontalScrollBar.unitIncrement = 16
     verticalScrollBar.unitIncrement = 16
     horizontalScrollBarPolicy = ScrollPane.BarPolicy.Always
     verticalScrollBarPolicy = ScrollPane.BarPolicy.AsNeeded
     columnHeaderView = timelineComponent
   }
+  signalScrollPane.verticalScrollBar.peer.setModel(
+    waveScrollPane.verticalScrollBar.peer.getModel
+  )
+
   val splitPane = new SplitPane(Orientation.Vertical,
     new BorderPanel {
       add(Swing.VStrut(timelineComponent.preferredSize.height), North)
-      add(new ScrollPane(signalComponent), Center)
-      add(Swing.VStrut(scrollPane.horizontalScrollBar.preferredSize.height), South)
+      add(signalScrollPane, Center)
+      add(Swing.VStrut(waveScrollPane.horizontalScrollBar.preferredSize.height), South)
     },
-    scrollPane
+    waveScrollPane
   )
   add(splitPane, Center)
 
