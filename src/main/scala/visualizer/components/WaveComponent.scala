@@ -46,19 +46,19 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
     drawMarkers(g, visibleRect)
 
     // Draw cursor
-    val cursorX = timestampToXCoordinate(displayModel.cursorPosition)
+    val cursorX = displayModel.timestampToXCoordinate(displayModel.cursorPosition)
     g.drawLine(cursorX, visibleRect.y, cursorX, visibleRect.y + visibleRect.height)
   }
 
   def drawMarkers(g: Graphics2D, visibleRect: Rectangle): Unit = {
-    val startTime = xCoordinateToTimestamp(visibleRect.x)
-    val endTime = xCoordinateToTimestamp(visibleRect.x + visibleRect.width)
+    val startTime = displayModel.xCoordinateToTimestamp(visibleRect.x)
+    val endTime = displayModel.xCoordinateToTimestamp(visibleRect.x + visibleRect.width)
 
     val startIndex = displayModel.getMarkerAtTime(startTime)
     val endIndex = displayModel.getMarkerAtTime(endTime)
 
     displayModel.markers.slice(startIndex, endIndex + 1).foreach { marker =>
-      val x = timestampToXCoordinate(marker.timestamp)
+      val x = displayModel.timestampToXCoordinate(marker.timestamp)
       g.drawLine(x, 0, x, visibleRect.y + visibleRect.height)
     }
   }
@@ -67,7 +67,7 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
   // Helper functions
   //
   def computeBounds(): Unit = {
-    preferredSize = new Dimension(timestampToXCoordinate(dataModel.maxTimestamp),
+    preferredSize = new Dimension(displayModel.timestampToXCoordinate(dataModel.maxTimestamp),
       TreeHelper.viewableDepthFirstIterator(tree).size
         * DrawMetrics.WaveformVerticalSpacing)
     revalidate()
@@ -95,9 +95,9 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
       if (e.timestamp < 0)
         repaint()
       else
-        repaint(new Rectangle(timestampToXCoordinate(e.timestamp) - 1, 0, 2, peer.getVisibleRect.height))
+        repaint(new Rectangle(displayModel.timestampToXCoordinate(e.timestamp) - 1, 0, 2, peer.getVisibleRect.height))
     case e: MousePressed =>
-      val timestamp = xCoordinateToTimestamp(e.peer.getX)
+      val timestamp = displayModel.xCoordinateToTimestamp(e.peer.getX)
       if (displayModel.cursorPosition != displayModel.selectionStart)
         repaint()
       if (!e.peer.isShiftDown)
@@ -106,11 +106,8 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
       // displayModel.adjustingCursor = true
     case _: MouseReleased => // displayModel.adjustingCursor = false
     case e: MouseDragged =>
-      val timestamp = xCoordinateToTimestamp(e.peer.getX)
+      val timestamp = displayModel.xCoordinateToTimestamp(e.peer.getX)
       displayModel.setCursorPosition(timestamp)
       peer.scrollRectToVisible(new Rectangle(e.peer.getX, e.peer.getY, 1, 1))
   }
-
-  def xCoordinateToTimestamp(coordinate: Int): Long = { (coordinate / displayModel.scale).toLong }
-  def timestampToXCoordinate(timestamp: Long): Int = { (timestamp * displayModel.scale).toInt }
 }
