@@ -1,41 +1,46 @@
 package visualizer.painters
 
-import java.awt.{Polygon, Rectangle}
+import java.awt.{Color, Rectangle}
 
 import visualizer.DrawMetrics
-import visualizer.models.{DecFormat, InspectionDataModel, InspectionDisplayModel}
+import visualizer.models._
 
 import scala.swing.Graphics2D
 
-class MultiBitPainter(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel) extends Painter(displayModel) {
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, signalId: Int, top: Int): Unit = {
-    val waveform = dataModel.waveforms(signalId)
-    val startTimestamp = displayModel.xCoordinateToTimestamp(visibleRect.x)
-    val formatter = displayModel.waveDisplaySettings(signalId).dataFormat match {
+class MultiBitPainter(dataModel: DataModel, displayModel: DisplayModel) extends Painter(displayModel) {
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode): Unit = {
+    require(node.signal.isDefined)
+    val signal = node.signal.get
+    require(signal.isInstanceOf[PureSignal])
+
+    val pureSignal = signal.asInstanceOf[PureSignal]
+    val formatter = displayModel.waveDisplaySettings(node.nodeId).dataFormat match {
       case Some(format) => format
       case None => DecFormat
     }
+    val startTimestamp = displayModel.xCoordinateToTimestamp(visibleRect.x)
+    g.setColor(Color.black)
 
     // Only paint from first transition at or before the start timestamp
     // up until the first transition after the end timestamp
-    waveform.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
-      displayModel.timestampToXCoordinate(transitionPair(0).timestamp) < visibleRect.x + visibleRect.width
-    }.foreach { transitionPair =>
-      val x0: Int = displayModel.timestampToXCoordinate(transitionPair(0).timestamp)
-      val x1: Int = displayModel.timestampToXCoordinate(transitionPair(1).timestamp)
+    try {
+      pureSignal.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
+        displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
+      }.foreach { transitionPair =>
+        assert(transitionPair.length == 2)
+        val left: Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
+        val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
 
-      g.drawPolygon(new Polygon(Array(x0, x0 + DrawMetrics.Foo, x1 - DrawMetrics.Foo, x1, x1 - DrawMetrics.Foo, x0 + DrawMetrics.Foo),
-        Array(top + DrawMetrics.WaveformHeight / 2, top, top, top + DrawMetrics.WaveformHeight / 2, top + DrawMetrics.WaveformHeight, top + DrawMetrics.WaveformHeight),
-        6)
-      )
+        g.drawPolygon(Painter.hexagon(left, right, top))
 
-      drawLabel(
-        g,
-        Math.max(visibleRect.x, x0 + DrawMetrics.Foo),
-        Math.min(visibleRect.x + visibleRect.width, x1 - DrawMetrics.Foo),
-        top,
-        formatter(transitionPair(0).value)
-      )
+        val labelLeft = math.max(visibleRect.x, left + DrawMetrics.Foo)
+        val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
+        drawLabel(g, labelLeft, labelRight, top, formatter(transitionPair.head.value))
+      }
+    } catch {
+      // If there's only 1 transition in the iterator returned by findTransition,
+      // sliding will throw IndexOutOfBoundsException
+      case _: IndexOutOfBoundsException =>
     }
   }
 

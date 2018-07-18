@@ -6,8 +6,8 @@ import scala.swing._
 import scala.swing.event.ButtonClicked
 
 class DirectoryComponent(
-  dataModel: InspectionDataModel,
-  displayModel: InspectionDisplayModel
+  dataModel: DataModel,
+  displayModel: DisplayModel
 ) extends BoxPanel(Orientation.Vertical) {
 
   ///////////////////////////////////////////////////////////////////////////
@@ -24,12 +24,8 @@ class DirectoryComponent(
   listenTo(addSymbolsButton)
   reactions += {
     case ButtonClicked(`addSymbolsButton`) =>
-      dataModel.tree.selection.cellValues.foreach{v =>
-        if (v.signalId >= 0) {
-          displayModel.addSignal(v, this)
-        } else {
-          displayModel.addModule(v, this)
-        }
+      dataModel.tree.selection.cellValues.foreach{node =>
+        displayModel.addToInspected(node, this)
       }
   }
 }

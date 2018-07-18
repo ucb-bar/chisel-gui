@@ -1,32 +1,45 @@
 package visualizer.painters
 
-import java.awt.Rectangle
+import java.awt.{Color, Rectangle}
 
 import visualizer.DrawMetrics
-import visualizer.models.{InspectionDataModel, InspectionDisplayModel}
+import visualizer.models._
 
 import scala.swing.Graphics2D
 
-class SingleBitPainter(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel) extends Painter(displayModel) {
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, signalId: Int, top: Int): Unit = {
-    val waveform = dataModel.waveforms(signalId)
+class SingleBitPainter(dataModel: DataModel, displayModel: DisplayModel) extends Painter(displayModel) {
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode): Unit = {
+    require(node.signal.isDefined)
+    val signal = node.signal.get
+    require(signal.isInstanceOf[PureSignal])
+
+    val pureSignal = signal.asInstanceOf[PureSignal]
     val startTimestamp = displayModel.xCoordinateToTimestamp(visibleRect.x)
+    g.setColor(Color.black)
 
     // Only paint from first transition at or before the start timestamp
     // up until the first transition after the end timestamp
-    waveform.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
-      displayModel.timestampToXCoordinate(transitionPair(0).timestamp) < visibleRect.x + visibleRect.width
-    }.foreach { transitionPair =>
-      val x0: Int = displayModel.timestampToXCoordinate(transitionPair(0).timestamp)
-      val x1: Int = displayModel.timestampToXCoordinate(transitionPair(1).timestamp)
+    try {
+      pureSignal.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
+        displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
+      }.foreach { transitionPair =>
+        assert(transitionPair.length == 2)
+        val left: Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
+        val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
+        val z = if (transitionPair.head.value == 0) DrawMetrics.WaveformHeight else 0
 
-      val z = if (transitionPair(0).value == 0) DrawMetrics.WaveformHeight else 0
+        // horizontal portion
+        g.drawLine(left, top + z, right, top + z)
 
-      g.drawLine(x0, top + z, x1, top + z)
-
-      if (x0 != 0) {
-        g.drawLine(x0, top, x0, top + DrawMetrics.WaveformHeight)
+        // vertical portion
+        if (left != 0) {
+          g.drawLine(left, top, left, top + DrawMetrics.WaveformHeight)
+        }
       }
+    } catch {
+      // If there's only 1 transition in the iterator returned by findTransition,
+      // sliding will throw IndexOutOfBoundsException
+      case _: IndexOutOfBoundsException =>
     }
   }
 }

@@ -1,43 +1,49 @@
 package visualizer.components
 
-import java.awt.Rectangle
+import java.awt.{Color, Rectangle}
 
 import scalaswingcontrib.event.{TreeCollapsed, TreeExpanded}
 import scalaswingcontrib.tree.Tree
 import visualizer._
 import visualizer.models._
-import visualizer.painters.{MultiBitPainter, SingleBitPainter}
+import visualizer.painters.{MultiBitPainter, ReadyValidPainter, SingleBitPainter}
 
 import scala.swing._
 import scala.swing.event._
 
-class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel, tree: Tree[InspectedNode])
+class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[InspectedNode])
   extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-
   private val multiBitPainter = new MultiBitPainter(dataModel, displayModel)
   private val singleBitPainter = new SingleBitPainter(dataModel, displayModel)
+  private val readyValidPainter = new ReadyValidPainter(dataModel, displayModel)
 
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)
 
     val visibleRect = peer.getVisibleRect
 
-    // Drawing the waves
+    // Draw waveforms
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach { case (node, row) =>
       val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
-      if (node.signalId >= 0) {
-        displayModel.waveDisplaySettings(node.signalId).painter match {
-          case _ =>
-            if (dataModel.waveforms(node.signalId).isBinary)
-              singleBitPainter.paintWaveform(g, visibleRect, node.signalId, y)
-            else
-              multiBitPainter.paintWaveform(g, visibleRect, node.signalId, y)
-        }
-      } else {
+      node.signal match {
+        case Some(signal) =>
+          signal match {
+            case signal: PureSignal =>
+              displayModel.waveDisplaySettings(node.nodeId).painter match {
+                case _ =>
+                  if (signal.isBinary)
+                    singleBitPainter.paintWaveform(g, visibleRect, y, node)
+                  else
+                    multiBitPainter.paintWaveform(g, visibleRect, y, node)
+              }
+            case _: CombinedSignal =>
+              readyValidPainter.paintWaveform(g, visibleRect, y, node)
+          }
+        case _ =>
         // node is a group. do nothing?
       }
     }
@@ -46,6 +52,7 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
     drawMarkers(g, visibleRect)
 
     // Draw cursor
+    g.setColor(new Color(39, 223, 85))
     val cursorX = displayModel.timestampToXCoordinate(displayModel.cursorPosition)
     g.drawLine(cursorX, visibleRect.y, cursorX, visibleRect.y + visibleRect.height)
   }
@@ -53,10 +60,10 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
   def drawMarkers(g: Graphics2D, visibleRect: Rectangle): Unit = {
     val startTime = displayModel.xCoordinateToTimestamp(visibleRect.x)
     val endTime = displayModel.xCoordinateToTimestamp(visibleRect.x + visibleRect.width)
-
     val startIndex = displayModel.getMarkerAtTime(startTime)
     val endIndex = displayModel.getMarkerAtTime(endTime)
 
+    g.setColor(Color.black)
     displayModel.markers.slice(startIndex, endIndex + 1).foreach { marker =>
       val x = displayModel.timestampToXCoordinate(marker.timestamp)
       g.drawLine(x, 0, x, visibleRect.y + visibleRect.height)
@@ -76,20 +83,13 @@ class WaveComponent(dataModel: InspectionDataModel, displayModel: InspectionDisp
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-
   listenTo(displayModel, tree)
   listenTo(mouse.clicks, mouse.moves)
   reactions += {
-    case _ @ (_:SignalsChanged | _:ScaleChanged) =>
+    case _:SignalsChanged | _:ScaleChanged | _:CursorSet | _:TreeExpanded[_] | _:TreeCollapsed[_] =>
       computeBounds()
       repaint()
     case _: WaveFormatChanged =>
-      repaint()
-    case _: CursorSet =>
-      computeBounds()
-      repaint()
-    case _ @ (_:TreeExpanded[InspectedNode] | _:TreeCollapsed[InspectedNode]) =>
-      computeBounds()
       repaint()
     case e: MarkerChanged =>
       if (e.timestamp < 0)

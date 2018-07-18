@@ -15,8 +15,8 @@ import treadle.repl.HasReplConfig
 
 object Main extends SimpleSwingApplication {
 
-  val dataModel = new InspectionDataModel
-  val displayModel = new InspectionDisplayModel
+  val dataModel = new DataModel
+  val displayModel = new DisplayModel
   val directoryContainer = new DirectoryComponent(dataModel, displayModel)
   val inspectionContainer = new InspectionContainer(dataModel, displayModel)
 
@@ -73,23 +73,42 @@ object Main extends SimpleSwingApplication {
   def hacky(): Unit = {
     runSomeTreadle match {
       case Some(wv: WaveformValues) =>
-        Util.toValueChange(wv).values.zipWithIndex.foreach { case (waveform, index) =>
-          dataModel.waveforms(index) = waveform
-          dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, DirectoryNode(index, waveform.name), index)
+        Util.toValueChange(wv).foreach { case (name, waveform) =>
+          val node = DirectoryNode(name, Some(new PureSignal(name, waveform)))
+//          val id = dataModel.addSignal(new PureSignal(name, waveform))
+          dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, node, 0)
         }
         dataModel.updateMaxTimestamp()
         directoryContainer.repaint()
 
         // testing submodules
-        val module = DirectoryNode(-1, "module")
+        val module = DirectoryNode("module", None)
         dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, module, 0)
-        dataModel.waveforms(100) = Waveform("fake", ArrayBuffer[Transition](Transition(0, 0), Transition(106, 99)))
-        dataModel.directoryTreeModel.insertUnder(Tree.Path(module), DirectoryNode(100, "io_fake"), 0)
+
+        val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
+        val signalReady = new PureSignal("ready", waveformReady)
+        val nodeReady = DirectoryNode("io_fake_ready", Some(signalReady))
+        dataModel.directoryTreeModel.insertUnder(Tree.Path(module), nodeReady, 0)
+
+        val waveformValid = makeBinaryTransitions(ArrayBuffer[Int](0, 36, 66, 96, 116, 146, 206, 286, 396, 406, 506))
+        val signalValid = new PureSignal("valid", waveformValid)
+        val nodeValid = DirectoryNode("io_fake_valid", Some(signalValid))
+        dataModel.directoryTreeModel.insertUnder(Tree.Path(module), nodeValid, 0)
+
+        val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))
+        val nodeRV = DirectoryNode("io_rv", Some(signalRV))
+        dataModel.directoryTreeModel.insertUnder(Tree.Path(module), nodeRV, 0)
 
         // very hacky. The directory is not painted if there are no initial nodes. So we add a temporary node and remove it
         // need to move inside InspectionDataModel
         dataModel.directoryTreeModel.remove(Tree.Path(dataModel.temporaryNode))
       case _ =>
+    }
+  }
+
+  def makeBinaryTransitions(times: ArrayBuffer[Int]): Waveform[BigInt] = {
+    times.zipWithIndex.map{ case (time, index) =>
+      Transition[BigInt](time, index % 2)
     }
   }
 

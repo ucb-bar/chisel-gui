@@ -1,13 +1,14 @@
 package visualizer.painters
 
-import java.awt.{FontMetrics, Rectangle}
+import java.awt.{FontMetrics, Polygon, Rectangle}
 
-import visualizer.models.{InspectionDisplayModel, Waveform}
+import visualizer.DrawMetrics
+import visualizer.models.{DisplayModel, InspectedNode}
 
 import scala.swing.{Font, Graphics2D}
 
-abstract class Painter(displayModel: InspectionDisplayModel) {
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, signalId: Int, top: Int): Unit
+abstract class Painter(displayModel: DisplayModel) {
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode): Unit
 }
 
 object Painter {
@@ -21,5 +22,23 @@ object Painter {
     g.drawString(text, x, y)
   }
 
+  def hexagon(left: Int, right: Int, top: Int): Polygon = {
+    val xs = new Array[Int](6)
+    xs(0) = left
+    xs(1) = left + DrawMetrics.Foo
+    xs(2) = right - DrawMetrics.Foo
+    xs(3) = right
+    xs(4) = xs(2)
+    xs(5) = xs(1)
 
+    val ys = new Array[Int](6)
+    ys(0) = top + DrawMetrics.WaveformHeight / 2
+    ys(1) = top
+    ys(2) = top
+    ys(3) = ys(0)
+    ys(4) = top + DrawMetrics.WaveformHeight
+    ys(5) = ys(4)
+
+    new Polygon(xs, ys, 6)
+  }
 }

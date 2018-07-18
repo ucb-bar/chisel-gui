@@ -11,25 +11,19 @@ import scala.swing._
 import BorderPanel.Position._
 import scala.swing.event.MouseClicked
 
-class InspectionContainer(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel) extends BorderPanel {
+class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) extends BorderPanel {
 
   // Popup menu
   private lazy val popupMenu = new PopupMenu {
     contents += new Menu("Data Format") {
       contents += new MenuItem(Action("Binary") {
-        tree.selection.cellValues.foreach{node =>
-          displayModel.setWaveFormat(this, node.signalId, BinFormat)
-        }
+        displayModel.setWaveFormat(this, tree.selection.cellValues, BinFormat)
       })
       contents += new MenuItem(Action("Decimal") {
-        tree.selection.cellValues.foreach{node =>
-          displayModel.setWaveFormat(this, node.signalId, DecFormat)
-        }
+        displayModel.setWaveFormat(this, tree.selection.cellValues, DecFormat)
       })
       contents += new MenuItem(Action("Hexadecimal") {
-        tree.selection.cellValues.foreach{node =>
-          displayModel.setWaveFormat(this, node.signalId, HexFormat)
-        }
+        displayModel.setWaveFormat(this, tree.selection.cellValues, HexFormat)
       })
     }
   }

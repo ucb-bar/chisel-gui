@@ -10,14 +10,13 @@ import scala.swing._
 import scala.swing.event._
 import BorderPanel.Position.Center
 
-class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDisplayModel, tree: Tree[InspectedNode])
+class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[InspectedNode])
   extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
   add(tree, Center)
-
   focusable = true
 
   ///////////////////////////////////////////////////////////////////////////
@@ -27,21 +26,14 @@ class SignalComponent(dataModel: InspectionDataModel, displayModel: InspectionDi
   listenTo(keys, tree.keys)
   listenTo(mouse.clicks)
   reactions += {
-    case _: WaveFormatChanged =>
-      repaint()
-    case _: CursorSet =>
+    case _: WaveFormatChanged | _: CursorSet =>
       repaint()
     case KeyReleased(_, Key.BackSpace, _, _) =>
       displayModel.removeSelectedSignals(this, tree.selection.paths.iterator)
   }
 }
 
-class SignalNameRenderer(
-    dataModel: InspectionDataModel, displayModel: InspectionDisplayModel)
-    extends Tree.Renderer[InspectedNode] {
-  var currentSignalNode = InspectedNode(-10, "asdf")
-  var currentSignalIsSelected = false
-
+class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) extends Tree.Renderer[InspectedNode] {
   private var labelBaseLine = -1
   private var valueBaseLine = 0
   val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)
@@ -52,56 +44,59 @@ class SignalNameRenderer(
       value: InspectedNode,
       cellInfo: companion.CellInfo
   ): Component = {
-    currentSignalNode = value
-    currentSignalIsSelected = cellInfo.isSelected
-    new SignalNamePanel
+    new SignalNamePanel(value, cellInfo.isSelected)
   }
 
-  class SignalNamePanel extends BorderPanel {
+  class SignalNamePanel(node: InspectedNode, isSelected: Boolean) extends BorderPanel {
     peer.setOpaque(true)
     preferredSize = new Dimension(200, DrawMetrics.WaveformVerticalSpacing)
 
     override def paintComponent(g: Graphics2D): Unit = {
       super.paintComponent(g)
 
-      if (currentSignalNode.signalId >= 0) { // paint only signals, not groups
-
-        if (labelBaseLine == -1) {
-          // Initialized once
-          val labelMetrics = g.getFontMetrics(SignalNameFont)
-          val valueMetrics = g.getFontMetrics(ValueFont)
-          labelBaseLine = labelMetrics.getAscent
-          valueBaseLine = labelBaseLine + labelMetrics.getDescent +
-            labelMetrics.getLeading + valueMetrics.getAscent
-          val totalHeight = valueBaseLine + valueMetrics.getDescent
-          val border = (DrawMetrics.WaveformVerticalSpacing - totalHeight) / 2
-          labelBaseLine += border
-          valueBaseLine += border
-        }
-
-        // Change color depending on if currentSignalIsSelected
-
-        if (currentSignalIsSelected) {
-          g.setColor(Color.blue)
-        } else {
-          g.setColor(Color.white)
-        }
-        g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing)
-
-        g.setFont(SignalNameFont)
-        if (currentSignalIsSelected) g.setColor(Color.white) else g.setColor(Color.black)
-        g.drawString(currentSignalNode.name, 1, labelBaseLine)
-
-        g.setFont(ValueFont)
-        if (currentSignalIsSelected) g.setColor(Color.white) else g.setColor(Color.blue)
-        val t = dataModel.waveforms(currentSignalNode.signalId).findTransition(displayModel.cursorPosition).next()
-        g.drawString(
-          displayModel.waveDisplaySettings(currentSignalNode.signalId).dataFormat.getOrElse(DecFormat)(t.value),
-          1,
-          valueBaseLine
-        )
+      if (labelBaseLine == -1) {
+        // Initialized once
+        val labelMetrics = g.getFontMetrics(SignalNameFont)
+        val valueMetrics = g.getFontMetrics(ValueFont)
+        labelBaseLine = labelMetrics.getAscent
+        valueBaseLine = labelBaseLine + labelMetrics.getDescent +
+          labelMetrics.getLeading + valueMetrics.getAscent
+        val totalHeight = valueBaseLine + valueMetrics.getDescent
+        val border = (DrawMetrics.WaveformVerticalSpacing - totalHeight) / 2
+        labelBaseLine += border
+        valueBaseLine += border
       }
 
+      node.signal match {
+        case Some(signal) =>
+          // Background
+          if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)
+          g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing)
+
+          // Signal Name
+          g.setFont(SignalNameFont)
+          if (isSelected) g.setColor(Color.white) else g.setColor(Color.black)
+          g.drawString(node.name, 1, labelBaseLine)
+
+          // Value
+          g.setFont(ValueFont)
+          if (isSelected) g.setColor(Color.white) else g.setColor(Color.blue)
+          val value = signal.findTransition(displayModel.cursorPosition).next().value
+          val txt = signal match {
+            case _: PureSignal =>
+              displayModel.waveDisplaySettings(node.nodeId).dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
+            case _: CombinedSignal =>
+              val pair = value.asInstanceOf[Array[BigInt]]
+              (pair(0).toInt, pair(1).toInt) match {
+                case (0, 0) => "Not ready"
+                case (1, 1) => "Ready"
+                case _ => "Waiting"
+              }
+            case _ => ""
+          }
+          g.drawString(txt, 1, valueBaseLine)
+        case _ =>
+      }
     }
   }
 }

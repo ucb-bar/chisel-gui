@@ -7,10 +7,11 @@ import visualizer._
 
 import scala.collection.mutable
 
-class InspectionDisplayModel extends Publisher {
+class DisplayModel extends Publisher {
+  // Maps nodeId to WaveDisplaySetting
   val waveDisplaySettings: mutable.HashMap[Int, WaveDisplaySetting] = new mutable.HashMap[Int, WaveDisplaySetting]()
 
-  val temporaryNode = InspectedNode(-2, "temp")
+  val temporaryNode = InspectedNode("temp", None)
   val RootPath: Tree.Path[InspectedNode] = Tree.Path.empty[InspectedNode]
   val treeModel: InternalTreeModel[InspectedNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[InspectedNode])
 
@@ -24,7 +25,6 @@ class InspectionDisplayModel extends Publisher {
   // initial/constructor
   setScale(10, null)
 
-
   ///////////////////////////////////////////////////////////////////////////
   // Helper Functions
   ///////////////////////////////////////////////////////////////////////////
@@ -34,18 +34,20 @@ class InspectionDisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Signals
   ///////////////////////////////////////////////////////////////////////////
-  def addSignal(node: DirectoryNode, source: Component): Unit = {
-    treeModel.insertUnder(RootPath, node.toInspected, treeModel.getChildrenOf(RootPath).size)
-    waveDisplaySettings.get(node.signalId) match {
-      case None => waveDisplaySettings += node.signalId -> WaveDisplaySetting()
-      case _ =>
+  def addToInspected(node: DirectoryNode, source: Component): Unit = {
+    node.signal match {
+      case Some(signal) => // Add Signal
+        val inspectedNode = node.toInspected
+        treeModel.insertUnder(RootPath, inspectedNode, treeModel.getChildrenOf(RootPath).size)
+        waveDisplaySettings.get(inspectedNode.nodeId) match {
+          case None =>
+            waveDisplaySettings += inspectedNode.nodeId -> WaveDisplaySetting()
+          case _ =>
+        }
+        publish(SignalsChanged(source))
+      case None =>
+        // Todo: Add module
     }
-    publish(SignalsChanged(source))
-  }
-
-  def addModule(moduleNode: DirectoryNode, source: Component): Unit = {
-    treeModel.insertUnder(RootPath, moduleNode.toInspected, treeModel.getChildrenOf(RootPath).size)
-    publish(SignalsChanged(source))
   }
 
   // Removes all selected signals, selected groups, and children of selected groups
@@ -64,8 +66,14 @@ class InspectionDisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Wave Display Format
   ///////////////////////////////////////////////////////////////////////////
-  def setWaveFormat(source: Component, signalId: Int, format: Format): Unit = {
-    waveDisplaySettings(signalId).dataFormat = Some(format)
+  def setWaveFormat(source: Component, nodes: Iterator[InspectedNode], format: Format): Unit = {
+    nodes.foreach{node =>
+      node.signal match {
+        case Some(_) =>
+          waveDisplaySettings(node.nodeId).dataFormat = Some(format)
+        case None =>
+      }
+    }
     publish(WaveFormatChanged(source))
   }
 
