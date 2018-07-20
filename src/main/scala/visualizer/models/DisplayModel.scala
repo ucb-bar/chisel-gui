@@ -11,9 +11,8 @@ class DisplayModel extends Publisher {
   // Maps nodeId to WaveDisplaySetting
   val waveDisplaySettings: mutable.HashMap[Int, WaveDisplaySetting] = new mutable.HashMap[Int, WaveDisplaySetting]()
 
-  val temporaryNode = InspectedNode("temp", None)
   val RootPath: Tree.Path[InspectedNode] = Tree.Path.empty[InspectedNode]
-  val treeModel: InternalTreeModel[InspectedNode] = InternalTreeModel(temporaryNode)(_ => Seq.empty[InspectedNode])
+  val treeModel: InternalTreeModel[InspectedNode] = InternalTreeModel.empty[InspectedNode]
 
   var scale: Double = 2
   var minorTickInterval: Long = 1
@@ -36,7 +35,7 @@ class DisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   def addToInspected(node: DirectoryNode, source: Component): Unit = {
     node.signal match {
-      case Some(signal) => // Add Signal
+      case Some(_) => // Add Signal
         val inspectedNode = node.toInspected
         treeModel.insertUnder(RootPath, inspectedNode, treeModel.getChildrenOf(RootPath).size)
         waveDisplaySettings.get(inspectedNode.nodeId) match {

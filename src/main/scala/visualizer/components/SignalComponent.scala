@@ -17,7 +17,14 @@ class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tr
   // View
   ///////////////////////////////////////////////////////////////////////////
   add(tree, Center)
+  preferredSize = new Dimension(220, 500)
   focusable = true
+
+  def computeBounds(): Unit = {
+    preferredSize = new Dimension(220, TreeHelper.viewableDepthFirstIterator(tree).size *
+      DrawMetrics.WaveformVerticalSpacing)
+    revalidate()
+  }
 
   ///////////////////////////////////////////////////////////////////////////
   // Controller
@@ -26,6 +33,9 @@ class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tr
   listenTo(keys, tree.keys)
   listenTo(mouse.clicks)
   reactions += {
+    case _: SignalsChanged =>
+      computeBounds()
+      repaint()
     case _: WaveFormatChanged | _: CursorSet =>
       repaint()
     case KeyReleased(_, Key.BackSpace, _, _) =>

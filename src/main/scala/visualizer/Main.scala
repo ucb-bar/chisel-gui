@@ -75,7 +75,6 @@ object Main extends SimpleSwingApplication {
       case Some(wv: WaveformValues) =>
         Util.toValueChange(wv).foreach { case (name, waveform) =>
           val node = DirectoryNode(name, Some(new PureSignal(name, waveform)))
-//          val id = dataModel.addSignal(new PureSignal(name, waveform))
           dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, node, 0)
         }
         dataModel.updateMaxTimestamp()
@@ -98,10 +97,6 @@ object Main extends SimpleSwingApplication {
         val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))
         val nodeRV = DirectoryNode("io_rv", Some(signalRV))
         dataModel.directoryTreeModel.insertUnder(Tree.Path(module), nodeRV, 0)
-
-        // very hacky. The directory is not painted if there are no initial nodes. So we add a temporary node and remove it
-        // need to move inside InspectionDataModel
-        dataModel.directoryTreeModel.remove(Tree.Path(dataModel.temporaryNode))
       case _ =>
     }
   }

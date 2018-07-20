@@ -2,9 +2,9 @@ package visualizer.components
 
 import javax.swing.{DropMode, SwingUtilities}
 import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
-import scalaswingcontrib.event.{TreeCollapsed, TreeExpanded}
+import javax.swing.tree.TreePath
 import scalaswingcontrib.tree.Tree
-import visualizer.DrawMetrics
+import visualizer.{DrawMetrics, SignalsChanged}
 import visualizer.models._
 
 import scala.swing._
@@ -35,10 +35,10 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
 
     protected val expansionListener: TreeExpansionListener = new TreeExpansionListener {
       override def treeExpanded(event: TreeExpansionEvent): Unit = {
-        publish(TreeExpanded[InspectedNode](InspectionContainer.this.tree, treePathToPath(event.getPath)))
+        publish(SignalsChanged(InspectionContainer.this.tree))
       }
       override def treeCollapsed(event: TreeExpansionEvent): Unit = {
-        publish(TreeCollapsed[InspectedNode](InspectionContainer.this.tree, treePathToPath(event.getPath)))
+        publish(SignalsChanged(InspectionContainer.this.tree))
       }
     }
 
@@ -53,12 +53,19 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
 
     def isPointInNode(point: Point): Boolean = {
       val row = getClosestRowForLocation(point.x, point.y)
-      val rect = peer.getRowBounds(row)
-      rect.contains(point)
+      if (row >= 0) {
+        val rect = peer.getRowBounds(row)
+        rect.contains(point)
+      } else {
+        false
+      }
     }
 
     listenTo(mouse.clicks)
+    listenTo(displayModel)
     reactions += {
+      case _: SignalsChanged =>
+        tree.peer.expandPath(new TreePath(model.peer.getRoot))
       case e: MouseClicked =>
         if (SwingUtilities.isRightMouseButton(e.peer)) {
           if (isPointInNode(e.point)) {
@@ -90,6 +97,9 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
 
   val signalScrollPane: ScrollPane = new ScrollPane(signalComponent) {
     verticalScrollBar.unitIncrement = 16
+
+    // prevents apple trackpad jittering
+    horizontalScrollBarPolicy = ScrollPane.BarPolicy.Always
   }
   val waveScrollPane: ScrollPane = new ScrollPane(waveComponent) {
     horizontalScrollBar.unitIncrement = 16

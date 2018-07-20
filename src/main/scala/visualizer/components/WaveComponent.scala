@@ -2,7 +2,6 @@ package visualizer.components
 
 import java.awt.{Color, Rectangle}
 
-import scalaswingcontrib.event.{TreeCollapsed, TreeExpanded}
 import scalaswingcontrib.tree.Tree
 import visualizer._
 import visualizer.models._
@@ -86,7 +85,7 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
   listenTo(displayModel, tree)
   listenTo(mouse.clicks, mouse.moves)
   reactions += {
-    case _:SignalsChanged | _:ScaleChanged | _:CursorSet | _:TreeExpanded[_] | _:TreeCollapsed[_] =>
+    case _: SignalsChanged | _: ScaleChanged | _: CursorSet =>
       computeBounds()
       repaint()
     case _: WaveFormatChanged =>
