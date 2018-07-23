@@ -35,7 +35,7 @@ class DirectoryComponent(
   reactions += {
     case ButtonClicked(`addSymbolsButton`) =>
       tree.selection.cellValues.foreach{node =>
-        displayModel.addToInspected(node, this)
+        displayModel.addFromDirectoryToInspected(node, this)
       }
     case e: TreeNodesInserted[_] =>
       if (dataModel.directoryTreeModel.size == e.childIndices.length) {

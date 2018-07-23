@@ -1,6 +1,7 @@
 package visualizer
 
 import java.awt.Color
+import java.io.File
 
 import scalaswingcontrib.tree._
 import visualizer.components._
@@ -13,7 +14,7 @@ import treadle._
 import treadle.executable.WaveformValues
 import treadle.repl.HasReplConfig
 
-object Main extends SimpleSwingApplication {
+object Main extends SwingApplication {
 
   val dataModel = new DataModel
   val displayModel = new DisplayModel
@@ -38,6 +39,9 @@ object Main extends SimpleSwingApplication {
     }
     contents += Button("Remove signal(s)") {
       inspectionContainer.removeSignals(this)
+    }
+    contents += Button("Add group") {
+      displayModel.addGroup()
     }
   }
 
@@ -68,6 +72,14 @@ object Main extends SimpleSwingApplication {
 
     hacky()
 
+  }
+
+  override def startup(args: Array[String]): Unit = {
+    val t = top
+    if (t.size == new Dimension(0, 0)) t.pack()
+    t.visible = true
+
+    // determine if args is info from treadle or vcd
   }
 
   def hacky(): Unit = {
@@ -115,18 +127,29 @@ object Main extends SimpleSwingApplication {
       treadleOptions = treadleOptions.copy(rollbackBuffers = clkSteps * 900)
     }
 
-    val treadleAPI = new TreadleAPI(optionsManager)
-    treadleAPI.executeCommand(Array("load", "../../treadle/samples/gcd.fir"))
+    val firrtlString = loadFile("../../treadle/samples/gcd.fir")
+    val tester = treadle.TreadleTester(firrtlString, optionsManager)
 
     for (a <- 10 to 20; b <- 20 to 30) {
-      treadleAPI.executeCommand(Array("poke", "io_e", "1"))
-      treadleAPI.executeCommand(Array("poke", "io_a", a.toString))
-      treadleAPI.executeCommand(Array("poke", "io_b", b.toString))
-      treadleAPI.executeCommand(Array("step"))
-      treadleAPI.executeCommand(Array("poke", "io_e", "0"))
-      treadleAPI.executeCommand(Array("step", clkSteps.toString))
+      tester.poke("io_e", 1)
+      tester.poke("io_a", a)
+      tester.poke("io_b", b)
+      tester.step()
+      tester.poke("io_e", 0)
+      tester.step(clkSteps)
     }
 
-    treadleAPI.executeCommand(Array("waves", "0", w.toString, "clk", "io_a", "io_b", "io_e", "x", "y", "io_z", "io_v"))
+    tester.getWaveValues(0, w, Array("clk", "io_a", "io_b", "io_e", "x", "y", "io_z", "io_v"))
+  }
+
+  def loadFile(fileName: String): String = {
+    var file = new File(fileName)
+    if (!file.exists()) {
+      file = new File(fileName + ".fir")
+      if (! file.exists()) {
+        throw new Exception(s"file $fileName does not exist")
+      }
+    }
+    io.Source.fromFile(file).mkString
   }
 }

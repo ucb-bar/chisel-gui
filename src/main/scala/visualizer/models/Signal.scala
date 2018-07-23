@@ -4,7 +4,7 @@ import visualizer.{Transition, Waveform}
 
 import scala.collection.mutable.ArrayBuffer
 
-abstract class Signal[T <: Any] {
+abstract class Signal[T] {
   val waveform: Waveform[T]
 
   // Return iterator starting from the transition at the timestamp or the

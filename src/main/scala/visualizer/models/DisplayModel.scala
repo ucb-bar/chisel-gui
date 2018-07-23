@@ -33,20 +33,25 @@ class DisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Signals
   ///////////////////////////////////////////////////////////////////////////
-  def addToInspected(node: DirectoryNode, source: Component): Unit = {
+  def addFromDirectoryToInspected(node: DirectoryNode, source: Component): Unit = {
+    val inspectedNode = node.toInspected
+    treeModel.insertUnder(RootPath, inspectedNode, treeModel.getChildrenOf(RootPath).size)
+
     node.signal match {
       case Some(_) => // Add Signal
-        val inspectedNode = node.toInspected
-        treeModel.insertUnder(RootPath, inspectedNode, treeModel.getChildrenOf(RootPath).size)
         waveDisplaySettings.get(inspectedNode.nodeId) match {
           case None =>
             waveDisplaySettings += inspectedNode.nodeId -> WaveDisplaySetting()
           case _ =>
         }
-        publish(SignalsChanged(source))
       case None =>
-        // Todo: Add module
     }
+    publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
+  }
+
+  def addGroup(): Unit = {
+    val node = InspectedNode("New Group", None)
+    treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
   }
 
   // Removes all selected signals, selected groups, and children of selected groups

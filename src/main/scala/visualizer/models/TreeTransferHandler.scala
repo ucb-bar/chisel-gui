@@ -67,8 +67,12 @@ class TreeTransferHandler(displayModel: DisplayModel) extends TransferHandler {
   def copy(node: DefaultMutableTreeNode): DefaultMutableTreeNode = {
     val originalInspectedNode = node.getUserObject.asInstanceOf[InspectedNode]
     val copiedInspectedNode = originalInspectedNode.copy
-    displayModel.waveDisplaySettings(copiedInspectedNode.nodeId) =
-      displayModel.waveDisplaySettings(originalInspectedNode.nodeId)
+    originalInspectedNode.signal match {
+      case Some(_) =>
+        displayModel.waveDisplaySettings(copiedInspectedNode.nodeId) =
+          displayModel.waveDisplaySettings(originalInspectedNode.nodeId)
+      case None =>
+    }
     new DefaultMutableTreeNode(copiedInspectedNode)
   }
 

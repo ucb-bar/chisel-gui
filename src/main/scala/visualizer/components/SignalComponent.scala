@@ -105,7 +105,16 @@ class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) exten
             case _ => ""
           }
           g.drawString(txt, 1, valueBaseLine)
-        case _ =>
+        case None =>
+          // Node is a group
+          // Background
+          if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)
+          g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing)
+
+          // Group Name
+          g.setFont(SignalNameFont) // TODO: Rename SignalNameFont
+          if (isSelected) g.setColor(Color.white) else g.setColor(Color.black)
+          g.drawString(node.name, 1, labelBaseLine)
       }
     }
   }
