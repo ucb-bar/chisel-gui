@@ -7,22 +7,33 @@ import visualizer.models._
 import scala.collection.mutable.ArrayBuffer
 
 object Util {
-  def toValueChange(waveformValues: WaveformValues): mutable.HashMap[String, Waveform[BigInt]] = {
+  def toValueChange(waveformValues: WaveformValues, initializing: Boolean): mutable.HashMap[String, Waveform[BigInt]] = {
     val hashMap = new mutable.HashMap[String, Waveform[BigInt]]()
     waveformValues.symbols.zip(waveformValues.symbolValues).foreach {
       case (symbol, values) =>
-        hashMap += symbol.name -> allValuesToTransitionVec(waveformValues.clockValues, values)
+        hashMap += symbol.name -> rollbackValuesToTransitions(waveformValues.clockValues, values, initializing)
     }
     hashMap
   }
 
-  def allValuesToTransitionVec(clkValues: Array[BigInt], vals: Array[BigInt]): ArrayBuffer[Transition[BigInt]] = {
+  /**
+    * Convert Array of rollback values to an ArrayBuffer of Transitions (value change)
+    *
+    * If initializing, the first transition will have timestamp 0. The value of the first transition will be 0 unless
+    * the rollbackValues starts with clock value 0.
+    *
+    * @param clkValues timestamps
+    * @param rollbackValues values
+    * @param initializing true if building a waveform scratch
+    * @return
+    */
+  def rollbackValuesToTransitions(clkValues: Array[BigInt], rollbackValues: Array[BigInt], initializing: Boolean): ArrayBuffer[Transition[BigInt]] = {
     val buf = new ArrayBuffer[Transition[BigInt]]()
 
-    var values: Array[BigInt] = vals
+    var values: Array[BigInt] = rollbackValues
     var clockValues: Array[BigInt] = clkValues
 
-    if (clockValues(0) != 0) {
+    if (initializing && clockValues(0) != 0) {
       clockValues +:= BigInt(0)
       values +:= BigInt(0)
     }

@@ -27,15 +27,17 @@ class MultiBitPainter(dataModel: DataModel, displayModel: DisplayModel) extends 
       pureSignal.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
         displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
       }.foreach { transitionPair =>
-        assert(transitionPair.length == 2)
-        val left: Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
-        val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
+        // length could be 1 if findTransition(startTimestamp) has length 1
+        if (transitionPair.length == 2) {
+          val left: Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
+          val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
 
-        g.drawPolygon(Painter.hexagon(left, right, top))
+          g.drawPolygon(Painter.hexagon(left, right, top))
 
-        val labelLeft = math.max(visibleRect.x, left + DrawMetrics.Foo)
-        val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
-        drawLabel(g, labelLeft, labelRight, top, formatter(transitionPair.head.value))
+          val labelLeft = math.max(visibleRect.x, left + DrawMetrics.Foo)
+          val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
+          drawLabel(g, labelLeft, labelRight, top, formatter(transitionPair.head.value))
+        }
       }
     } catch {
       // If there's only 1 transition in the iterator returned by findTransition,

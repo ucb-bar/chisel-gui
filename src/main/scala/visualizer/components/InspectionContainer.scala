@@ -2,7 +2,7 @@ package visualizer.components
 
 import javax.swing.{DropMode, SwingUtilities}
 import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
-import javax.swing.tree.TreePath
+import javax.swing.tree.{DefaultMutableTreeNode, TreePath}
 import scalaswingcontrib.tree.Tree
 import visualizer.{DrawMetrics, SignalsChanged}
 import visualizer.models._
@@ -14,7 +14,7 @@ import scala.swing.event.MouseClicked
 class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) extends BorderPanel {
 
   // Popup menu
-  private lazy val popupMenu = new PopupMenu {
+  private def popupMenu(signal: Option[Signal[_ <: Any]]): PopupMenu = new PopupMenu {
     contents += new Menu("Data Format") {
       contents += new MenuItem(Action("Binary") {
         displayModel.setWaveFormat(this, tree.selection.cellValues, BinFormat)
@@ -24,6 +24,12 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
       })
       contents += new MenuItem(Action("Hexadecimal") {
         displayModel.setWaveFormat(this, tree.selection.cellValues, HexFormat)
+      })
+    }
+    if (signal.isDefined && signal.get.isInstanceOf[PureSignal]) {
+      val pureSignalName = signal.get.asInstanceOf[PureSignal].name
+      contents += new MenuItem(Action("Show Dependency Graph") {
+        displayModel.showDependency(pureSignalName, this)
       })
     }
   }
@@ -76,9 +82,12 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
               // Then select only the node that was right clicked
               selectRows(getClosestRowForLocation(e.point.x, e.point.y))
             }
-
             repaint()
-            popupMenu.show(this, e.point.x, e.point.y)
+
+            val path = tree.peer.getClosestPathForLocation(e.point.x, e.point.y)
+            val peerNode = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
+            val node = peerNode.getUserObject.asInstanceOf[InspectedNode]
+            popupMenu(node.signal).show(this, e.point.x, e.point.y)
           }
         } else {
           if (!isPointInNode(e.point)) {

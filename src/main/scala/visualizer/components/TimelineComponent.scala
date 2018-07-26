@@ -25,14 +25,14 @@ class TimelineComponent(dataModel: DataModel, displayModel: DisplayModel) extend
 
     displayModel.clock match {
       case Some(clk) if displayModel.useClock =>
-        val startTime: Long = math.max(((visibleRect.x - 100) / displayModel.scale).toLong - clk.startTime, 0) / clk.cycleDuration * clk.cycleDuration + clk.startTime
+        val startTime: Long = math.max(((visibleRect.x - 100) / displayModel.scale).toLong - clk.initialOffset, 0) / clk.period * clk.period + clk.initialOffset
         val endTime: Long = ((visibleRect.x + visibleRect.width) / displayModel.scale).toLong
 
-        for (ts: Long <- startTime until endTime by clk.cycleDuration) {
+        for (ts: Long <- startTime until endTime by clk.period) {
           val x: Int = (ts * displayModel.scale).toInt
-          if ((((ts -  clk.startTime) / clk.cycleDuration) / displayModel.clkMinorTickInterval) % 5 == 0) {
+          if ((((ts -  clk.initialOffset) / clk.period) / displayModel.clkMinorTickInterval) % 5 == 0) {
             g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
-            g.drawString(((ts - clk.startTime) / clk.cycleDuration).toString, x + 3, DrawMetrics.MinorTickTop - metrics.getDescent - 2)
+            g.drawString(((ts - clk.initialOffset) / clk.period).toString, x + 3, DrawMetrics.MinorTickTop - metrics.getDescent - 2)
           } else {
             g.drawLine(x, DrawMetrics.MinorTickTop, x, DrawMetrics.TimescaleHeight)
           }

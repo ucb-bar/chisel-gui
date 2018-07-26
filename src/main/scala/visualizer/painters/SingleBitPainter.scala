@@ -23,17 +23,19 @@ class SingleBitPainter(dataModel: DataModel, displayModel: DisplayModel) extends
       pureSignal.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
         displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
       }.foreach { transitionPair =>
-        assert(transitionPair.length == 2)
-        val left: Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
-        val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
-        val z = if (transitionPair.head.value == 0) DrawMetrics.WaveformHeight else 0
+        // length could be 1 if findTransition(startTimestamp) has length 1
+        if (transitionPair.length == 2) {
+          val left: Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
+          val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
+          val z = if (transitionPair.head.value == 0) DrawMetrics.WaveformHeight else 0
 
-        // horizontal portion
-        g.drawLine(left, top + z, right, top + z)
+          // horizontal portion
+          g.drawLine(left, top + z, right, top + z)
 
-        // vertical portion
-        if (left != 0) {
-          g.drawLine(left, top, left, top + DrawMetrics.WaveformHeight)
+          // vertical portion
+          if (left != 0) {
+            g.drawLine(left, top, left, top + DrawMetrics.WaveformHeight)
+          }
         }
       }
     } catch {

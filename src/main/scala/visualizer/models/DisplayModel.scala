@@ -3,6 +3,7 @@ package visualizer.models
 import scala.collection.mutable.ArrayBuffer
 import scala.swing._
 import scalaswingcontrib.tree._
+import treadle.executable.ClockInfo
 import visualizer._
 
 import scala.collection.mutable
@@ -19,7 +20,7 @@ class DisplayModel extends Publisher {
 
   var clkMinorTickInterval: Long = 1
   var useClock: Boolean = false
-  var clock: Option[Clock] = None
+  var clock: Option[ClockInfo] = None
 
   // initial/constructor
   setScale(10, null)
@@ -94,9 +95,9 @@ class DisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Timeline
   ///////////////////////////////////////////////////////////////////////////
-  def setClock(signalId: Long): Unit = {
+  def setClock(newClock: ClockInfo): Unit = {
     // Verify wave matches a clock? (binary, oscillating)
-    clock = Some(Clock(6, 10))
+    clock = Some(newClock)
     useClock = true
     publish(TimeUnitsChanged(null))
   }
@@ -219,10 +220,16 @@ class DisplayModel extends Publisher {
         selectionStart = timestamp
     }
   }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Dependency Graph
+  ///////////////////////////////////////////////////////////////////////////
+  def showDependency(pureSignalName: String, source: Component): Unit = {
+    publish(DependencyComponentRequested(pureSignalName, source))
+  }
 }
 
 case class Marker(id: Int, var description: String, timestamp: Long)
-case class Clock(startTime: Long, cycleDuration: Long)
 case class WaveDisplaySetting(var painter: Option[Int] = None, var dataFormat: Option[Format] = None)
 
 

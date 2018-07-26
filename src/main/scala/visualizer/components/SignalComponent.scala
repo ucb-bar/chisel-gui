@@ -97,10 +97,14 @@ class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) exten
               displayModel.waveDisplaySettings(node.nodeId).dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
             case _: CombinedSignal =>
               val pair = value.asInstanceOf[Array[BigInt]]
-              (pair(0).toInt, pair(1).toInt) match {
-                case (0, 0) => "Not ready"
-                case (1, 1) => "Ready"
-                case _ => "Waiting"
+              if (pair != null) {
+                (pair(0).toInt, pair(1).toInt) match {
+                  case (0, 0) => "Not ready"
+                  case (1, 1) => "Ready"
+                  case _ => "Waiting"
+                }
+              } else {
+                ""
               }
             case _ => ""
           }
