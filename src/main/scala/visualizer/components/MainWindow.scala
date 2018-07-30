@@ -2,6 +2,7 @@ package visualizer.components
 
 import java.awt.Color
 
+import javax.swing.BorderFactory
 import treadle.executable.ClockInfo
 import visualizer.models._
 import visualizer.{DependencyComponentRequested, TreadleController}
@@ -14,8 +15,10 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  val directoryContainer = new DirectoryComponent(dataModel, displayModel)
+  val directoryComponent = new DirectoryComponent(dataModel, displayModel)
   val inspectionContainer = new InspectionContainer(dataModel, displayModel)
+  val dependencyComponent = new DependencyComponent(dataModel, displayModel)
+  val treadleComponent = new InteractiveTreadleComponent(dataModel, displayModel)
 
   private val toolbar = new ToolBar() {
     contents += Button("Zoom In") {
@@ -55,13 +58,18 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
 
     layout(toolbar) = North
 
-    val splitPane = new SplitPane(Orientation.Vertical,
-      new ScrollPane(directoryContainer), inspectionContainer)
+    val splitPane: SplitPane = new SplitPane(Orientation.Vertical,
+      new ScrollPane(directoryComponent) {
+        preferredSize = new Dimension(150, 700)
+        minimumSize = new Dimension(150, 300)
+      }, inspectionContainer
+    ) {
+      border = BorderFactory.createEmptyBorder()
+    }
 
     layout(splitPane) = Center
-
-    val dependencyComponent = new DependencyComponent(dataModel, displayModel)
     layout(dependencyComponent) = South
+    layout(treadleComponent) = East
 
     listenTo(displayModel)
     reactions += {

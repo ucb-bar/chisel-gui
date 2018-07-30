@@ -1,6 +1,6 @@
 package visualizer.models
 
-import visualizer.{Transition, Waveform}
+import visualizer.{Transition, Util, Waveform}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -25,6 +25,20 @@ abstract class Signal[T] {
       }
     }
     search().iterator
+  }
+
+  def addNewValues(newValues: Waveform[T]): Unit = {
+    assert(waveform.length >= 2)
+    assert(newValues.length >= 2)
+    assert(waveform.last.timestamp == newValues.head.timestamp,
+      s"${waveform.length} ${newValues.length} \n ${Util.waveformToString(waveform)} \n ${Util.waveformToString(newValues)}")
+
+    waveform -= waveform.last
+    if (waveform.last.value == newValues.head.value) {
+      waveform ++= newValues.tail
+    } else {
+      waveform ++= newValues
+    }
   }
 
   // TODO: should be replaced with information from VCD or treadle about num of bits

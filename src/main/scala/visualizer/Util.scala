@@ -56,4 +56,8 @@ object Util {
     }
     buf
   }
+
+  def waveformToString[T](waveform: Waveform[T]): String = {
+    waveform.map(t => s"(${t.timestamp}, ${t.value})").mkString(" ")
+  }
 }

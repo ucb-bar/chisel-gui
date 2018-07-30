@@ -8,12 +8,13 @@ import treadle.repl.HasReplConfig
 import visualizer.components.MainWindow
 import visualizer.models._
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.swing.{Dimension, SwingApplication}
+import scala.swing.{Dimension, Publisher, SwingApplication}
 
-object TreadleController extends SwingApplication {
+object TreadleController extends SwingApplication with Publisher {
   var tester: Option[TreadleTester] = None
-  private val clkSteps = 5
+  private val clkSteps = 2
 
   val dataModel = new DataModel
   val displayModel = new DisplayModel
@@ -66,7 +67,7 @@ object TreadleController extends SwingApplication {
   def runSomeTreadle(): Unit = {
     tester match {
       case Some(t) =>
-        for (a <- 10 to 20; b <- 20 to 30) {
+        for (a <- 10 to 20; b <- 20 to 22) {
           t.poke("io_e", 1)
           t.poke("io_a", a)
           t.poke("io_b", b)
@@ -84,16 +85,18 @@ object TreadleController extends SwingApplication {
     }
   }
 
+  val pureSignalMapping = new mutable.HashMap[String, DirectoryNode]
   def setupWaveforms(): Unit = {
     tester match {
       case Some(t) =>
         val wv = t.allWaveformValues
         Util.toValueChange(wv, initializing = true).foreach { case (name, waveform) =>
           val node = DirectoryNode(name, Some(new PureSignal(name, waveform)))
+          pureSignalMapping(name) = node
           dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, node, 0)
         }
-        dataModel.updateMaxTimestamp()
         mainWindow.repaint()
+        dataModel.updateMaxTimestamp()
 
         // testing submodules
         val module = DirectoryNode("module", None)
@@ -112,6 +115,8 @@ object TreadleController extends SwingApplication {
         val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))
         val nodeRV = DirectoryNode("io_rv", Some(signalRV))
         dataModel.directoryTreeModel.insertUnder(Tree.Path(module), nodeRV, 0)
+
+        publish(new PureSignalsChanged)
     }
   }
 }

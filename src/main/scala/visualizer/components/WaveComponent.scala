@@ -82,10 +82,10 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-  listenTo(displayModel, tree)
+  listenTo(dataModel, displayModel, tree)
   listenTo(mouse.clicks, mouse.moves)
   reactions += {
-    case _: SignalsChanged | _: ScaleChanged | _: CursorSet =>
+    case _: SignalsChanged | _: ScaleChanged | _: CursorSet | _: MaxTimestampChanged =>
       computeBounds()
       repaint()
     case _: WaveFormatChanged =>

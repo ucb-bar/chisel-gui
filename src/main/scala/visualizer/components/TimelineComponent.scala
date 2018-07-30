@@ -64,9 +64,9 @@ class TimelineComponent(dataModel: DataModel, displayModel: DisplayModel) extend
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-  listenTo(displayModel)
+  listenTo(dataModel, displayModel)
   reactions += {
-    case _: SignalsChanged =>
+    case _: SignalsChanged | _: MaxTimestampChanged =>
       computeBounds()
       repaint()
     case _: ScaleChanged => scaleChanged()

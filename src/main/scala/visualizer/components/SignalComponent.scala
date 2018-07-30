@@ -17,11 +17,10 @@ class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tr
   // View
   ///////////////////////////////////////////////////////////////////////////
   add(tree, Center)
-  preferredSize = new Dimension(220, 500)
   focusable = true
 
   def computeBounds(): Unit = {
-    preferredSize = new Dimension(220, TreeHelper.viewableDepthFirstIterator(tree).size *
+    preferredSize = new Dimension(125, TreeHelper.viewableDepthFirstIterator(tree).size *
       DrawMetrics.WaveformVerticalSpacing)
     revalidate()
   }

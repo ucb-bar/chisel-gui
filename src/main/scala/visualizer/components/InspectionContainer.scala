@@ -100,17 +100,21 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
+  preferredSize = new Dimension(500, 700)
+
   val timelineComponent = new TimelineComponent(dataModel, displayModel)
   val waveComponent = new WaveComponent(dataModel, displayModel, tree)
   val signalComponent = new SignalComponent(dataModel, displayModel, tree)
 
   val signalScrollPane: ScrollPane = new ScrollPane(signalComponent) {
+    minimumSize = new Dimension(150, 300)
     verticalScrollBar.unitIncrement = 16
 
     // prevents apple trackpad jittering
     horizontalScrollBarPolicy = ScrollPane.BarPolicy.Always
   }
   val waveScrollPane: ScrollPane = new ScrollPane(waveComponent) {
+    preferredSize = new Dimension (550, 700)
     horizontalScrollBar.unitIncrement = 16
     verticalScrollBar.unitIncrement = 16
     horizontalScrollBarPolicy = ScrollPane.BarPolicy.Always
