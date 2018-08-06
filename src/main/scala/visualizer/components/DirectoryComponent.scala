@@ -1,5 +1,6 @@
 package visualizer.components
 
+import javax.swing.BorderFactory
 import javax.swing.tree.TreePath
 import scalaswingcontrib.event.TreeNodesInserted
 import scalaswingcontrib.tree.Tree
@@ -23,7 +24,9 @@ class DirectoryComponent(
   }
 
   val addSymbolsButton = new Button("Add")
-  val symbolList = new ScrollPane(tree)
+  val symbolList: ScrollPane = new ScrollPane(tree) {
+    border = BorderFactory.createEmptyBorder()
+  }
   contents += symbolList
   contents += addSymbolsButton
 

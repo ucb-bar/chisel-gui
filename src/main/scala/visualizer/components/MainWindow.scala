@@ -21,6 +21,8 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
   val treadleComponent = new InteractiveTreadleComponent(dataModel, displayModel)
 
   private val toolbar = new ToolBar() {
+    peer.setFloatable(false)
+
     contents += Button("Zoom In") {
       inspectionContainer.zoomIn(this)
     }
@@ -51,7 +53,6 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
   contents = new BorderPanel {
     import BorderPanel.Position._
 
-    background = Color.white
     preferredSize = (1000, 800)
 
     focusable = true
@@ -62,6 +63,7 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
       new ScrollPane(directoryComponent) {
         preferredSize = new Dimension(150, 700)
         minimumSize = new Dimension(150, 300)
+        border = BorderFactory.createEmptyBorder()
       }, inspectionContainer
     ) {
       border = BorderFactory.createEmptyBorder()

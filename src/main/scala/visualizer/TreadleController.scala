@@ -2,6 +2,8 @@ package visualizer
 
 import java.io.File
 
+import com.bulenkov.darcula.DarculaLaf
+import javax.swing.UIManager
 import scalaswingcontrib.tree.Tree
 import treadle.{TreadleOptionsManager, TreadleTester}
 import treadle.repl.HasReplConfig
@@ -21,6 +23,8 @@ object TreadleController extends SwingApplication with Publisher {
   lazy val mainWindow = new MainWindow(dataModel, displayModel)
 
   override def startup(args: Array[String]): Unit = {
+    //UIManager.setLookAndFeel(new DarculaLaf)
+
     val t = mainWindow
     if (t.size == new Dimension(0, 0)) t.pack()
     t.visible = true

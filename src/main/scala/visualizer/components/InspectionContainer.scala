@@ -1,6 +1,6 @@
 package visualizer.components
 
-import javax.swing.{DropMode, SwingUtilities}
+import javax.swing.{BorderFactory, DropMode, SwingUtilities}
 import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
 import javax.swing.tree.{DefaultMutableTreeNode, TreePath}
 import scalaswingcontrib.tree.Tree
@@ -108,6 +108,8 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
 
   val signalScrollPane: ScrollPane = new ScrollPane(signalComponent) {
     minimumSize = new Dimension(150, 300)
+    border = BorderFactory.createEmptyBorder()
+
     verticalScrollBar.unitIncrement = 16
 
     // prevents apple trackpad jittering
@@ -125,14 +127,15 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
     waveScrollPane.verticalScrollBar.peer.getModel
   )
 
-  val splitPane = new SplitPane(Orientation.Vertical,
-    new BorderPanel {
-      add(Swing.VStrut(timelineComponent.preferredSize.height), North)
-      add(signalScrollPane, Center)
-      add(Swing.VStrut(waveScrollPane.horizontalScrollBar.preferredSize.height), South)
+  val splitPane: SplitPane = new SplitPane(Orientation.Vertical,
+    new BoxPanel(Orientation.Vertical) {
+      contents += Swing.VStrut(timelineComponent.preferredSize.height)
+      contents += signalScrollPane
     },
     waveScrollPane
-  )
+  ) {
+    border = BorderFactory.createEmptyBorder()
+  }
   add(splitPane, Center)
 
 

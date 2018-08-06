@@ -25,6 +25,9 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
 
     val visibleRect = peer.getVisibleRect
 
+    // Set background color
+    background = Color.white
+
     // Draw waveforms
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach { case (node, row) =>
       val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
