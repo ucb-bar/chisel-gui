@@ -91,30 +91,30 @@ object TreadleController extends SwingApplication with Publisher {
       case Some(t) =>
         val wv = t.allWaveformValues
         Util.toValueChange(wv, initializing = true).foreach { case (name, waveform) =>
-          val node = DirectoryNode(name, Some(new PureSignal(name, waveform)))
+          val node = DirectoryNode(name, Some(new PureSignal(name, waveform, t.isRegister(name))))
           pureSignalMapping(name) = node
-          dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, node, 0)
+          dataModel.insertUnderSorted(dataModel.RootPath, node)
         }
         mainWindow.repaint()
         dataModel.updateMaxTimestamp()
 
         // testing submodules
         val module = DirectoryNode("module", None)
-        dataModel.directoryTreeModel.insertUnder(dataModel.RootPath, module, 0)
+        dataModel.insertUnderSorted(dataModel.RootPath, module)
 
         val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
-        val signalReady = new PureSignal("ready", waveformReady)
+        val signalReady = new PureSignal("ready", waveformReady, false)
         val nodeReady = DirectoryNode("io_fake_ready", Some(signalReady))
-        dataModel.directoryTreeModel.insertUnder(Tree.Path(module), nodeReady, 0)
+        dataModel.insertUnderSorted(Tree.Path(module), nodeReady)
 
         val waveformValid = makeBinaryTransitions(ArrayBuffer[Int](0, 36, 66, 96, 116, 146, 206, 286, 396, 406, 506))
-        val signalValid = new PureSignal("valid", waveformValid)
+        val signalValid = new PureSignal("valid", waveformValid, false)
         val nodeValid = DirectoryNode("io_fake_valid", Some(signalValid))
-        dataModel.directoryTreeModel.insertUnder(Tree.Path(module), nodeValid, 0)
+        dataModel.insertUnderSorted(Tree.Path(module), nodeValid)
 
         val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))
         val nodeRV = DirectoryNode("io_rv", Some(signalRV))
-        dataModel.directoryTreeModel.insertUnder(Tree.Path(module), nodeRV, 0)
+        dataModel.insertUnderSorted(Tree.Path(module), nodeRV)
 
         publish(new PureSignalsChanged)
     }

@@ -59,7 +59,8 @@ abstract class Signal[T] {
 ///////////////////////////////////////////////////////////////////////////
 class PureSignal(
   var name: String,
-  val waveform: Waveform[BigInt]
+  val waveform: Waveform[BigInt],
+  val isRegister: Boolean
 ) extends Signal[BigInt]
 
 class TruncatedSignal(
