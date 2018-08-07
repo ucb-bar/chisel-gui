@@ -4,7 +4,6 @@ import java.io.File
 
 //import com.bulenkov.darcula.DarculaLaf
 //import javax.swing.UIManager
-import scalaswingcontrib.tree.Tree
 import treadle.{TreadleOptionsManager, TreadleTester}
 import treadle.repl.HasReplConfig
 import visualizer.components.MainWindow
@@ -102,7 +101,19 @@ object TreadleController extends SwingApplication with Publisher {
         val wv = t.allWaveformValues
         Util.toValueChange(wv, initializing = true).foreach { case (fullName, transitions) =>
           val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
-          val signal = new PureSignal(fullName, waveform, t.isRegister(fullName))
+          val sortGroup = if (t.isRegister(fullName)) {
+            1
+          } else {
+            val signalName = fullName.split("\\.").last
+            if (signalName.contains("io_")) {
+              0
+            } else if (signalName.contains("T_") || signalName.contains("GEN_")) {
+              3
+            } else {
+              2
+            }
+          }
+          val signal = new PureSignal(fullName, waveform, sortGroup)
           addSignal(fullName, signal)
         }
         mainWindow.repaint()
@@ -141,11 +152,11 @@ object TreadleController extends SwingApplication with Publisher {
     setupWaveforms()
 
     val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
-    val signalReady = new PureSignal("ready", Some(waveformReady), false)
+    val signalReady = new PureSignal("ready", Some(waveformReady), 0)
     addSignal("module.io_fake_ready", signalReady)
 
     val waveformValid = makeBinaryTransitions(ArrayBuffer[Int](0, 36, 66, 96, 116, 146, 206, 286, 396, 406, 506))
-    val signalValid = new PureSignal("valid", Some(waveformValid), false)
+    val signalValid = new PureSignal("valid", Some(waveformValid), 0)
     addSignal("module.io_fake_valid", signalValid)
 
     val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))

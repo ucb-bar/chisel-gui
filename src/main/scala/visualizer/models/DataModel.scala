@@ -77,13 +77,13 @@ object DirectoryNodeOrdering extends Ordering[DirectoryNode] {
       case (Some(xsignal), Some(ysignal)) =>
         (xsignal, ysignal) match {
           case (xPureSignal: PureSignal, yPureSignal: PureSignal) =>
-            (xPureSignal.isRegister, yPureSignal.isRegister) match {
-              case (true, false) => -1
-              case (false, true) => 1
-              case _ => x.name.toLowerCase compareTo y.name.toLowerCase
+            if (xPureSignal.sortGroup == yPureSignal.sortGroup) {
+              x.name.toLowerCase compareTo y.name.toLowerCase
+            } else {
+              xPureSignal.sortGroup - yPureSignal.sortGroup
             }
-          case (xPureSignal: PureSignal, _) => if (xPureSignal.isRegister) -1 else 1
-          case (_, yPureSignal: PureSignal) => if (yPureSignal.isRegister) 1 else -1
+          case (xPureSignal: PureSignal, _) => if (xPureSignal.sortGroup <= 1) -1 else 1
+          case (_, yPureSignal: PureSignal) => if (yPureSignal.sortGroup <= 1) 1 else -1
           case _ => x.name.toLowerCase compareTo y.name.toLowerCase
         }
       case (None, Some(_)) => -1
