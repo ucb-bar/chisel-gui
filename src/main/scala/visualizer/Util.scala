@@ -7,8 +7,8 @@ import visualizer.models._
 import scala.collection.mutable.ArrayBuffer
 
 object Util {
-  def toValueChange(waveformValues: WaveformValues, initializing: Boolean): mutable.HashMap[String, Waveform[BigInt]] = {
-    val hashMap = new mutable.HashMap[String, Waveform[BigInt]]()
+  def toValueChange(waveformValues: WaveformValues, initializing: Boolean): mutable.HashMap[String, ArrayBuffer[Transition[BigInt]]] = {
+    val hashMap = new mutable.HashMap[String, ArrayBuffer[Transition[BigInt]]]()
     waveformValues.symbols.zip(waveformValues.symbolValues).foreach {
       case (symbol, values) =>
         hashMap += symbol.name -> rollbackValuesToTransitions(waveformValues.clockValues, values, initializing)
@@ -30,34 +30,37 @@ object Util {
   def rollbackValuesToTransitions(clkValues: Array[BigInt], rollbackValues: Array[BigInt], initializing: Boolean): ArrayBuffer[Transition[BigInt]] = {
     val buf = new ArrayBuffer[Transition[BigInt]]()
 
-    var values: Array[BigInt] = rollbackValues
-    var clockValues: Array[BigInt] = clkValues
+    if (clkValues.nonEmpty && rollbackValues.nonEmpty) {
+      var values: Array[BigInt] = rollbackValues
+      var clockValues: Array[BigInt] = clkValues
 
-    if (initializing && clockValues(0) != 0) {
-      clockValues +:= BigInt(0)
-      values +:= BigInt(0)
-    }
+      if (initializing && clockValues(0) != 0) {
+        clockValues +:= BigInt(0)
+        values +:= BigInt(0)
+      }
 
-    if (values(values.length - 1) != null) {
-      clockValues :+= clockValues(clockValues.length - 1) + 10
-      values :+= null
-    }
+      if (values(values.length - 1) != null) {
+        clockValues :+= clockValues(clockValues.length - 1) + 10
+        values :+= null
+      }
 
-    var previousValue = values(0)
-    var previousTimestamp = clockValues(0)
-    buf += Transition[BigInt](clockValues(0).toLong, values(0))
+      var previousValue = values(0)
+      var previousTimestamp = clockValues(0)
+      buf += Transition[BigInt](clockValues(0).toLong, values(0))
 
-    values.zip(clockValues).tail.foreach { case (value, timestamp) =>
-      if (value != previousValue) {
-        buf += Transition[BigInt](timestamp.toLong, value)
-        previousValue = value
-        previousTimestamp = timestamp
+      values.zip(clockValues).tail.foreach { case (value, timestamp) =>
+        if (value != previousValue) {
+          buf += Transition[BigInt](timestamp.toLong, value)
+          previousValue = value
+          previousTimestamp = timestamp
+        }
       }
     }
+
     buf
   }
 
-  def waveformToString[T](waveform: Waveform[T]): String = {
-    waveform.map(t => s"(${t.timestamp}, ${t.value})").mkString(" ")
+  def transitionsToString[T](transitions: ArrayBuffer[Transition[T]]): String = {
+    transitions.map(t => s"(${t.timestamp}, ${t.value})").mkString(" ")
   }
 }

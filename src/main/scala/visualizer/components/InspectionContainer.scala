@@ -13,7 +13,7 @@ import scala.swing.event.MouseClicked
 
 class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) extends BorderPanel {
 
-  // Popup menu
+  // Popup menu when a signal name is right-clicked
   private def popupMenu(signal: Option[Signal[_ <: Any]]): PopupMenu = new PopupMenu {
     contents += new Menu("Data Format") {
       contents += new MenuItem(Action("Binary") {

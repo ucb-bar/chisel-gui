@@ -15,6 +15,7 @@ class ReadyValidPainter(dataModel: DataModel, displayModel: DisplayModel) extend
   def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode): Unit = {
     require(node.signal.isDefined)
     val signal = node.signal.get
+    require(signal.waveform.isDefined)
     require(signal.isInstanceOf[CombinedSignal])
 
     val combinedSignal = signal.asInstanceOf[CombinedSignal]
@@ -23,7 +24,7 @@ class ReadyValidPainter(dataModel: DataModel, displayModel: DisplayModel) extend
 
 
     try {
-      combinedSignal.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
+      combinedSignal.waveform.get.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
         displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
       }.foreach { transitionPair =>
         // length could be 1 if findTransition(startTimestamp) has length 1

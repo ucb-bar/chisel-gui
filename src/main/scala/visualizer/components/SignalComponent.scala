@@ -77,7 +77,7 @@ class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) exten
       }
 
       node.signal match {
-        case Some(signal) =>
+        case Some(signal) if signal.waveform.isDefined =>
           // Background
           if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)
           g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing)
@@ -90,9 +90,9 @@ class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) exten
           // Value
           g.setFont(ValueFont)
           if (isSelected) g.setColor(Color.white) else g.setColor(Color.blue)
-          val value = signal.findTransition(displayModel.cursorPosition).next().value
+          val value = signal.waveform.get.findTransition(displayModel.cursorPosition).next().value
           val txt = signal match {
-            case _: PureSignal =>
+            case _: PureSignal if value.asInstanceOf[BigInt] != null =>
               displayModel.waveDisplaySettings(node.nodeId).dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
             case _: CombinedSignal =>
               val pair = value.asInstanceOf[Array[BigInt]]
@@ -108,7 +108,7 @@ class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) exten
             case _ => ""
           }
           g.drawString(txt, 1, valueBaseLine)
-        case None =>
+        case _ =>
           // Node is a group
           // Background
           if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)

@@ -32,12 +32,12 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach { case (node, row) =>
       val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
       node.signal match {
-        case Some(signal) =>
+        case Some(signal) if signal.waveform.isDefined =>
           signal match {
             case signal: PureSignal =>
               displayModel.waveDisplaySettings(node.nodeId).painter match {
                 case _ =>
-                  if (signal.isBinary)
+                  if (signal.waveform.get.isBinary)
                     singleBitPainter.paintWaveform(g, visibleRect, y, node)
                   else
                     multiBitPainter.paintWaveform(g, visibleRect, y, node)
@@ -46,7 +46,8 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
               readyValidPainter.paintWaveform(g, visibleRect, y, node)
           }
         case _ =>
-        // node is a group. do nothing?
+          // node is a group. do nothing?
+          // or node doesn't have a waveform
       }
     }
 

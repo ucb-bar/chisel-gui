@@ -39,8 +39,9 @@ class DataModel extends Publisher {
     var newMaxTimestamp: Long = 0
     directoryTreeModel.depthFirstIterator.foreach { node =>
       node.signal match {
-        case Some(signal) => newMaxTimestamp = math.max(newMaxTimestamp, signal.waveform.last.timestamp)
-        case None =>
+        case Some(signal) if signal.waveform.isDefined =>
+          newMaxTimestamp = math.max(newMaxTimestamp, signal.waveform.get.transitions.last.timestamp)
+        case _ =>
       }
     }
     if (newMaxTimestamp > maxTimestamp) {
