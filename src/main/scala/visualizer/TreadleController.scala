@@ -34,7 +34,6 @@ object TreadleController extends SwingApplication with Publisher {
       val firrtlString = loadFile("../../treadle/samples/gcd.fir")
       loadFirrtl(firrtlString)
       runSomeTreadle()
-      setupWaveforms()
       hackySetupWaveforms()
     } else {
       assert(args.length == 1)
@@ -73,23 +72,41 @@ object TreadleController extends SwingApplication with Publisher {
     }
   }
 
+  val pureSignalMapping = new mutable.HashMap[String, DirectoryNode]
+  def addSignal(fullName: String, pureSignal: Signal[_ <: Any]): Unit = {
+    // the full name of the signal (from treadle) uses periods to separate modules
+    val fullPath = fullName.split("\\.")
+    val signalName = fullPath.last
+    val modules = fullPath.init
+
+    val parentPath = modules.foldLeft(dataModel.RootPath) { (parentPath, module) =>
+      val node = DirectoryNode(module, None)
+      val children = dataModel.directoryTreeModel.getChildrenOf(parentPath)
+      if (!children.contains(node)) {
+        dataModel.insertUnderSorted(parentPath, node)
+      }
+      parentPath :+ node
+    }
+    val node = DirectoryNode(signalName, Some(pureSignal))
+    dataModel.insertUnderSorted(parentPath, node)
+
+    pureSignal match {
+      case _: PureSignal => pureSignalMapping(fullName) = node
+      case _ =>
+    }
+  }
+
   def setupWaveforms(): Unit = {
     tester match {
       case Some(t) =>
         val wv = t.allWaveformValues
-        Util.toValueChange(wv, initializing = true).foreach { case (name, transitions) =>
-          val signal = if (transitions.nonEmpty) {
-            new PureSignal(name, Some(new Waveform(transitions)), t.isRegister(name))
-          } else {
-            new PureSignal(name, None, t.isRegister(name))
-          }
-          val node = DirectoryNode(name, Some(signal))
-          pureSignalMapping(name) = node
-          dataModel.insertUnderSorted(dataModel.RootPath, node)
+        Util.toValueChange(wv, initializing = true).foreach { case (fullName, transitions) =>
+          val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
+          val signal = new PureSignal(fullName, waveform, t.isRegister(fullName))
+          addSignal(fullName, signal)
         }
         mainWindow.repaint()
         dataModel.updateMaxTimestamp()
-
         publish(new PureSignalsChanged)
       case None =>
     }
@@ -120,30 +137,20 @@ object TreadleController extends SwingApplication with Publisher {
     new Waveform(transitions)
   }
 
-  val pureSignalMapping = new mutable.HashMap[String, DirectoryNode]
   def hackySetupWaveforms(): Unit = {
-    tester match {
-      case Some(t) =>
-        // testing submodules
-        val module = DirectoryNode("module", None)
-        dataModel.insertUnderSorted(dataModel.RootPath, module)
+    setupWaveforms()
 
-        val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
-        val signalReady = new PureSignal("ready", Some(waveformReady), false)
-        val nodeReady = DirectoryNode("io_fake_ready", Some(signalReady))
-        dataModel.insertUnderSorted(Tree.Path(module), nodeReady)
+    val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
+    val signalReady = new PureSignal("ready", Some(waveformReady), false)
+    addSignal("module.io_fake_ready", signalReady)
 
-        val waveformValid = makeBinaryTransitions(ArrayBuffer[Int](0, 36, 66, 96, 116, 146, 206, 286, 396, 406, 506))
-        val signalValid = new PureSignal("valid", Some(waveformValid), false)
-        val nodeValid = DirectoryNode("io_fake_valid", Some(signalValid))
-        dataModel.insertUnderSorted(Tree.Path(module), nodeValid)
+    val waveformValid = makeBinaryTransitions(ArrayBuffer[Int](0, 36, 66, 96, 116, 146, 206, 286, 396, 406, 506))
+    val signalValid = new PureSignal("valid", Some(waveformValid), false)
+    addSignal("module.io_fake_valid", signalValid)
 
-        val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))
-        val nodeRV = DirectoryNode("io_rv", Some(signalRV))
-        dataModel.insertUnderSorted(Tree.Path(module), nodeRV)
+    val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))
+    addSignal("module.io_rv", signalRV)
 
-        publish(new PureSignalsChanged)
-      case None =>
-    }
+    publish(new PureSignalsChanged)
   }
 }
