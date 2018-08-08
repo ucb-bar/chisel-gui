@@ -4,16 +4,23 @@ import scalaswingcontrib.tree.Tree.Path
 import scalaswingcontrib.tree._
 import visualizer.{MaxTimestampChanged, TreadleController, Util}
 
+import scala.annotation.tailrec
+import scala.collection.mutable
 import scala.swing.Publisher
 
 class DataModel extends Publisher {
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Directory Tree Model and Pure Signals
+  ///////////////////////////////////////////////////////////////////////////
   val directoryTreeModel: InternalTreeModel[DirectoryNode] = InternalTreeModel.empty[DirectoryNode]
   val RootPath: Tree.Path[DirectoryNode] = Tree.Path.empty[DirectoryNode]
+  val pureSignalMapping = new mutable.HashMap[String, PureSignal]
 
   def insertUnderSorted(parentPath: Path[DirectoryNode], newValue: DirectoryNode): Boolean = {
     val children = directoryTreeModel.getChildrenOf(parentPath)
 
-    def search(low: Int = 0, high: Int = children.length - 1): Int = {
+    @tailrec def search(low: Int = 0, high: Int = children.length - 1): Int = {
       if (high <= low) {
         if (DirectoryNodeOrdering.compare(newValue, children(low)) > 0) low + 1 else low
       } else {
@@ -26,14 +33,36 @@ class DataModel extends Publisher {
       }
     }
 
-    if (children.isEmpty) {
-      directoryTreeModel.insertUnder(parentPath, newValue, 0)
-    } else {
-      directoryTreeModel.insertUnder(parentPath, newValue, search())
+    val index = if (children.isEmpty) 0 else search()
+    directoryTreeModel.insertUnder(parentPath, newValue, index)
+  }
+
+  def ioSignals: Seq[String] = {
+    val a = pureSignalMapping.flatMap { case (fullName, pureSignal) =>
+      if (pureSignal.sortGroup == 0) Some(fullName) else None
+    }
+    a.toSeq.sorted
+  }
+
+  // TODO: move tester part to TreadleController?
+  def loadMoreWaveformValues(): Unit = {
+    TreadleController.tester match {
+      case Some(t) =>
+        val clk = t.clockInfoList.head
+        val wv = t.waveformValues(startCycle = ((maxTimestamp - clk.initialOffset) / clk.period + 1).toInt)
+        Util.toValueChange(wv, initializing = false).foreach {
+          case (fullName, waveform) =>
+            assert(pureSignalMapping.contains(fullName))
+            pureSignalMapping(fullName).addNewValues(waveform)
+        }
+        updateMaxTimestamp()
+      case None =>
     }
   }
 
-
+  ///////////////////////////////////////////////////////////////////////////
+  // Timescale and Max Timestamp
+  ///////////////////////////////////////////////////////////////////////////
   var maxTimestamp: Long = 0
   def updateMaxTimestamp(): Unit = {
     var newMaxTimestamp: Long = 0
@@ -49,25 +78,7 @@ class DataModel extends Publisher {
       publish(new MaxTimestampChanged)
     }
   }
-
   var timescale: Int = -9
-
-  def loadMoreValues(): Unit = {
-    TreadleController.tester match {
-      case Some(t) =>
-        val clk = t.clockInfoList.head
-        val wv = t.waveformValues(startCycle = ((maxTimestamp - clk.initialOffset) / clk.period + 1).toInt)
-        Util.toValueChange(wv, initializing = false).foreach {
-          case (name, waveform) =>
-            assert(TreadleController.pureSignalMapping.contains(name))
-            assert(TreadleController.pureSignalMapping(name).signal.isDefined)
-            val pureSignal = TreadleController.pureSignalMapping(name).signal.get.asInstanceOf[PureSignal]
-            pureSignal.addNewValues(waveform)
-        }
-         updateMaxTimestamp()
-      case None =>
-    }
-  }
 }
 
 object DirectoryNodeOrdering extends Ordering[DirectoryNode] {
