@@ -34,8 +34,8 @@ class DisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Signals
   ///////////////////////////////////////////////////////////////////////////
-  def addFromDirectoryToInspected(node: DirectoryNode, source: Component): Unit = {
-    val inspectedNode = node.toInspected
+  def addFromDirectoryToInspected(node: InspectedNode, source: Component): Unit = {
+    val inspectedNode = node
     treeModel.insertUnder(RootPath, inspectedNode, treeModel.getChildrenOf(RootPath).size)
 
     node.signal match {

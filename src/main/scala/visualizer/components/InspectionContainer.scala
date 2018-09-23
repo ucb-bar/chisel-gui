@@ -73,6 +73,7 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
       case _: SignalsChanged =>
         tree.peer.expandPath(new TreePath(model.peer.getRoot))
       case e: MouseClicked =>
+        println(s"mouse clicked in inspectionContainer ${e.clicks}")
         if (SwingUtilities.isRightMouseButton(e.peer)) {
           if (isPointInNode(e.point)) {
             val row = getClosestRowForLocation(e.point.x, e.point.y)
@@ -90,8 +91,18 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
             popupMenu(node.signal).show(this, e.point.x, e.point.y)
           }
         } else {
-          if (!isPointInNode(e.point)) {
-            selection.clear()
+          if(e.clicks == 1) {
+            if (!isPointInNode(e.point)) {
+              selection.clear()
+            }
+          }
+          else if(e.clicks == 2) {
+            println(s"mouse clicked in inspectionContainer ${e.clicks}")
+            tree.selection.cellValues.foreach { node =>
+
+              displayModel.addFromDirectoryToInspected(node, this)
+            }
+
           }
         }
     }

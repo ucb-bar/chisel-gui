@@ -7,7 +7,7 @@ import scalaswingcontrib.tree.Tree
 import visualizer.models._
 
 import scala.swing._
-import scala.swing.event.ButtonClicked
+import scala.swing.event.{ButtonClicked, MouseClicked}
 
 class DirectoryComponent(
   dataModel: DataModel,
@@ -21,6 +21,20 @@ class DirectoryComponent(
     model = dataModel.directoryTreeModel
     renderer = Tree.Renderer(_.name)
     showsRootHandles = true
+
+    listenTo(mouse.clicks)
+    reactions += {
+      case m: MouseClicked =>
+        if(m.clicks == 1) {
+          println(s"Got mouse click in tree ${m.clicks}")
+        }
+        else if(m.clicks == 2) {
+          println(s"mouse double clicked in tree ${m.clicks}")
+          selection.cellValues.foreach { node =>
+            displayModel.addFromDirectoryToInspected(node.toInspected, this)
+          }
+        }
+    }
   }
 
   val addSymbolsButton = new Button("Add")
@@ -35,10 +49,21 @@ class DirectoryComponent(
   ///////////////////////////////////////////////////////////////////////////
   listenTo(addSymbolsButton)
   listenTo(tree)
+  listenTo(mouse.clicks)
   reactions += {
+    case m: MouseClicked =>
+      if(m.clicks == 1) {
+        println(s"Got mouse click in DirectoryComponent ${m.clicks}")
+      }
+      else if(m.clicks == 2) {
+        println(s"mouse double clicked in DirectoryComponent ${m.clicks}")
+        tree.selection.cellValues.foreach { node =>
+          displayModel.addFromDirectoryToInspected(node.toInspected, this)
+        }
+      }
     case ButtonClicked(`addSymbolsButton`) =>
       tree.selection.cellValues.foreach{node =>
-        displayModel.addFromDirectoryToInspected(node, this)
+        displayModel.addFromDirectoryToInspected(node.toInspected, this)
       }
     case e: TreeNodesInserted[_] =>
       if (dataModel.directoryTreeModel.size == e.childIndices.length) {

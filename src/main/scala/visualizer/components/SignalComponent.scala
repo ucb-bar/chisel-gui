@@ -37,6 +37,8 @@ class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tr
       repaint()
     case _: WaveFormatChanged | _: CursorSet =>
       repaint()
+    case m: MouseButtonEvent =>
+      println(s"Mouse clicked ${m.clicks}")
     case KeyReleased(_, Key.BackSpace, _, _) =>
       displayModel.removeSelectedSignals(this, tree.selection.paths.iterator)
   }
