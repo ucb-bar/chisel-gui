@@ -9,7 +9,13 @@ import visualizer.models._
 import scala.swing._
 import scala.swing.event.{ButtonClicked, MouseClicked}
 
-class DirectoryComponent(
+/**
+  * Offers all signals in the design to be selected for viewing in
+  * wave form viewer
+  * @param dataModel    underlying data model
+  * @param displayModel underlying displayModel
+  */
+class SignalSelector(
   dataModel: DataModel,
   displayModel: DisplayModel
 ) extends BoxPanel(Orientation.Vertical) {

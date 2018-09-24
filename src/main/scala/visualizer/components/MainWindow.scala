@@ -5,7 +5,7 @@ import java.awt.Color
 import javax.swing.BorderFactory
 import treadle.executable.ClockInfo
 import visualizer.models._
-import visualizer.{DependencyComponentRequested, TreadleController}
+import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleController}
 
 import scala.swing.Swing._
 import scala.swing._
@@ -15,10 +15,10 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  val directoryComponent = new DirectoryComponent(dataModel, displayModel)
+  val signalSelector = new SignalSelector(dataModel, displayModel)
   val inspectionContainer = new InspectionContainer(dataModel, displayModel)
   val dependencyComponent = new DependencyComponent(dataModel, displayModel)
-  val treadleComponent = new InteractiveTreadleComponent(dataModel, displayModel)
+  val inputControlPanel = new InputControlPanel(dataModel, displayModel)
 
   private val toolbar = new ToolBar() {
     peer.setFloatable(false)
@@ -28,6 +28,9 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
     }
     contents += Button("Zoom Out") {
       inspectionContainer.zoomOut(this)
+    }
+    contents += Button("Zoom To End") {
+      inspectionContainer.zoomToEnd(this)
     }
     contents += Button("Add Marker") {
       displayModel.addMarker("ad", displayModel.cursorPosition)
@@ -60,7 +63,7 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
     layout(toolbar) = North
 
     val splitPane: SplitPane = new SplitPane(Orientation.Vertical,
-      new ScrollPane(directoryComponent) {
+      new ScrollPane(signalSelector) {
         preferredSize = new Dimension(150, 700)
         minimumSize = new Dimension(150, 300)
         border = BorderFactory.createEmptyBorder()
@@ -71,15 +74,18 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
 
     layout(splitPane) = Center
     layout(dependencyComponent) = South
-    layout(treadleComponent) = East
+    layout(inputControlPanel) = East
 
     listenTo(displayModel)
+    listenTo(dataModel)
     reactions += {
       case e: DependencyComponentRequested =>
         dependencyComponent.textComponent.text = TreadleController.tester match {
           case Some(t) => t.dependencyInfo(e.pureSignalName)
           case None => ""
         }
+      case e: MaxTimestampChanged =>
+        inspectionContainer.zoomToEnd(this)
     }
   }
 }
