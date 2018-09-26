@@ -100,8 +100,8 @@ class InputControlPanel(dataModel: DataModel, displayModel: DisplayModel) extend
             constraints(0, currentRow, gridWidth=3, fill=GridBagPanel.Fill.Horizontal))
 
           currentRow += 1
-          add(new Label(""), constraints(0, currentRow))
-          add(new Label(""), constraints(1, currentRow))
+          add(new Separator(), constraints(0, currentRow, gridWidth = 2))
+
           currentRow += 1
 
           add(

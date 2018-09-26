@@ -32,6 +32,9 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
     contents += Button("Zoom To End") {
       inspectionContainer.zoomToEnd(this)
     }
+
+    contents += HStrut(20)
+
     contents += Button("Add Marker") {
       displayModel.addMarker("ad", displayModel.cursorPosition)
     }
