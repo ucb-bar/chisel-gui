@@ -1,5 +1,6 @@
 package visualizer.components
 
+import treadle.executable.StopException
 import visualizer.{PureSignalsChanged, TreadleController}
 import visualizer.models.{DataModel, DisplayModel}
 
@@ -128,6 +129,9 @@ class InputControlPanel(dataModel: DataModel, displayModel: DisplayModel) extend
             }
             catch {
               case _: NumberFormatException => // TODO: Notify that value is invalid
+              case StopException(message) =>
+                //TODO: Figure out what to do here, should stopped condition be cleared so treadle can keep going
+                textArea.append(message + "\n")
             }
 
             },

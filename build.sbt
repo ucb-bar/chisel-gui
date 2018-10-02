@@ -1,4 +1,4 @@
-name := "visualizer"
+name := "chisel-gui"
 
 organization := "edu.berkeley.cs"
 

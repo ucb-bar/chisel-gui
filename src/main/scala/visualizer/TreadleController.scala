@@ -27,7 +27,7 @@ object TreadleController extends SwingApplication with Publisher {
       hackySetup()
     } else {
       assert(args.length == 1)
-      val firrtlString = args(0)
+      val firrtlString = io.Source.fromFile(args.head).getLines().mkString("\n")
       setupTreadle(firrtlString)
     }
   }
@@ -93,21 +93,23 @@ object TreadleController extends SwingApplication with Publisher {
   def setupWaveforms(t: TreadleTester): Unit = {
     val wv = t.allWaveformValues
     Util.toValueChange(wv, initializing = true).foreach { case (fullName, transitions) =>
-      val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
-      val sortGroup = if (t.isRegister(fullName)) {
-        1
-      } else {
-        val signalName = fullName.split("\\.").last
-        if (signalName.contains("io_")) {
-          0
-        } else if (signalName.contains("T_") || signalName.contains("GEN_")) {
-          3
+      if (!fullName.contains("/")) {
+        val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
+        val sortGroup = if (t.isRegister(fullName)) {
+          1
         } else {
-          2
+          val signalName = fullName.split("\\.").last
+          if (signalName.contains("io_")) {
+            0
+          } else if (signalName.contains("T_") || signalName.contains("GEN_")) {
+            3
+          } else {
+            2
+          }
         }
+        val signal = new PureSignal(fullName, waveform, sortGroup)
+        addSignal(fullName, signal)
       }
-      val signal = new PureSignal(fullName, waveform, sortGroup)
-      addSignal(fullName, signal)
     }
     mainWindow.repaint()
     dataModel.updateMaxTimestamp()
