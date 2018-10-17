@@ -73,6 +73,7 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
       case _: SignalsChanged =>
         tree.peer.expandPath(new TreePath(model.peer.getRoot))
       case e: MouseClicked =>
+        println(s"mouse clicked in inspectionContainer ${e.clicks}")
         if (SwingUtilities.isRightMouseButton(e.peer)) {
           if (isPointInNode(e.point)) {
             val row = getClosestRowForLocation(e.point.x, e.point.y)
@@ -90,8 +91,18 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
             popupMenu(node.signal).show(this, e.point.x, e.point.y)
           }
         } else {
-          if (!isPointInNode(e.point)) {
-            selection.clear()
+          if(e.clicks == 1) {
+            if (!isPointInNode(e.point)) {
+              selection.clear()
+            }
+          }
+          else if(e.clicks == 2) {
+            println(s"mouse clicked in inspectionContainer ${e.clicks}")
+            tree.selection.cellValues.foreach { node =>
+
+              displayModel.addFromDirectoryToInspected(node, this)
+            }
+
           }
         }
     }
@@ -162,7 +173,36 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
     setScaleKeepCentered(displayModel.scale * 0.8, source)
   }
 
+  /**
+    * move wave view to end, keeping the current scale
+    * @param source component to scroll
+    */
+  def zoomToEnd(source: Component): Unit = {
+    val oldVisibleRect = waveComponent.peer.getVisibleRect
+    val maxTimestamp = dataModel.maxTimestamp
+
+    val clockTickWidth = oldVisibleRect.width / displayModel.scale
+
+    val minTimestamp = (maxTimestamp - clockTickWidth).max(0)
+
+    val centerTimestamp = (maxTimestamp - minTimestamp) / 2 + minTimestamp
+
+    val centerX = (centerTimestamp * displayModel.scale).toInt
+
+    val newVisibleRect = waveComponent.peer.getVisibleRect
+    newVisibleRect.x = centerX - newVisibleRect.width / 2
+    waveComponent.peer.scrollRectToVisible(newVisibleRect)
+  }
+
   def removeSignals(source: Component): Unit = {
     displayModel.removeSelectedSignals(source, tree.selection.paths.iterator)
   }
+
+  def goToEnd(source: Component, steps: Int): Unit = {
+    val oldVisibleRect = waveComponent.peer.getVisibleRect
+
+    val newVisibleRect = waveComponent.peer.getVisibleRect
+    newVisibleRect.x = (oldVisibleRect.x + steps / displayModel.scale).toInt
+
+    waveComponent.peer.scrollRectToVisible(newVisibleRect)  }
 }

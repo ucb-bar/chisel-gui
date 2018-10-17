@@ -52,8 +52,9 @@ class DataModel extends Publisher {
         val wv = t.waveformValues(startCycle = ((maxTimestamp - clk.initialOffset) / clk.period + 1).toInt)
         Util.toValueChange(wv, initializing = false).foreach {
           case (fullName, waveform) =>
-            assert(pureSignalMapping.contains(fullName))
-            pureSignalMapping(fullName).addNewValues(waveform)
+            if(pureSignalMapping.contains(fullName)) {
+              pureSignalMapping(fullName).addNewValues(waveform)
+            }
         }
         updateMaxTimestamp()
       case None =>
