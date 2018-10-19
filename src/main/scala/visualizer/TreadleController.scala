@@ -15,9 +15,9 @@ object TreadleController extends SwingApplication with Publisher {
   var tester: Option[TreadleTester] = None
   private val clkSteps = 2
 
-  val dataModel = new SelectionController
-  val displayModel = new WaveFormController
-  lazy val mainWindow = new MainWindow(dataModel, displayModel)
+  val selectionController = new SelectionController
+  val waveFormController = new WaveFormController
+  lazy val mainWindow = new MainWindow(selectionController, waveFormController)
 
   override def startup(args: Array[String]): Unit = {
     if (mainWindow.size == new Dimension(0, 0)) mainWindow.pack()
@@ -50,19 +50,19 @@ object TreadleController extends SwingApplication with Publisher {
     val signalName = fullPath.last
     val modules = fullPath.init
 
-    val parentPath = modules.foldLeft(dataModel.RootPath) { (parentPath, module) =>
+    val parentPath = modules.foldLeft(selectionController.RootPath) { (parentPath, module) =>
       val node = DirectoryNode(module, None)
-      val children = dataModel.directoryTreeModel.getChildrenOf(parentPath)
+      val children = selectionController.directoryTreeModel.getChildrenOf(parentPath)
       if (!children.contains(node)) {
-        dataModel.insertUnderSorted(parentPath, node)
+        selectionController.insertUnderSorted(parentPath, node)
       }
       parentPath :+ node
     }
     val node = DirectoryNode(signalName, Some(signal))
-    dataModel.insertUnderSorted(parentPath, node)
+    selectionController.insertUnderSorted(parentPath, node)
 
     signal match {
-      case pureSignal: PureSignal => dataModel.pureSignalMapping(fullName) = pureSignal
+      case pureSignal: PureSignal => selectionController.pureSignalMapping(fullName) = pureSignal
       case _ =>
     }
   }
@@ -87,7 +87,7 @@ object TreadleController extends SwingApplication with Publisher {
 
   def setupClock(t: TreadleTester): Unit = {
     if (t.clockInfoList.nonEmpty) {
-      displayModel.setClock(t.clockInfoList.head)
+      waveFormController.setClock(t.clockInfoList.head)
     }
   }
 
@@ -113,7 +113,7 @@ object TreadleController extends SwingApplication with Publisher {
       }
     }
     mainWindow.repaint()
-    dataModel.updateMaxTimestamp()
+    selectionController.updateMaxTimestamp()
     publish(new PureSignalsChanged)
   }
 

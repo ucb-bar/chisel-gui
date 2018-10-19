@@ -107,8 +107,8 @@ class WaveComponent(dataModel: SelectionController, displayModel: WaveFormContro
       if (!e.peer.isShiftDown)
         displayModel.selectionStart = timestamp
       displayModel.setCursorPosition(timestamp)
-      // displayModel.adjustingCursor = true
-    case _: MouseReleased => // displayModel.adjustingCursor = false
+      // waveFormController.adjustingCursor = true
+    case _: MouseReleased => // waveFormController.adjustingCursor = false
     case e: MouseDragged =>
       val timestamp = displayModel.xCoordinateToTimestamp(e.peer.getX)
       displayModel.setCursorPosition(timestamp)

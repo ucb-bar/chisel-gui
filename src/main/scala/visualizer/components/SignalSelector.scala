@@ -15,7 +15,7 @@ import scala.swing.event.{ButtonClicked, MouseClicked}
 /**
   * Offers all signals in the design to be selected for viewing in wave form viewer
   * @param dataModel    underlying data model
-  * @param displayModel underlying displayModel
+  * @param displayModel underlying waveFormController
   */
 class SignalSelector(
   dataModel: SelectionController,
