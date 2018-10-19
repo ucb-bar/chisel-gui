@@ -4,6 +4,7 @@ import java.awt.{Color, Rectangle}
 
 import scalaswingcontrib.tree.Tree
 import visualizer._
+import visualizer.controllers.{SelectionController, WaveFormController}
 import visualizer.models._
 import visualizer.painters.{MultiBitPainter, ReadyValidPainter, SingleBitPainter}
 

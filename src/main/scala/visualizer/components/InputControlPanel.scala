@@ -1,8 +1,9 @@
 package visualizer.components
 
 import treadle.executable.StopException
+import visualizer.controllers.SelectionController
 import visualizer.{PureSignalsChanged, TreadleController}
-import visualizer.models.{SelectionController, WaveFormController}
+import visualizer.controllers.WaveFormController
 
 import scala.swing._
 

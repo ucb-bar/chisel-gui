@@ -1,6 +1,7 @@
 package visualizer.components
 
-import visualizer.models.{SelectionController, WaveFormController}
+import visualizer.controllers.SelectionController
+import visualizer.controllers.WaveFormController
 
 import scala.swing.{BorderPanel, Dimension, ScrollPane, TextArea}
 import BorderPanel.Position._

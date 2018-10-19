@@ -5,6 +5,7 @@ import javax.swing.{BorderFactory, Icon, ImageIcon}
 import javax.swing.tree.TreePath
 import scalaswingcontrib.event.TreeNodesInserted
 import scalaswingcontrib.tree.Tree
+import visualizer.controllers.{SelectionController, WaveFormController}
 import visualizer.models._
 
 import scala.swing.BorderPanel.Position.North

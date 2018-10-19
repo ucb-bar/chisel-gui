@@ -4,6 +4,7 @@ import java.awt.{Color, Font}
 
 import scalaswingcontrib.tree.Tree
 import visualizer._
+import visualizer.controllers.{DecFormat, SelectionController, WaveFormController}
 import visualizer.models._
 
 import scala.swing._

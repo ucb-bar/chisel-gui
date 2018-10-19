@@ -4,6 +4,7 @@ import javax.swing.{BorderFactory, DropMode, SwingUtilities}
 import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
 import javax.swing.tree.{DefaultMutableTreeNode, TreePath}
 import scalaswingcontrib.tree.Tree
+import visualizer.controllers._
 import visualizer.{DrawMetrics, SignalsChanged}
 import visualizer.models._
 

@@ -4,7 +4,7 @@ import java.awt.Color
 
 import javax.swing.BorderFactory
 import treadle.executable.ClockInfo
-import visualizer.models._
+import visualizer.controllers.{SelectionController, WaveFormController}
 import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleController}
 
 import scala.swing.Swing._

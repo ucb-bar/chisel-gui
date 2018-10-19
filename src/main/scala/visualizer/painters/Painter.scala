@@ -3,7 +3,8 @@ package visualizer.painters
 import java.awt.{FontMetrics, Polygon, Rectangle}
 
 import visualizer.DrawMetrics
-import visualizer.models.{WaveFormController, InspectedNode}
+import visualizer.controllers.WaveFormController
+import visualizer.models.InspectedNode
 
 import scala.swing.{Font, Graphics2D}
 

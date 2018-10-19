@@ -5,6 +5,7 @@ import java.io.File
 import treadle.{TreadleOptionsManager, TreadleTester}
 import treadle.repl.HasReplConfig
 import visualizer.components.MainWindow
+import visualizer.controllers.{SelectionController, WaveFormController}
 import visualizer.models._
 
 import scala.collection.mutable.ArrayBuffer

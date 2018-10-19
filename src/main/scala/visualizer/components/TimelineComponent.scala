@@ -1,6 +1,7 @@
 package visualizer.components
 
 import visualizer._
+import visualizer.controllers.{SelectionController, WaveFormController}
 import visualizer.models._
 
 import scala.swing._

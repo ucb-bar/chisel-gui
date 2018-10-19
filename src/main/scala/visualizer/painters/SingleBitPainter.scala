@@ -3,6 +3,7 @@ package visualizer.painters
 import java.awt.{Color, Rectangle}
 
 import visualizer.DrawMetrics
+import visualizer.controllers.{SelectionController, WaveFormController}
 import visualizer.models._
 
 import scala.swing.Graphics2D

@@ -1,13 +1,17 @@
-package visualizer.models
+package visualizer.controllers
 
 import scalaswingcontrib.tree.Tree.Path
 import scalaswingcontrib.tree._
+import visualizer.models.{DirectoryNode, PureSignal}
 import visualizer.{MaxTimestampChanged, TreadleController, Util}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.swing.Publisher
 
+/**
+  * Manages the selection of signals to be viewed in the WaveForm Viewer
+  */
 class SelectionController extends Publisher {
 
   ///////////////////////////////////////////////////////////////////////////

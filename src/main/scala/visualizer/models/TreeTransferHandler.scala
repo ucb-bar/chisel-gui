@@ -5,6 +5,7 @@ import java.awt.datatransfer.{DataFlavor, Transferable, UnsupportedFlavorExcepti
 import javax.swing._
 import javax.swing.TransferHandler.TransferSupport
 import javax.swing.tree.{DefaultMutableTreeNode, DefaultTreeModel}
+import visualizer.controllers.WaveFormController
 
 import scala.collection.mutable.ArrayBuffer
 

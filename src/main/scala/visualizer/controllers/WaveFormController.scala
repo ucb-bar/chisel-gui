@@ -1,10 +1,11 @@
-package visualizer.models
+package visualizer.controllers
 
 import scala.collection.mutable.ArrayBuffer
 import scala.swing._
 import scalaswingcontrib.tree._
 import treadle.executable.ClockInfo
 import visualizer._
+import visualizer.models.InspectedNode
 
 import scala.collection.mutable
 
