@@ -11,7 +11,7 @@ import scala.swing._
 import BorderPanel.Position._
 import scala.swing.event.MouseClicked
 
-class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) extends BorderPanel {
+class InspectionContainer(dataModel: SelectionController, displayModel: WaveFormController) extends BorderPanel {
 
   // Popup menu when a signal name is right-clicked
   private def popupMenu(signal: Option[Signal[_ <: Any]]): PopupMenu = new PopupMenu {
@@ -36,7 +36,7 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
 
   val tree: Tree[InspectedNode] = new Tree[InspectedNode] {
     model = displayModel.treeModel
-    renderer = new SignalNameRenderer(dataModel, displayModel)
+    renderer = new SignalNameRenderer(displayModel)
     showsRootHandles = true
 
     protected val expansionListener: TreeExpansionListener = new TreeExpansionListener {

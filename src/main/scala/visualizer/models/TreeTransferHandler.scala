@@ -11,7 +11,7 @@ import scala.collection.mutable.ArrayBuffer
 //
 // Transfer handler to make tree rearrangeable
 //
-class TreeTransferHandler(displayModel: DisplayModel) extends TransferHandler {
+class TreeTransferHandler(displayModel: WaveFormController) extends TransferHandler {
   val mimeType: String = DataFlavor.javaJVMLocalObjectMimeType + ";class=\"" +
     classOf[Array[DefaultMutableTreeNode]].toString.drop(6) + "\""
   val nodesFlavor: DataFlavor = new DataFlavor(mimeType)

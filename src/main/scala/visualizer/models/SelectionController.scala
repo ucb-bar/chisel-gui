@@ -8,7 +8,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.swing.Publisher
 
-class DataModel extends Publisher {
+class SelectionController extends Publisher {
 
   ///////////////////////////////////////////////////////////////////////////
   // Directory Tree Model and Pure Signals

@@ -5,7 +5,7 @@ import visualizer.models._
 
 import scala.swing._
 
-class TimelineComponent(dataModel: DataModel, displayModel: DisplayModel) extends Component {
+class TimelineComponent(dataModel: SelectionController, displayModel: WaveFormController) extends Component {
 
   var unitMagnitude: Long = 1
   var unit = "s"

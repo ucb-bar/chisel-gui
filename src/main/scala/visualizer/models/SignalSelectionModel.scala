@@ -2,55 +2,13 @@
 
 package visualizer.models
 
+import javax.swing.JTree
+import javax.swing.tree.DefaultMutableTreeNode
 import scalaswingcontrib.tree.Tree.Path
-import scalaswingcontrib.tree.{InternalTreeModel, Tree}
+import scalaswingcontrib.tree.{InternalTreeModel, Tree, TreeModel}
 import treadle.executable.{Symbol, SymbolTable}
 
 import scala.annotation.tailrec
-import scala.collection.mutable
-
-/**
-  * Underlying elements of the SignalSelection Panel
-  * elements can be either SelectionGroups (Directories)
-  * or SelectionSignals (treadle symbol)
-  */
-trait SelectionNode extends Ordered[SelectionNode] {
-  def name: String
-  def sortGroup: Int
-
-  override def compare(that: SelectionNode): Int = {
-    if(this.sortGroup == that.sortGroup) {
-      if(this.name.toLowerCase < that.name.toLowerCase) {
-        -1
-      }
-      else if(this.name.toLowerCase > that.name.toLowerCase) {
-        1
-      }
-      else {
-        0
-      }
-    }
-    else {
-      this.sortGroup - that.sortGroup
-    }
-  }
-}
-
-/**
-  * A directory of sub-directories and or signals
-  * @param name      the directory name
-  * @param sortGroup aggregate by sortGroup then alphabetically by name, case insensitive
-  */
-case class SelectionGroup(name: String, sortGroup: Int = 0) extends SelectionNode
-
-/**
-  * A symbol for the selection panel
-  * @param symbol    the symbol this entry refers to
-  * @param sortGroup aggregate by sortGroup then alphabetically by name, case insensitive
-  */
-case class SelectionSignal(symbol: Symbol, sortGroup: Int = 1000) extends SelectionNode {
-  val name: String = symbol.name
-}
 
 /**
   * Manage the list of signals that can be monitored
@@ -162,3 +120,48 @@ object SignalSelectionModel {
     signalSelectionModel
   }
 }
+
+/**
+  * Underlying elements of the SignalSelection Panel
+  * elements can be either SelectionGroups (Directories)
+  * or SelectionSignals (treadle symbol)
+  */
+trait SelectionNode extends Ordered[SelectionNode] {
+  def name: String
+  def sortGroup: Int
+
+  override def compare(that: SelectionNode): Int = {
+    if(this.sortGroup == that.sortGroup) {
+      if(this.name.toLowerCase < that.name.toLowerCase) {
+        -1
+      }
+      else if(this.name.toLowerCase > that.name.toLowerCase) {
+        1
+      }
+      else {
+        0
+      }
+    }
+    else {
+      this.sortGroup - that.sortGroup
+    }
+  }
+}
+
+/**
+  * A directory of sub-directories and or signals
+  * @param name      the directory name
+  * @param sortGroup aggregate by sortGroup then alphabetically by name, case insensitive
+  */
+case class SelectionGroup(name: String, sortGroup: Int = 0) extends SelectionNode
+
+/**
+  * A symbol for the selection panel
+  * @param symbol    the symbol this entry refers to
+  * @param sortGroup aggregate by sortGroup then alphabetically by name, case insensitive
+  */
+case class SelectionSignal(symbol: Symbol, sortGroup: Int = 1000) extends SelectionNode {
+  val name: String = symbol.name
+}
+
+

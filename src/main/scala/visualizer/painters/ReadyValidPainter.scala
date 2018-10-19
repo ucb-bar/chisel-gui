@@ -7,7 +7,7 @@ import visualizer.models._
 
 import scala.swing.Graphics2D
 
-class ReadyValidPainter(dataModel: DataModel, displayModel: DisplayModel) extends Painter(displayModel) {
+class ReadyValidPainter(dataModel: SelectionController, displayModel: WaveFormController) extends Painter(displayModel) {
   val FireColor = new Color(152, 251, 152)
   val ReadySetColor = new Color(255, 240, 106)
   val ValidSetColor = new Color(255, 208, 98)

@@ -14,8 +14,8 @@ object TreadleController extends SwingApplication with Publisher {
   var tester: Option[TreadleTester] = None
   private val clkSteps = 2
 
-  val dataModel = new DataModel
-  val displayModel = new DisplayModel
+  val dataModel = new SelectionController
+  val displayModel = new WaveFormController
   lazy val mainWindow = new MainWindow(dataModel, displayModel)
 
   override def startup(args: Array[String]): Unit = {

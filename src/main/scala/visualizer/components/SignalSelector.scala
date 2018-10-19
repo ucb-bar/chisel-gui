@@ -12,14 +12,13 @@ import scala.swing._
 import scala.swing.event.{ButtonClicked, MouseClicked}
 
 /**
-  * Offers all signals in the design to be selected for viewing in
-  * wave form viewer
+  * Offers all signals in the design to be selected for viewing in wave form viewer
   * @param dataModel    underlying data model
   * @param displayModel underlying displayModel
   */
 class SignalSelector(
-  dataModel: DataModel,
-  displayModel: DisplayModel
+  dataModel: SelectionController,
+  displayModel: WaveFormController
 ) extends BoxPanel(Orientation.Vertical) {
 
   val me = this

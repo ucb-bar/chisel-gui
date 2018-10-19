@@ -10,7 +10,7 @@ import scala.swing._
 import scala.swing.event._
 import BorderPanel.Position.Center
 
-class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[InspectedNode])
+class SignalComponent(dataModel: SelectionController, displayModel: WaveFormController, tree: Tree[InspectedNode])
   extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
@@ -44,7 +44,7 @@ class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tr
   }
 }
 
-class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) extends Tree.Renderer[InspectedNode] {
+class SignalNameRenderer(displayModel: WaveFormController) extends Tree.Renderer[InspectedNode] {
   private var labelBaseLine = -1
   private var valueBaseLine = 0
   val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)

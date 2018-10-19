@@ -8,7 +8,7 @@ import visualizer._
 
 import scala.collection.mutable
 
-class DisplayModel extends Publisher {
+class WaveFormController extends Publisher {
   // Maps nodeId to WaveDisplaySetting
   val waveDisplaySettings: mutable.HashMap[Int, WaveDisplaySetting] = new mutable.HashMap[Int, WaveDisplaySetting]()
 

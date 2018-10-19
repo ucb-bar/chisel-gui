@@ -10,7 +10,7 @@ import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleCon
 import scala.swing.Swing._
 import scala.swing._
 
-class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainFrame {
+class MainWindow(dataModel: SelectionController, displayModel: WaveFormController) extends MainFrame {
 
   ///////////////////////////////////////////////////////////////////////////
   // View

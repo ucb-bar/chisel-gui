@@ -4,7 +4,9 @@ package visualizer
 
 import org.scalatest.{FreeSpec, Matchers}
 import treadle.TreadleTester
-import visualizer.models.{SelectionGroup, SignalSelectionModel}
+import visualizer.models.{SelectionGroup, SignalSelectionModel, TreeHelper}
+import scalaswingcontrib.tree.Tree.Path
+
 
 class SignalSelectionModelSpec extends FreeSpec with Matchers {
   "can create a selection model from a firrtl file" in {
@@ -38,5 +40,7 @@ class SignalSelectionModelSpec extends FreeSpec with Matchers {
 
     // count is 2 bigger because of introduced directories for top level IOs
     count should be (treadleTester.engine.symbolTable.size + 2)
+
+    model
   }
 }
