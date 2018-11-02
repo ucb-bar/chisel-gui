@@ -2,7 +2,7 @@ package visualizer.controllers
 
 import scalaswingcontrib.tree.Tree.Path
 import scalaswingcontrib.tree._
-import visualizer.models.{DirectoryNode, PureSignal}
+import visualizer.models._
 import visualizer.{MaxTimestampChanged, TreadleController, Util}
 
 import scala.annotation.tailrec
@@ -17,19 +17,21 @@ class SelectionController extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Directory Tree Model and Pure Signals
   ///////////////////////////////////////////////////////////////////////////
-  val directoryTreeModel: InternalTreeModel[DirectoryNode] = InternalTreeModel.empty[DirectoryNode]
+//  val directoryTreeModel: InternalTreeModel[DirectoryNode] = InternalTreeModel.empty[DirectoryNode]
+  val directoryTreeModel: SignalSelectionModel = new SignalSelectionModel
+
   val RootPath: Tree.Path[DirectoryNode] = Tree.Path.empty[DirectoryNode]
   val pureSignalMapping = new mutable.HashMap[String, PureSignal]
 
-  def insertUnderSorted(parentPath: Path[DirectoryNode], newValue: DirectoryNode): Boolean = {
+  def insertUnderSorted(parentPath: Path[SelectionNode], newValue: SelectionNode): Boolean = {
     val children = directoryTreeModel.getChildrenOf(parentPath)
 
     @tailrec def search(low: Int = 0, high: Int = children.length - 1): Int = {
       if (high <= low) {
-        if (DirectoryNodeOrdering.compare(newValue, children(low)) > 0) low + 1 else low
+        if (newValue < children(low)) low + 1 else low
       } else {
         val mid = (low + high)/2
-        DirectoryNodeOrdering.compare(newValue, children(mid)) match {
+        newValue.compare(children(mid)) match {
           case i if i > 0 => search(mid + 1, high)
           case i if i < 0 => search(low, mid - 1)
           case _ => throw new Exception("Duplicate node cannot be added to the directory tree model")
@@ -71,12 +73,11 @@ class SelectionController extends Publisher {
   var maxTimestamp: Long = 0
   def updateMaxTimestamp(): Unit = {
     var newMaxTimestamp: Long = 0
-    directoryTreeModel.depthFirstIterator.foreach { node =>
-      node.signal match {
-        case Some(signal) if signal.waveform.isDefined =>
-          newMaxTimestamp = math.max(newMaxTimestamp, signal.waveform.get.transitions.last.timestamp)
-        case _ =>
-      }
+    directoryTreeModel.depthFirstIterator.foreach {
+
+      case signal: SelectionSignal  =>
+//          newMaxTimestamp = math.max(newMaxTimestamp, signal.waveform.get.transitions.last.timestamp)
+      case _ =>
     }
     if (newMaxTimestamp > maxTimestamp) {
       maxTimestamp = newMaxTimestamp
