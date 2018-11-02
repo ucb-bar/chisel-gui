@@ -14,12 +14,12 @@ import scala.swing.event.{ButtonClicked, MouseClicked}
 
 /**
   * Offers all signals in the design to be selected for viewing in wave form viewer
-  * @param dataModel    underlying data model
+  * @param selectionController    underlying data model
   * @param displayModel underlying waveFormController
   */
 class SignalSelector(
-  dataModel: SelectionController,
-  displayModel: WaveFormController
+  selectionController: SelectionController,
+  displayModel       : WaveFormController
 ) extends BoxPanel(Orientation.Vertical) {
 
   val me = this
@@ -27,8 +27,8 @@ class SignalSelector(
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  val tree: Tree[DirectoryNode] = new Tree[DirectoryNode] {
-    model = dataModel.directoryTreeModel
+  val tree: Tree[SelectionNode] = new Tree[SelectionNode] {
+    model = new SignalSelectionModel
     renderer = Tree.Renderer(_.name)
     showsRootHandles = true
 
@@ -102,8 +102,8 @@ class SignalSelector(
         displayModel.addFromDirectoryToInspected(node.toInspected, this)
       }
     case e: TreeNodesInserted[_] =>
-      if (dataModel.directoryTreeModel.size == e.childIndices.length) {
-        tree.peer.expandPath(new TreePath(dataModel.directoryTreeModel.peer.getRoot))
+      if (selectionController.directoryTreeModel.size == e.childIndices.length) {
+        tree.peer.expandPath(new TreePath(selectionController.directoryTreeModel.peer.getRoot))
       }
   }
 }

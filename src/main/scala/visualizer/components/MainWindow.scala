@@ -10,15 +10,15 @@ import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleCon
 import scala.swing.Swing._
 import scala.swing._
 
-class MainWindow(dataModel: SelectionController, displayModel: WaveFormController) extends MainFrame {
+class MainWindow(selectionController: SelectionController, displayModel: WaveFormController) extends MainFrame {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  val signalSelector = new SignalSelector(dataModel, displayModel)
-  val inspectionContainer = new InspectionContainer(dataModel, displayModel)
-  val dependencyComponent = new DependencyComponent(dataModel, displayModel)
-  val inputControlPanel = new InputControlPanel(dataModel, displayModel)
+  val signalSelector = new SignalSelector(selectionController, displayModel)
+  val inspectionContainer = new InspectionContainer(selectionController, displayModel)
+  val dependencyComponent = new DependencyComponent(selectionController, displayModel)
+  val inputControlPanel = new InputControlPanel(selectionController, displayModel)
 
   private val toolbar = new ToolBar() {
     peer.setFloatable(false)
@@ -80,7 +80,7 @@ class MainWindow(dataModel: SelectionController, displayModel: WaveFormControlle
     layout(inputControlPanel) = East
 
     listenTo(displayModel)
-    listenTo(dataModel)
+    listenTo(selectionController)
     reactions += {
       case e: DependencyComponentRequested =>
         dependencyComponent.textComponent.text = TreadleController.tester match {
