@@ -7,7 +7,7 @@ import visualizer.controllers.WaveFormController
 
 import scala.swing._
 
-class InputControlPanel(dataModel: SelectionController, displayModel: WaveFormController) extends GridPanel(2, 1) {
+class InputControlPanel(dataModel: SelectionController) extends GridPanel(2, 1) {
 
   ///////////////////////////////////////////////////////////////////////////
   // View

@@ -28,18 +28,18 @@ case class DirectoryNode(name: String, signal: Option[Signal[_ <: Any]]) {
 }
 
 object TreeHelper {
-  def viewableDepthFirstIterator(tree: Tree[InspectedNode]): Iterator[InspectedNode] = new Iterator[InspectedNode] {
-    val treeModel: TreeModel[InspectedNode] = tree.model
-    var openNodes: Iterator[Path[InspectedNode]] = treeModel.roots.map(Path(_)).iterator
+  def viewableDepthFirstIterator(tree: Tree[SelectionNode]): Iterator[SelectionNode] = new Iterator[SelectionNode] {
+    val treeModel: TreeModel[SelectionNode] = tree.model
+    var openNodes: Iterator[Path[SelectionNode]] = treeModel.roots.map(Path(_)).iterator
 
     def hasNext: Boolean = openNodes.nonEmpty
-    def next(): InspectedNode = if (openNodes.hasNext) {
+    def next(): SelectionNode = if (openNodes.hasNext) {
       val path = openNodes.next()
       pushChildren(path)
       path.last
     } else throw new NoSuchElementException("No more items")
 
-    def pushChildren(path: Path[InspectedNode]): Unit = {
+    def pushChildren(path: Path[SelectionNode]): Unit = {
       if (tree.isExpanded(path)) {
         val open = openNodes
         openNodes = treeModel.getChildPathsOf(path).toIterator ++ open

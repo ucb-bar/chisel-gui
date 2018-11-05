@@ -66,15 +66,15 @@ class TreeTransferHandler(displayModel: WaveFormController) extends TransferHand
   }
 
   def copy(node: DefaultMutableTreeNode): DefaultMutableTreeNode = {
-    val originalInspectedNode = node.getUserObject.asInstanceOf[InspectedNode]
-    val copiedInspectedNode = originalInspectedNode.copy
-    originalInspectedNode.signal match {
-      case Some(_) =>
-        displayModel.waveDisplaySettings(copiedInspectedNode.nodeId) =
-          displayModel.waveDisplaySettings(originalInspectedNode.nodeId)
-      case None =>
-    }
-    new DefaultMutableTreeNode(copiedInspectedNode)
+    val originalSelectionNode = node.getUserObject.asInstanceOf[SelectionNode]
+    val copiedSelectionNode = originalSelectionNode
+//    originalSelectionNode.signal match {
+//      case Some(_) =>
+//        displayModel.waveDisplaySettings(copiedSelectionNode.nodeId) =
+//          displayModel.waveDisplaySettings(originalSelectionNode.nodeId)
+//      case None =>
+//    }
+    new DefaultMutableTreeNode(copiedSelectionNode)
   }
 
   override def exportDone(source: JComponent, data: Transferable, action: Int): Unit = {

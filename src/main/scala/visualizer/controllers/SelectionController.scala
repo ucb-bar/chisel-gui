@@ -2,8 +2,10 @@ package visualizer.controllers
 
 import scalaswingcontrib.tree.Tree.Path
 import scalaswingcontrib.tree._
+import visualizer.components.SignalSelector
 import visualizer.models._
 import visualizer.{MaxTimestampChanged, TreadleController, Util}
+import treadle.executable.Symbol
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -20,7 +22,10 @@ class SelectionController extends Publisher {
 //  val directoryTreeModel: InternalTreeModel[DirectoryNode] = InternalTreeModel.empty[DirectoryNode]
   val directoryTreeModel: SignalSelectionModel = new SignalSelectionModel
 
-  val RootPath: Tree.Path[DirectoryNode] = Tree.Path.empty[DirectoryNode]
+  val signalSelector      = new SignalSelector(this)
+
+  val RootPath:  Tree.Path[SelectionNode] = SelectionNode.RootPath
+
   val pureSignalMapping = new mutable.HashMap[String, PureSignal]
 
   def insertUnderSorted(parentPath: Path[SelectionNode], newValue: SelectionNode): Boolean = {
@@ -43,48 +48,30 @@ class SelectionController extends Publisher {
     directoryTreeModel.insertUnder(parentPath, newValue, index)
   }
 
-  def ioSignals: Seq[String] = {
-    val a = pureSignalMapping.flatMap { case (fullName, pureSignal) =>
-      if (pureSignal.sortGroup == 0) Some(fullName) else None
-    }
-    a.toSeq.sorted
+  def addSymbol(symbol: Symbol): Unit = {
+    directoryTreeModel.addSymbol(symbol)
+  }
+
+  def addToWaveFormViewer(node: SelectionNode): Unit = {
+    TreadleController.waveFormController.addFromDirectoryToInspected(node, signalSelector)
   }
 
   // TODO: move tester part to TreadleController?
   def loadMoreWaveformValues(): Unit = {
-    TreadleController.tester match {
-      case Some(t) =>
-        val clk = t.clockInfoList.head
-        val wv = t.waveformValues(startCycle = ((maxTimestamp - clk.initialOffset) / clk.period + 1).toInt)
-        Util.toValueChange(wv, initializing = false).foreach {
-          case (fullName, waveform) =>
-            if(pureSignalMapping.contains(fullName)) {
-              pureSignalMapping(fullName).addNewValues(waveform)
-            }
-        }
-        updateMaxTimestamp()
-      case None =>
-    }
+//    TreadleController.tester match {
+//      case Some(t) =>
+//        val clk = t.clockInfoList.head
+//        val wv = t.waveformValues(startCycle = ((maxTimestamp - clk.initialOffset) / clk.period + 1).toInt)
+//        Util.toValueChange(wv, initializing = false).foreach {
+//          case (fullName, waveform) =>
+//            if(pureSignalMapping.contains(fullName)) {
+//              pureSignalMapping(fullName).addNewValues(waveform)
+//            }
+//        }
+//        updateMaxTimestamp()
+//      case None =>
+//    }
   }
-
-  ///////////////////////////////////////////////////////////////////////////
-  // Timescale and Max Timestamp
-  ///////////////////////////////////////////////////////////////////////////
-  var maxTimestamp: Long = 0
-  def updateMaxTimestamp(): Unit = {
-    var newMaxTimestamp: Long = 0
-    directoryTreeModel.depthFirstIterator.foreach {
-
-      case signal: SelectionSignal  =>
-//          newMaxTimestamp = math.max(newMaxTimestamp, signal.waveform.get.transitions.last.timestamp)
-      case _ =>
-    }
-    if (newMaxTimestamp > maxTimestamp) {
-      maxTimestamp = newMaxTimestamp
-      publish(new MaxTimestampChanged)
-    }
-  }
-  var timescale: Int = -9
 }
 
 object DirectoryNodeOrdering extends Ordering[DirectoryNode] {

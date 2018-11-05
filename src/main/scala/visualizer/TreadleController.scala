@@ -44,27 +44,47 @@ object TreadleController extends SwingApplication with Publisher {
     io.Source.fromFile(file).mkString
   }
 
+  def getPureSignal(node: SelectionNode): Option[PureSignal] = {
+    None
+  }
+
   def addSignal(fullName: String, signal: Signal[_ <: Any]): Unit = {
-    // the full name of the signal (from treadle) uses periods to separate modules
-    val fullPath = fullName.split("\\.")
+//    // the full name of the signal (from treadle) uses periods to separate modules
+//    val fullPath = fullName.split("\\.")
+//    val signalName = fullPath.last
+//    val modules = fullPath.init
+//
+//    val parentPath = modules.foldLeft(selectionController.RootPath) { (parentPath, module) =>
+//      val node = DirectoryNode(module, None)
+//      val children = selectionController.directoryTreeModel.getChildrenOf(parentPath)
+//      if (!children.contains(node)) {
+//        selectionController.insertUnderSorted(parentPath, node)
+//      }
+//      parentPath :+ node
+//    }
+//    val node = DirectoryNode(signalName, Some(signal))
+//    selectionController.insertUnderSorted(parentPath, node)
+//
+//    signal match {
+//      case pureSignal: PureSignal => selectionController.pureSignalMapping(fullName) = pureSignal
+//      case _ =>
+//    }
+  }
+
+  def addSelection(node: SelectionNode): Unit = {
+    val fullPath = node.name.split("""\.""")
     val signalName = fullPath.last
     val modules = fullPath.init
 
     val parentPath = modules.foldLeft(selectionController.RootPath) { (parentPath, module) =>
-      val node = DirectoryNode(module, None)
+      val node = new SelectionGroup(module)
       val children = selectionController.directoryTreeModel.getChildrenOf(parentPath)
       if (!children.contains(node)) {
         selectionController.insertUnderSorted(parentPath, node)
       }
       parentPath :+ node
     }
-    val node = DirectoryNode(signalName, Some(signal))
     selectionController.insertUnderSorted(parentPath, node)
-
-    signal match {
-      case pureSignal: PureSignal => selectionController.pureSignalMapping(fullName) = pureSignal
-      case _ =>
-    }
   }
 
   ///////////////////////////////////////////////////////////////////////////
@@ -112,8 +132,12 @@ object TreadleController extends SwingApplication with Publisher {
         addSignal(fullName, signal)
       }
     }
+
+    t.engine.symbolTable.symbols.foreach { symbol =>
+      selectionController.addSymbol(symbol)
+    }
     mainWindow.repaint()
-    selectionController.updateMaxTimestamp()
+    waveFormController.updateMaxTimestamp()
     publish(new PureSignalsChanged)
   }
 
@@ -145,16 +169,16 @@ object TreadleController extends SwingApplication with Publisher {
     runSomeTreadle(treadleTester)
     setupWaveforms(treadleTester)
 
-    val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
-    val signalReady = new PureSignal("ready", Some(waveformReady), 0)
-    addSignal("module.io_fake_ready", signalReady)
-
-    val waveformValid = makeBinaryTransitions(ArrayBuffer[Int](0, 36, 66, 96, 116, 146, 206, 286, 396, 406, 506))
-    val signalValid = new PureSignal("valid", Some(waveformValid), 0)
-    addSignal("module.io_fake_valid", signalValid)
-
-    val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))
-    addSignal("module.io_rv", signalRV)
+//    val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
+//    val signalReady = new PureSignal("ready", Some(waveformReady), 0)
+//    addSignal("module.io_fake_ready", signalReady)
+//
+//    val waveformValid = makeBinaryTransitions(ArrayBuffer[Int](0, 36, 66, 96, 116, 146, 206, 286, 396, 406, 506))
+//    val signalValid = new PureSignal("valid", Some(waveformValid), 0)
+//    addSignal("module.io_fake_valid", signalValid)
+//
+//    val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))
+//    addSignal("module.io_rv", signalRV)
 
     publish(new PureSignalsChanged)
   }

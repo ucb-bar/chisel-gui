@@ -7,6 +7,7 @@ import javax.swing.tree.DefaultMutableTreeNode
 import scalaswingcontrib.tree.Tree.Path
 import scalaswingcontrib.tree.{InternalTreeModel, Tree, TreeModel}
 import treadle.executable.{Symbol, SymbolTable}
+import visualizer.controllers.{DecFormat, Format}
 
 import scala.annotation.tailrec
 
@@ -45,7 +46,7 @@ class SignalSelectionModel extends InternalTreeModel[SelectionNode] {
     insertUnder(parentPath, newValue, index)
   }
 
-  def addSelectionNode(selectionNode: SelectionSignal, stringPath: Seq[String], sortGroup: Int): Unit = {
+  def addSelectionNode(selectionNode: SelectionNode, stringPath: Seq[String], sortGroup: Int): Unit = {
 
     val parentPath = stringPath.foldLeft(SignalSelectionModel.RootPath) { (path, module) =>
       val node = SelectionGroup(module, sortGroup)
@@ -162,6 +163,22 @@ case class SelectionGroup(name: String, sortGroup: Int = 0) extends SelectionNod
   */
 case class SelectionSignal(symbol: Symbol, sortGroup: Int = 1000) extends SelectionNode {
   val name: String = symbol.name
+}
+
+object SelectionNode {
+  val RootPath: Tree.Path[SelectionNode] = Tree.Path.empty[SelectionNode]
+}
+
+trait WaveNode extends SelectionNode {
+  self: SelectionNode =>
+}
+
+case class WaveGroup(name: String, sortGroup: Int = 0) extends WaveNode {
+}
+
+case class WaveSignal(symbol: Symbol, sortGroup: Int = 1000) extends SelectionNode {
+  val name: String = symbol.name
+  var format: Format = DecFormat
 }
 
 

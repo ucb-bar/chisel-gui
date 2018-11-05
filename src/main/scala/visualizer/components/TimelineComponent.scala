@@ -6,7 +6,7 @@ import visualizer.models._
 
 import scala.swing._
 
-class TimelineComponent(dataModel: SelectionController, displayModel: WaveFormController) extends Component {
+class TimelineComponent(waveFormController: WaveFormController) extends Component {
 
   var unitMagnitude: Long = 1
   var unit = "s"
@@ -24,14 +24,14 @@ class TimelineComponent(dataModel: SelectionController, displayModel: WaveFormCo
     val visibleRect = peer.getVisibleRect
     val metrics = g.getFontMetrics
 
-    displayModel.clock match {
-      case Some(clk) if displayModel.useClock =>
-        val startTime: Long = math.max(((visibleRect.x - 100) / displayModel.scale).toLong - clk.initialOffset, 0) / clk.period * clk.period + clk.initialOffset
-        val endTime: Long = ((visibleRect.x + visibleRect.width) / displayModel.scale).toLong
+    waveFormController.clock match {
+      case Some(clk) if waveFormController.useClock =>
+        val startTime: Long = math.max(((visibleRect.x - 100) / waveFormController.scale).toLong - clk.initialOffset, 0) / clk.period * clk.period + clk.initialOffset
+        val endTime: Long = ((visibleRect.x + visibleRect.width) / waveFormController.scale).toLong
 
         for (ts: Long <- startTime until endTime by clk.period) {
-          val x: Int = (ts * displayModel.scale).toInt
-          if ((((ts -  clk.initialOffset) / clk.period) / displayModel.clkMinorTickInterval) % 5 == 0) {
+          val x: Int = (ts * waveFormController.scale).toInt
+          if ((((ts -  clk.initialOffset) / clk.period) / waveFormController.clkMinorTickInterval) % 5 == 0) {
             g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
             g.drawString(((ts - clk.initialOffset) / clk.period).toString, x + 3, DrawMetrics.MinorTickTop - metrics.getDescent - 2)
           } else {
@@ -41,12 +41,12 @@ class TimelineComponent(dataModel: SelectionController, displayModel: WaveFormCo
       case _ =>
         // The -100 in start time keeps labels that are to the left of the window from not being drawn
         // (which causes artifacts when scrolling).  It needs to be bigger than the largest label.
-        val startTime: Long = math.max(((visibleRect.x - 100) / displayModel.scale).toLong, 0) / displayModel.minorTickInterval * displayModel.minorTickInterval
-        val endTime: Long = ((visibleRect.x + visibleRect.width) / displayModel.scale).toLong
+        val startTime: Long = math.max(((visibleRect.x - 100) / waveFormController.scale).toLong, 0) / waveFormController.minorTickInterval * waveFormController.minorTickInterval
+        val endTime: Long = ((visibleRect.x + visibleRect.width) / waveFormController.scale).toLong
 
-        for (ts: Long <- startTime until endTime by displayModel.minorTickInterval) {
-          val x: Int = (ts * displayModel.scale).toInt
-          if ((ts / displayModel.minorTickInterval) % 10 == 0) {
+        for (ts: Long <- startTime until endTime by waveFormController.minorTickInterval) {
+          val x: Int = (ts * waveFormController.scale).toInt
+          if ((ts / waveFormController.minorTickInterval) % 10 == 0) {
             g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
             g.drawString((ts / unitMagnitude).toString + " " + unit, x + 3, DrawMetrics.MinorTickTop - metrics.getDescent - 2)
           } else {
@@ -65,7 +65,7 @@ class TimelineComponent(dataModel: SelectionController, displayModel: WaveFormCo
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-  listenTo(dataModel, displayModel)
+  listenTo(waveFormController)
   reactions += {
     case _: SignalsChanged | _: MaxTimestampChanged =>
       computeBounds()
@@ -76,13 +76,13 @@ class TimelineComponent(dataModel: SelectionController, displayModel: WaveFormCo
   }
 
   def computeBounds(): Unit = {
-    preferredSize = new Dimension((dataModel.maxTimestamp * displayModel.scale).toInt, preferredSize.height)
+    preferredSize = new Dimension((waveFormController.maxTimestamp * waveFormController.scale).toInt, preferredSize.height)
     revalidate()
   }
 
   private def scaleChanged(): Unit = {
-    val femtoSecondsPerTimeUnit = math.pow(10, dataModel.timescale + 15).toLong
-    val minorTickIntervalFs = displayModel.minorTickInterval * femtoSecondsPerTimeUnit
+    val femtoSecondsPerTimeUnit = math.pow(10, waveFormController.timescale + 15).toLong
+    val minorTickIntervalFs = waveFormController.minorTickInterval * femtoSecondsPerTimeUnit
     val unitMagnitudeFs = if (minorTickIntervalFs < 100L) {
       unit = "fs"
       1L

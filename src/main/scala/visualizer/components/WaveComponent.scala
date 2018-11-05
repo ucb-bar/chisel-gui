@@ -11,15 +11,16 @@ import visualizer.painters.{MultiBitPainter, ReadyValidPainter, SingleBitPainter
 import scala.swing._
 import scala.swing.event._
 
-class WaveComponent(dataModel: SelectionController, displayModel: WaveFormController, tree: Tree[InspectedNode])
-  extends BorderPanel {
+class WaveComponent(waveFormController: WaveFormController) extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  private val multiBitPainter = new MultiBitPainter(dataModel, displayModel)
-  private val singleBitPainter = new SingleBitPainter(dataModel, displayModel)
-  private val readyValidPainter = new ReadyValidPainter(dataModel, displayModel)
+  private val multiBitPainter = new MultiBitPainter(waveFormController)
+  private val singleBitPainter = new SingleBitPainter(waveFormController)
+  private val readyValidPainter = new ReadyValidPainter(waveFormController)
+
+  def tree = waveFormController.tree
 
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)
@@ -32,24 +33,23 @@ class WaveComponent(dataModel: SelectionController, displayModel: WaveFormContro
     // Draw waveforms
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach { case (node, row) =>
       val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
-      node.signal match {
-        case Some(signal) if signal.waveform.isDefined =>
-          signal match {
-            case signal: PureSignal =>
-              displayModel.waveDisplaySettings(node.nodeId).painter match {
-                case _ =>
-                  if (signal.waveform.get.isBinary)
-                    singleBitPainter.paintWaveform(g, visibleRect, y, node)
-                  else
-                    multiBitPainter.paintWaveform(g, visibleRect, y, node)
-              }
-            case _: CombinedSignal =>
-              readyValidPainter.paintWaveform(g, visibleRect, y, node)
+
+      waveFormController.waveFormDataMap.get(node) match {
+        case Some(pureSignal: PureSignal) =>
+
+          waveFormController.waveDisplaySettings(node).painter match {
+            case _ =>
+              if (pureSignal.waveform.get.isBinary)
+                singleBitPainter.paintWaveform(g, visibleRect, y, pureSignal)
+              else
+                multiBitPainter.paintWaveform(g, visibleRect, y, pureSignal)
+          }
+            case combinedSignal: CombinedSignal =>
+              readyValidPainter.paintWaveform(g, visibleRect, y, combinedSignal)
           }
         case _ =>
           // node is a group. do nothing?
           // or node doesn't have a waveform
-      }
     }
 
     // Draw markers
@@ -57,19 +57,19 @@ class WaveComponent(dataModel: SelectionController, displayModel: WaveFormContro
 
     // Draw cursor
     g.setColor(new Color(39, 223, 85))
-    val cursorX = displayModel.timestampToXCoordinate(displayModel.cursorPosition)
+    val cursorX = waveFormController.timestampToXCoordinate(waveFormController.cursorPosition)
     g.drawLine(cursorX, visibleRect.y, cursorX, visibleRect.y + visibleRect.height)
   }
 
   def drawMarkers(g: Graphics2D, visibleRect: Rectangle): Unit = {
-    val startTime = displayModel.xCoordinateToTimestamp(visibleRect.x)
-    val endTime = displayModel.xCoordinateToTimestamp(visibleRect.x + visibleRect.width)
-    val startIndex = displayModel.getMarkerAtTime(startTime)
-    val endIndex = displayModel.getMarkerAtTime(endTime)
+    val startTime = waveFormController.xCoordinateToTimestamp(visibleRect.x)
+    val endTime = waveFormController.xCoordinateToTimestamp(visibleRect.x + visibleRect.width)
+    val startIndex = waveFormController.getMarkerAtTime(startTime)
+    val endIndex = waveFormController.getMarkerAtTime(endTime)
 
     g.setColor(Color.black)
-    displayModel.markers.slice(startIndex, endIndex + 1).foreach { marker =>
-      val x = displayModel.timestampToXCoordinate(marker.timestamp)
+    waveFormController.markers.slice(startIndex, endIndex + 1).foreach { marker =>
+      val x = waveFormController.timestampToXCoordinate(marker.timestamp)
       g.drawLine(x, 0, x, visibleRect.y + visibleRect.height)
     }
   }
@@ -78,7 +78,7 @@ class WaveComponent(dataModel: SelectionController, displayModel: WaveFormContro
   // Helper functions
   //
   def computeBounds(): Unit = {
-    preferredSize = new Dimension(displayModel.timestampToXCoordinate(dataModel.maxTimestamp),
+    preferredSize = new Dimension(waveFormController.timestampToXCoordinate(waveFormController.maxTimestamp),
       TreeHelper.viewableDepthFirstIterator(tree).size
         * DrawMetrics.WaveformVerticalSpacing)
     revalidate()
@@ -87,7 +87,7 @@ class WaveComponent(dataModel: SelectionController, displayModel: WaveFormContro
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-  listenTo(dataModel, displayModel, tree)
+  listenTo(waveFormController, tree)
   listenTo(mouse.clicks, mouse.moves)
   reactions += {
     case _: SignalsChanged | _: ScaleChanged | _: CursorSet | _: MaxTimestampChanged =>
@@ -99,19 +99,19 @@ class WaveComponent(dataModel: SelectionController, displayModel: WaveFormContro
       if (e.timestamp < 0)
         repaint()
       else
-        repaint(new Rectangle(displayModel.timestampToXCoordinate(e.timestamp) - 1, 0, 2, peer.getVisibleRect.height))
+        repaint(new Rectangle(waveFormController.timestampToXCoordinate(e.timestamp) - 1, 0, 2, peer.getVisibleRect.height))
     case e: MousePressed =>
-      val timestamp = displayModel.xCoordinateToTimestamp(e.peer.getX)
-      if (displayModel.cursorPosition != displayModel.selectionStart)
+      val timestamp = waveFormController.xCoordinateToTimestamp(e.peer.getX)
+      if (waveFormController.cursorPosition != waveFormController.selectionStart)
         repaint()
       if (!e.peer.isShiftDown)
-        displayModel.selectionStart = timestamp
-      displayModel.setCursorPosition(timestamp)
+        waveFormController.selectionStart = timestamp
+      waveFormController.setCursorPosition(timestamp)
       // waveFormController.adjustingCursor = true
     case _: MouseReleased => // waveFormController.adjustingCursor = false
     case e: MouseDragged =>
-      val timestamp = displayModel.xCoordinateToTimestamp(e.peer.getX)
-      displayModel.setCursorPosition(timestamp)
+      val timestamp = waveFormController.xCoordinateToTimestamp(e.peer.getX)
+      waveFormController.setCursorPosition(timestamp)
       peer.scrollRectToVisible(new Rectangle(e.peer.getX, e.peer.getY, 1, 1))
   }
 }

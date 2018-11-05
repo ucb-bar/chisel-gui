@@ -11,12 +11,12 @@ import scala.swing._
 import scala.swing.event._
 import BorderPanel.Position.Center
 
-class SignalComponent(dataModel: SelectionController, displayModel: WaveFormController, tree: Tree[InspectedNode])
-  extends BorderPanel {
+class SignalComponent(displayModel: WaveFormController) extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
+  val tree = displayModel.tree
   add(tree, Center)
   focusable = true
 
@@ -45,21 +45,21 @@ class SignalComponent(dataModel: SelectionController, displayModel: WaveFormCont
   }
 }
 
-class SignalNameRenderer(displayModel: WaveFormController) extends Tree.Renderer[InspectedNode] {
+class SignalNameRenderer(waveFormController: WaveFormController) extends Tree.Renderer[SelectionNode] {
   private var labelBaseLine = -1
   private var valueBaseLine = 0
   val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)
   val ValueFont = new Font("SansSerif", Font.PLAIN, 8)
 
-  override def componentFor(
+  def componentFor(
       owner: Tree[_],
-      value: InspectedNode,
+      value: SelectionNode,
       cellInfo: companion.CellInfo
   ): Component = {
     new SignalNamePanel(value, cellInfo.isSelected)
   }
 
-  class SignalNamePanel(node: InspectedNode, isSelected: Boolean) extends BorderPanel {
+  class SignalNamePanel(node: SelectionNode, isSelected: Boolean) extends BorderPanel {
     peer.setOpaque(true)
     preferredSize = new Dimension(200, DrawMetrics.WaveformVerticalSpacing)
 
@@ -79,7 +79,7 @@ class SignalNameRenderer(displayModel: WaveFormController) extends Tree.Renderer
         valueBaseLine += border
       }
 
-      node.signal match {
+      waveFormController.waveFormDataMap.get(node) match {
         case Some(signal) if signal.waveform.isDefined =>
           // Background
           if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)
@@ -93,10 +93,10 @@ class SignalNameRenderer(displayModel: WaveFormController) extends Tree.Renderer
           // Value
           g.setFont(ValueFont)
           if (isSelected) g.setColor(Color.white) else g.setColor(Color.blue)
-          val value = signal.waveform.get.findTransition(displayModel.cursorPosition).next().value
+          val value = signal.waveform.get.findTransition(waveFormController.cursorPosition).next().value
           val txt = signal match {
             case _: PureSignal if value.asInstanceOf[BigInt] != null =>
-              displayModel.waveDisplaySettings(node.nodeId).dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
+              waveFormController.waveDisplaySettings(node).dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
             case _: CombinedSignal =>
               val pair = value.asInstanceOf[Array[BigInt]]
               if (pair != null) {

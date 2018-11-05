@@ -17,18 +17,16 @@ import scala.swing.event.{ButtonClicked, MouseClicked}
   * @param selectionController    underlying data model
   * @param displayModel underlying waveFormController
   */
-class SignalSelector(
-  selectionController: SelectionController,
-  displayModel       : WaveFormController
-) extends BoxPanel(Orientation.Vertical) {
+class SignalSelector(selectionController: SelectionController) extends BoxPanel(Orientation.Vertical) {
 
+  val displayModel: SignalSelectionModel = selectionController.directoryTreeModel
   val me = this
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
   val tree: Tree[SelectionNode] = new Tree[SelectionNode] {
-    model = new SignalSelectionModel
+    model = displayModel
     renderer = Tree.Renderer(_.name)
     showsRootHandles = true
 
@@ -41,7 +39,7 @@ class SignalSelector(
         else if(m.clicks == 2) {
           println(s"mouse double clicked in tree ${m.clicks}")
           selection.cellValues.foreach { node =>
-            displayModel.addFromDirectoryToInspected(node.toInspected, this)
+            displayModel.addSelectionNode(node, stringPath = Seq.empty, sortGroup = 0)
           }
         }
     }
@@ -94,12 +92,12 @@ class SignalSelector(
       else if(m.clicks == 2) {
         println(s"mouse double clicked in DirectoryComponent ${m.clicks}")
         tree.selection.cellValues.foreach { node =>
-          displayModel.addFromDirectoryToInspected(node.toInspected, this)
+          selectionController.addToWaveFormViewer(node)
         }
       }
     case ButtonClicked(`addSymbolsButton`) =>
       tree.selection.cellValues.foreach{node =>
-        displayModel.addFromDirectoryToInspected(node.toInspected, this)
+        selectionController.addToWaveFormViewer(node)
       }
     case e: TreeNodesInserted[_] =>
       if (selectionController.directoryTreeModel.size == e.childIndices.length) {

@@ -1,20 +1,126 @@
 package visualizer.controllers
 
+import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
+import javax.swing.tree.{DefaultMutableTreeNode, TreePath}
+import javax.swing.{DropMode, SwingUtilities}
+
 import scala.collection.mutable.ArrayBuffer
 import scala.swing._
 import scalaswingcontrib.tree._
 import treadle.executable.ClockInfo
 import visualizer._
-import visualizer.models.InspectedNode
+import visualizer.components.{InspectionContainer, SignalNameRenderer}
+import visualizer.models._
 
 import scala.collection.mutable
+import scala.swing.event.MouseClicked
 
 class WaveFormController extends Publisher {
   // Maps nodeId to WaveDisplaySetting
-  val waveDisplaySettings: mutable.HashMap[Int, WaveDisplaySetting] = new mutable.HashMap[Int, WaveDisplaySetting]()
+  val waveDisplaySettings: mutable.HashMap[SelectionNode, WaveDisplaySetting]   = new mutable.HashMap()
+  val waveFormDataMap:     mutable.HashMap[SelectionNode, Signal[_]] = new mutable.HashMap()
 
-  val RootPath: Tree.Path[InspectedNode] = Tree.Path.empty[InspectedNode]
-  val treeModel: InternalTreeModel[InspectedNode] = InternalTreeModel.empty[InspectedNode]
+  val treeModel: SignalSelectionModel     = new SignalSelectionModel
+  val RootPath:  Tree.Path[SelectionNode] = SelectionNode.RootPath
+
+  val waveFormController = this
+
+  // Popup menu when a signal name is right-clicked
+  private def popupMenu(signal: Option[Signal[_ <: Any]]): PopupMenu = new PopupMenu {
+    contents += new Menu("Data Format") {
+      contents += new MenuItem(Action("Binary") {
+        waveFormController.setWaveFormat(this, tree.selection.cellValues, BinFormat)
+      })
+      contents += new MenuItem(Action("Decimal") {
+        waveFormController.setWaveFormat(this, tree.selection.cellValues, DecFormat)
+      })
+      contents += new MenuItem(Action("Hexadecimal") {
+        waveFormController.setWaveFormat(this, tree.selection.cellValues, HexFormat)
+      })
+    }
+    if (signal.isDefined && signal.get.isInstanceOf[PureSignal]) {
+      val pureSignalName = signal.get.asInstanceOf[PureSignal].name
+      contents += new MenuItem(Action("Show Dependency Graph") {
+        waveFormController.showDependency(pureSignalName, this)
+      })
+    }
+  }
+
+  val tree: Tree[SelectionNode] = new Tree[SelectionNode] {
+    model = treeModel
+    renderer = new SignalNameRenderer(waveFormController)
+    showsRootHandles = true
+
+    protected val expansionListener: TreeExpansionListener = new TreeExpansionListener {
+      override def treeExpanded(event: TreeExpansionEvent): Unit = {
+        publish(SignalsChanged(tree))
+      }
+      override def treeCollapsed(event: TreeExpansionEvent): Unit = {
+        publish(SignalsChanged(tree))
+      }
+    }
+
+    peer.addTreeExpansionListener(expansionListener)
+
+    peer.setRowHeight(DrawMetrics.WaveformVerticalSpacing)
+
+    // Make it rearrangeable
+    peer.setDragEnabled(true)
+    peer.setDropMode(DropMode.ON_OR_INSERT)
+    peer.setTransferHandler(new TreeTransferHandler(waveFormController))
+
+    def isPointInNode(point: Point): Boolean = {
+      val row = getClosestRowForLocation(point.x, point.y)
+      if (row >= 0) {
+        val rect = peer.getRowBounds(row)
+        rect.contains(point)
+      } else {
+        false
+      }
+    }
+
+    listenTo(mouse.clicks)
+    listenTo(waveFormController)
+    reactions += {
+      case _: SignalsChanged =>
+        tree.peer.expandPath(new TreePath(model.peer.getRoot))
+      case e: MouseClicked =>
+        println(s"mouse clicked in inspectionContainer ${e.clicks}")
+        if (SwingUtilities.isRightMouseButton(e.peer)) {
+          if (isPointInNode(e.point)) {
+            val row = getClosestRowForLocation(e.point.x, e.point.y)
+
+            if (!selection.rows.contains(row)) {
+              // Right clicked in a node that isn't selected
+              // Then select only the node that was right clicked
+              selectRows(getClosestRowForLocation(e.point.x, e.point.y))
+            }
+            repaint()
+
+            val path = tree.peer.getClosestPathForLocation(e.point.x, e.point.y)
+            val peerNode = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
+            val node = peerNode.getUserObject.asInstanceOf[InspectedNode]
+            popupMenu(node.signal).show(inspectionContainer, e.point.x, e.point.y)
+          }
+        } else {
+          if(e.clicks == 1) {
+            if (!isPointInNode(e.point)) {
+              selection.clear()
+            }
+          }
+          else if(e.clicks == 2) {
+            println(s"mouse clicked in inspectionContainer ${e.clicks}")
+            tree.selection.cellValues.foreach { node =>
+
+              waveFormController.addFromDirectoryToInspected(node, this)
+            }
+
+          }
+        }
+    }
+  }
+
+  val inspectionContainer = new InspectionContainer(this)
 
   var scale: Double = 2
   var minorTickInterval: Long = 1
@@ -27,6 +133,25 @@ class WaveFormController extends Publisher {
   setScale(10, null)
 
   ///////////////////////////////////////////////////////////////////////////
+  // Timescale and Max Timestamp
+  ///////////////////////////////////////////////////////////////////////////
+  var maxTimestamp: Long = 0
+  def updateMaxTimestamp(): Unit = {
+    var newMaxTimestamp: Long = 0
+//    directoryTreeModel.depthFirstIterator.foreach {
+//
+//      case signal: SelectionSignal  =>
+//      //          newMaxTimestamp = math.max(newMaxTimestamp, signal.waveform.get.transitions.last.timestamp)
+//      case _ =>
+//    }
+    if (newMaxTimestamp > maxTimestamp) {
+      maxTimestamp = newMaxTimestamp
+      publish(new MaxTimestampChanged)
+    }
+  }
+  var timescale: Int = -9
+
+  ///////////////////////////////////////////////////////////////////////////
   // Helper Functions
   ///////////////////////////////////////////////////////////////////////////
   def xCoordinateToTimestamp(x: Int): Long = (x / scale).toLong
@@ -35,30 +160,30 @@ class WaveFormController extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Signals
   ///////////////////////////////////////////////////////////////////////////
-  def addFromDirectoryToInspected(node: InspectedNode, source: Component): Unit = {
+  def addFromDirectoryToInspected(node: SelectionNode, source: Component): Unit = {
     val inspectedNode = node
     treeModel.insertUnder(RootPath, inspectedNode, treeModel.getChildrenOf(RootPath).size)
 
-    node.signal match {
-      case Some(_) => // Add Signal
-        waveDisplaySettings.get(inspectedNode.nodeId) match {
-          case None =>
-            waveDisplaySettings += inspectedNode.nodeId -> WaveDisplaySetting()
-          case _ =>
-        }
-      case None =>
-    }
+//    node.signal match {
+//      case Some(_) => // Add Signal
+//        waveDisplaySettings.get(inspectedNode.nodeId) match {
+//          case None =>
+//            waveDisplaySettings += inspectedNode.nodeId -> WaveDisplaySetting()
+//          case _ =>
+//        }
+//      case None =>
+//    }
     publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
   }
 
   def addGroup(): Unit = {
-    val node = InspectedNode("New Group", None)
+    val node = SelectionGroup("New Group")
     treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
   }
 
   // Removes all selected signals, selected groups, and children of selected groups
   // TODO: change type of paths?
-  def removeSelectedSignals(source: Component, paths: Iterator[Tree.Path[InspectedNode]]): Unit = {
+  def removeSelectedSignals(source: Component, paths: Iterator[Tree.Path[SelectionNode]]): Unit = {
     paths.foreach { path =>
       treeModel.remove(path)
     }
@@ -72,13 +197,11 @@ class WaveFormController extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Wave Display Format
   ///////////////////////////////////////////////////////////////////////////
-  def setWaveFormat(source: Component, nodes: Iterator[InspectedNode], format: Format): Unit = {
-    nodes.foreach{node =>
-      node.signal match {
-        case Some(_) =>
-          waveDisplaySettings(node.nodeId).dataFormat = Some(format)
-        case None =>
-      }
+  def setWaveFormat(source: Component, nodes: Iterator[SelectionNode], format: Format): Unit = {
+    nodes.foreach {
+      case node: WaveSignal =>
+        node.format = format
+      case _ =>
     }
     publish(WaveFormatChanged(source))
   }

@@ -8,18 +8,18 @@ import visualizer.models._
 
 import scala.swing.Graphics2D
 
-class MultiBitPainter(dataModel: SelectionController, displayModel: WaveFormController) extends Painter(displayModel) {
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode): Unit = {
-    require(node.signal.isDefined)
-    val signal = node.signal.get
+class MultiBitPainter(displayModel: WaveFormController) extends Painter(displayModel) {
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, signal: Signal[_]): Unit = {
     require(signal.waveform.isDefined)
     require(signal.isInstanceOf[PureSignal])
 
     val pureSignal = signal.asInstanceOf[PureSignal]
-    val formatter = displayModel.waveDisplaySettings(node.nodeId).dataFormat match {
-      case Some(format) => format
-      case None => DecFormat
-    }
+    //TODO: pass this format down in here somehow
+    val formatter = DecFormat
+//    val formatter = displayModel.waveDisplaySettings(node).dataFormat match {
+//      case Some(format) => format
+//      case None => DecFormat
+//    }
     val startTimestamp = displayModel.xCoordinateToTimestamp(visibleRect.x)
     g.setColor(Color.black)
 

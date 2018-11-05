@@ -5,20 +5,22 @@ import java.awt.Color
 import javax.swing.BorderFactory
 import treadle.executable.ClockInfo
 import visualizer.controllers.{SelectionController, WaveFormController}
+import visualizer.models.SignalSelectionModel
 import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleController}
 
 import scala.swing.Swing._
 import scala.swing._
 
-class MainWindow(selectionController: SelectionController, displayModel: WaveFormController) extends MainFrame {
+class MainWindow(selectionController: SelectionController, waveFormController: WaveFormController) extends MainFrame {
 
   ///////////////////////////////////////////////////////////////////////////
-  // View
+  // Views
   ///////////////////////////////////////////////////////////////////////////
-  val signalSelector = new SignalSelector(selectionController, displayModel)
-  val inspectionContainer = new InspectionContainer(selectionController, displayModel)
-  val dependencyComponent = new DependencyComponent(selectionController, displayModel)
-  val inputControlPanel = new InputControlPanel(selectionController, displayModel)
+  val signalSelector      = selectionController.signalSelector
+  val inspectionContainer = waveFormController.inspectionContainer
+
+  val dependencyComponent = new DependencyComponent(selectionController)
+  val inputControlPanel   = new InputControlPanel(selectionController)
 
   private val toolbar = new ToolBar() {
     peer.setFloatable(false)
@@ -36,19 +38,19 @@ class MainWindow(selectionController: SelectionController, displayModel: WaveFor
     contents += HStrut(20)
 
     contents += Button("Add Marker") {
-      displayModel.addMarker("ad", displayModel.cursorPosition)
+      waveFormController.addMarker("ad", waveFormController.cursorPosition)
     }
     contents += Button("Setup mock clock") {
-      displayModel.setClock(ClockInfo("mock clock", 10, 1))
+      waveFormController.setClock(ClockInfo("mock clock", 10, 1))
     }
     contents += Button("Toggle Clock") {
-      displayModel.toggleClock()
+      waveFormController.toggleClock()
     }
     contents += Button("Remove signal(s)") {
       inspectionContainer.removeSignals(this)
     }
     contents += Button("Add group") {
-      displayModel.addGroup()
+      waveFormController.addGroup()
     }
   }
 
@@ -79,7 +81,7 @@ class MainWindow(selectionController: SelectionController, displayModel: WaveFor
     layout(dependencyComponent) = South
     layout(inputControlPanel) = East
 
-    listenTo(displayModel)
+    listenTo(waveFormController)
     listenTo(selectionController)
     reactions += {
       case e: DependencyComponentRequested =>

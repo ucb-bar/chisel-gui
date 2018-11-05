@@ -8,10 +8,9 @@ import visualizer.models._
 
 import scala.swing.Graphics2D
 
-class SingleBitPainter(dataModel: SelectionController, displayModel: WaveFormController) extends Painter(displayModel) {
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode): Unit = {
-    require(node.signal.isDefined)
-    val signal = node.signal.get
+class SingleBitPainter(displayModel: WaveFormController) extends Painter(displayModel) {
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, signal: Signal[_]): Unit = {
+
     require(signal.waveform.isDefined)
     require(signal.isInstanceOf[PureSignal])
 
