@@ -4,19 +4,23 @@ import java.awt.{Color, Font}
 
 import scalaswingcontrib.tree.Tree
 import visualizer._
-import visualizer.controllers.{DecFormat, SelectionController, WaveFormController}
+import visualizer.controllers.{DecFormat, WaveFormController}
 import visualizer.models._
 
 import scala.swing._
 import scala.swing.event._
 import BorderPanel.Position.Center
 
-class SignalComponent(displayModel: WaveFormController) extends BorderPanel {
+/**
+  * This is the organizing list of the users selected signals.
+  * @param waveFormController the controller for this component
+  */
+class SignalComponent(waveFormController: WaveFormController) extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  val tree = displayModel.tree
+  val tree: Tree[SelectionNode] = waveFormController.tree
   add(tree, Center)
   focusable = true
 
@@ -29,7 +33,7 @@ class SignalComponent(displayModel: WaveFormController) extends BorderPanel {
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-  listenTo(displayModel)
+  listenTo(waveFormController)
   listenTo(keys, tree.keys)
   listenTo(mouse.clicks)
   reactions += {
@@ -41,7 +45,7 @@ class SignalComponent(displayModel: WaveFormController) extends BorderPanel {
     case m: MouseButtonEvent =>
       println(s"Mouse clicked ${m.clicks}")
     case KeyReleased(_, Key.BackSpace, _, _) =>
-      displayModel.removeSelectedSignals(this, tree.selection.paths.iterator)
+      waveFormController.removeSelectedSignals(this, tree.selection.paths.iterator)
   }
 }
 

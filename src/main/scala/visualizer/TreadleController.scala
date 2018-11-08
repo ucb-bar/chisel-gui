@@ -48,36 +48,12 @@ object TreadleController extends SwingApplication with Publisher {
     None
   }
 
-  def addSignal(fullName: String, signal: Signal[_ <: Any]): Unit = {
-//    // the full name of the signal (from treadle) uses periods to separate modules
-//    val fullPath = fullName.split("\\.")
-//    val signalName = fullPath.last
-//    val modules = fullPath.init
-//
-//    val parentPath = modules.foldLeft(selectionController.RootPath) { (parentPath, module) =>
-//      val node = DirectoryNode(module, None)
-//      val children = selectionController.directoryTreeModel.getChildrenOf(parentPath)
-//      if (!children.contains(node)) {
-//        selectionController.insertUnderSorted(parentPath, node)
-//      }
-//      parentPath :+ node
-//    }
-//    val node = DirectoryNode(signalName, Some(signal))
-//    selectionController.insertUnderSorted(parentPath, node)
-//
-//    signal match {
-//      case pureSignal: PureSignal => selectionController.pureSignalMapping(fullName) = pureSignal
-//      case _ =>
-//    }
-  }
-
   def addSelection(node: SelectionNode): Unit = {
     val fullPath = node.name.split("""\.""")
-    val signalName = fullPath.last
     val modules = fullPath.init
 
     val parentPath = modules.foldLeft(selectionController.RootPath) { (parentPath, module) =>
-      val node = new SelectionGroup(module)
+      val node = SelectionGroup(module)
       val children = selectionController.directoryTreeModel.getChildrenOf(parentPath)
       if (!children.contains(node)) {
         selectionController.insertUnderSorted(parentPath, node)
@@ -107,34 +83,36 @@ object TreadleController extends SwingApplication with Publisher {
 
   def setupClock(t: TreadleTester): Unit = {
     if (t.clockInfoList.nonEmpty) {
+
       waveFormController.setClock(t.clockInfoList.head)
     }
   }
 
   def setupWaveforms(t: TreadleTester): Unit = {
-    val wv = t.allWaveformValues
-    Util.toValueChange(wv, initializing = true).foreach { case (fullName, transitions) =>
-      if (!fullName.contains("/")) {
-        val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
-        val sortGroup = if (t.isRegister(fullName)) {
-          1
-        } else {
-          val signalName = fullName.split("\\.").last
-          if (signalName.contains("io_")) {
-            0
-          } else if (signalName.contains("T_") || signalName.contains("GEN_")) {
-            3
-          } else {
-            2
-          }
-        }
-        val signal = new PureSignal(fullName, waveform, sortGroup)
-        addSignal(fullName, signal)
-      }
-    }
+//    val wv = t.allWaveformValues
+//    Util.toValueChange(wv, initializing = true).foreach { case (fullName, transitions) =>
+//      if (!fullName.contains("/")) {
+//        val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
+//        val sortGroup = if (t.isRegister(fullName)) {
+//          1
+//        } else {
+//          val signalName = fullName.split("\\.").last
+//          if (signalName.contains("io_")) {
+//            0
+//          } else if (signalName.contains("T_") || signalName.contains("GEN_")) {
+//            3
+//          } else {
+//            2
+//          }
+//        }
+//        val signal = new PureSignal(fullName, waveform, sortGroup)
+//        addSignal(fullName, signal)
+//      }
+//    }
 
     t.engine.symbolTable.symbols.foreach { symbol =>
-      selectionController.addSymbol(symbol)
+//      selectionController.addSymbol(symbol)
+      addSelection(SelectionSignal(symbol))
     }
     mainWindow.repaint()
     waveFormController.updateMaxTimestamp()

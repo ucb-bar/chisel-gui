@@ -16,7 +16,7 @@ class MultiBitPainter(displayModel: WaveFormController) extends Painter(displayM
     val pureSignal = signal.asInstanceOf[PureSignal]
     //TODO: pass this format down in here somehow
     val formatter = DecFormat
-//    val formatter = displayModel.waveDisplaySettings(node).dataFormat match {
+//    val formatter = waveFormController.waveDisplaySettings(node).dataFormat match {
 //      case Some(format) => format
 //      case None => DecFormat
 //    }

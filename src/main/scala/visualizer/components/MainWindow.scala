@@ -16,11 +16,11 @@ class MainWindow(selectionController: SelectionController, waveFormController: W
   ///////////////////////////////////////////////////////////////////////////
   // Views
   ///////////////////////////////////////////////////////////////////////////
-  val signalSelector      = selectionController.signalSelector
-  val inspectionContainer = waveFormController.inspectionContainer
+  val signalSelector: SignalSelector           = selectionController.signalSelector
+  val inspectionContainer: InspectionContainer = waveFormController.inspectionContainer
 
-  val dependencyComponent = new DependencyComponent(selectionController)
-  val inputControlPanel   = new InputControlPanel(selectionController)
+  val dependencyComponent: DependencyComponent = new DependencyComponent(selectionController)
+  val inputControlPanel: InputControlPanel     = new InputControlPanel(waveFormController)
 
   private val toolbar = new ToolBar() {
     peer.setFloatable(false)

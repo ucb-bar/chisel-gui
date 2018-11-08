@@ -70,8 +70,8 @@ class TreeTransferHandler(displayModel: WaveFormController) extends TransferHand
     val copiedSelectionNode = originalSelectionNode
 //    originalSelectionNode.signal match {
 //      case Some(_) =>
-//        displayModel.waveDisplaySettings(copiedSelectionNode.nodeId) =
-//          displayModel.waveDisplaySettings(originalSelectionNode.nodeId)
+//        waveFormController.waveDisplaySettings(copiedSelectionNode.nodeId) =
+//          waveFormController.waveDisplaySettings(originalSelectionNode.nodeId)
 //      case None =>
 //    }
     new DefaultMutableTreeNode(copiedSelectionNode)

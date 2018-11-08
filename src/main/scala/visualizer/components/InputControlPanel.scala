@@ -7,7 +7,7 @@ import visualizer.controllers.WaveFormController
 
 import scala.swing._
 
-class InputControlPanel(dataModel: SelectionController) extends GridPanel(2, 1) {
+class InputControlPanel(waveFormController: WaveFormController) extends GridPanel(2, 1) {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -124,7 +124,7 @@ class InputControlPanel(dataModel: SelectionController) extends GridPanel(2, 1) 
             try {
               val value = BigInt(stepsToTakeInput.text).toInt
               tester.step(value)
-              dataModel.loadMoreWaveformValues()
+              waveFormController.loadMoreWaveformValues()
               textArea.append(s"Step $value cycles\n")
               clockTextField.text = tester.cycleCount.toString
             }

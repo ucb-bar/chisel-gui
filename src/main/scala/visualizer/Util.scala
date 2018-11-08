@@ -3,15 +3,19 @@ package visualizer
 import scala.collection.mutable
 import treadle.executable.WaveformValues
 import visualizer.models._
+import treadle.executable.Symbol
 
 import scala.collection.mutable.ArrayBuffer
 
 object Util {
-  def toValueChange(waveformValues: WaveformValues, initializing: Boolean): mutable.HashMap[String, ArrayBuffer[Transition[BigInt]]] = {
-    val hashMap = new mutable.HashMap[String, ArrayBuffer[Transition[BigInt]]]()
+  def toValueChange(
+    waveformValues: WaveformValues, initializing: Boolean
+  ): mutable.HashMap[Symbol, ArrayBuffer[Transition[BigInt]]] = {
+
+    val hashMap = new mutable.HashMap[Symbol, ArrayBuffer[Transition[BigInt]]]()
     waveformValues.symbols.zip(waveformValues.symbolValues).foreach {
       case (symbol, values) =>
-        hashMap += symbol.name -> rollbackValuesToTransitions(waveformValues.clockValues, values, initializing)
+        hashMap += symbol -> rollbackValuesToTransitions(waveformValues.clockValues, values, initializing)
     }
     hashMap
   }

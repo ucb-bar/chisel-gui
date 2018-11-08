@@ -16,7 +16,7 @@ import scala.collection.mutable
 import scala.swing.event.MouseClicked
 
 class WaveFormController extends Publisher {
-  // Maps nodeId to WaveDisplaySetting
+  // Maps node to WaveDisplaySetting
   val waveDisplaySettings: mutable.HashMap[SelectionNode, WaveDisplaySetting]   = new mutable.HashMap()
   val waveFormDataMap:     mutable.HashMap[SelectionNode, Signal[_]] = new mutable.HashMap()
 
@@ -161,37 +161,70 @@ class WaveFormController extends Publisher {
   // Signals
   ///////////////////////////////////////////////////////////////////////////
   def addFromDirectoryToInspected(node: SelectionNode, source: Component): Unit = {
-    val inspectedNode = node
-    treeModel.insertUnder(RootPath, inspectedNode, treeModel.getChildrenOf(RootPath).size)
-
-//    node.signal match {
-//      case Some(_) => // Add Signal
-//        waveDisplaySettings.get(inspectedNode.nodeId) match {
-//          case None =>
-//            waveDisplaySettings += inspectedNode.nodeId -> WaveDisplaySetting()
-//          case _ =>
-//        }
-//      case None =>
-//    }
-    publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
-  }
-
-  def addGroup(): Unit = {
-    val node = SelectionGroup("New Group")
     treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
-  }
 
-  // Removes all selected signals, selected groups, and children of selected groups
-  // TODO: change type of paths?
-  def removeSelectedSignals(source: Component, paths: Iterator[Tree.Path[SelectionNode]]): Unit = {
-    paths.foreach { path =>
-      treeModel.remove(path)
+    if (!waveFormDataMap.contains(node)) {
+      node match {
+        case SelectionSignal(symbol, _) =>
+          val tester = TreadleController.tester.get
+          val wv = tester.allWaveformValues
+
+          Util.toValueChange(wv, initializing = true).foreach { case (symbol, transitions) =>
+            if (!symbol.name.contains("/")) {
+              val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
+              val sortGroup = 100
+
+              val signal = new PureSignal(symbol.name, waveform, sortGroup)
+              waveFormDataMap(node) = signal
+              waveDisplaySettings(node) = new WaveDisplaySetting()
+            }
+          }
+          case _ =>
+          }
+      }
+
+      publish(SignalsChanged(inspectionContainer.selectionComponent)) // TODO: Rename to NodesChanged
+      publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
     }
-    publish(SignalsChanged(source))
-  }
 
-  def moveSignals(source: Component): Unit = {
-    publish(SignalsChanged(source))
+    def addGroup(): Unit = {
+      val node = SelectionGroup("New Group")
+      treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
+    }
+
+    // Removes all selected signals, selected groups, and children of selected groups
+    // TODO: change type of paths?
+    def removeSelectedSignals(source: Component, paths: Iterator[Tree.Path[SelectionNode]]): Unit = {
+      paths.foreach { path =>
+        treeModel.remove(path)
+      }
+      publish(SignalsChanged(source))
+    }
+
+    def moveSignals(source: Component): Unit = {
+      publish(SignalsChanged(source))
+    }
+
+    def loadMoreWaveformValues(): Unit = {
+      TreadleController.tester match {
+        case Some(t) =>
+          val clk = t.clockInfoList.head
+          val wv = t.waveformValues(startCycle = ((maxTimestamp - clk.initialOffset) / clk.period + 1).toInt)
+          Util.toValueChange(wv, initializing = false).foreach {
+            case (symbol, waveform) =>
+              val node = SelectionSignal(symbol)
+              if (waveFormDataMap.contains(node)) {
+                waveFormDataMap(node).asInstanceOf[PureSignal].addNewValues(waveform)
+              }
+              else {
+                waveFormDataMap(node) = new PureSignal(node.name, Some(new Waveform(waveform)), 0)
+              }
+          }
+
+          updateMaxTimestamp()
+        case None =>
+    }
+      inspectionContainer.waveComponent.repaint()
   }
 
   ///////////////////////////////////////////////////////////////////////////

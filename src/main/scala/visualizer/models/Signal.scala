@@ -35,17 +35,21 @@ class Waveform[T](val transitions: ArrayBuffer[Transition[T]]) {
   def addNewValues(newValues: ArrayBuffer[Transition[T]]): Unit = {
     assert(newValues.length >= 2)
     assert(transitions.length >= 2)
-    assert(transitions.last.timestamp == newValues.head.timestamp,
-      s"${transitions.length} ${newValues.length} \n ${Util.transitionsToString(transitions)} \n ${Util.transitionsToString(newValues)}")
+//    assert(transitions.last.timestamp == newValues.head.timestamp,
+//      s"${transitions.length} ${newValues.length} \n ${Util.transitionsToString(transitions)} \n ${Util.transitionsToString(newValues)}")
 
-    transitions -= transitions.last
-    if (transitions.last.value == newValues.head.value) {
-      transitions ++= newValues.tail
-    } else {
-      transitions ++= newValues
-    }
+//    val currentIndex = transitions.indexOf(t => t.timestamp == )
+//    transitions -= transitions.last
+//    if (transitions.last.value == newValues.head.value) {
+//      transitions ++= newValues.tail
+//    } else {
+//      transitions ++= newValues
+//    }
 
-    // TODO: remove the linew below once isBin is fixed
+    transitions.clear()
+    transitions ++= newValues
+
+    // TODO: remove the line below once isBin is fixed
     isBin match {
       case Some(true) =>
         if (newValues.init.exists(t => t.value != 0 && t.value != 1)) {

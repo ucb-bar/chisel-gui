@@ -20,7 +20,7 @@ class WaveComponent(waveFormController: WaveFormController) extends BorderPanel 
   private val singleBitPainter = new SingleBitPainter(waveFormController)
   private val readyValidPainter = new ReadyValidPainter(waveFormController)
 
-  def tree = waveFormController.tree
+  def tree: Tree[SelectionNode] = waveFormController.tree
 
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)
@@ -34,22 +34,38 @@ class WaveComponent(waveFormController: WaveFormController) extends BorderPanel 
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach { case (node, row) =>
       val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
 
-      waveFormController.waveFormDataMap.get(node) match {
-        case Some(pureSignal: PureSignal) =>
-
-          waveFormController.waveDisplaySettings(node).painter match {
-            case _ =>
-              if (pureSignal.waveform.get.isBinary)
-                singleBitPainter.paintWaveform(g, visibleRect, y, pureSignal)
-              else
-                multiBitPainter.paintWaveform(g, visibleRect, y, pureSignal)
-          }
-            case combinedSignal: CombinedSignal =>
-              readyValidPainter.paintWaveform(g, visibleRect, y, combinedSignal)
-          }
-        case _ =>
-          // node is a group. do nothing?
-          // or node doesn't have a waveform
+      for {
+        signal <- waveFormController.waveFormDataMap.get(node)
+        painter <- waveFormController.waveDisplaySettings.get(node)
+      } {
+        signal match {
+          case pureSignal: PureSignal if pureSignal.waveform.isDefined =>
+            if (pureSignal.waveform.get.isBinary)
+              singleBitPainter.paintWaveform(g, visibleRect, y, pureSignal)
+            else
+              multiBitPainter.paintWaveform(g, visibleRect, y, pureSignal)
+          case combinedSignal: CombinedSignal =>
+            readyValidPainter.paintWaveform(g, visibleRect, y, combinedSignal)
+          case _ =>
+        }
+      }
+//      waveFormController.waveFormDataMap.get(node) match {
+//        case Some(pureSignal: PureSignal) =>
+//
+//          val painter = waveFormController.waveDisplaySettings.getOrElse(node, )
+//          waveFormController.waveDisplaySettings(node).painter match {
+//            case _ =>
+//              if (pureSignal.waveform.get.isBinary)
+//                singleBitPainter.paintWaveform(g, visibleRect, y, pureSignal)
+//              else
+//                multiBitPainter.paintWaveform(g, visibleRect, y, pureSignal)
+//          }
+//        case Some(combinedSignal: CombinedSignal) =>
+//          readyValidPainter.paintWaveform(g, visibleRect, y, combinedSignal)
+//        case _ =>
+//          // node is a group. do nothing?
+//          // or node doesn't have a waveform
+//      }
     }
 
     // Draw markers

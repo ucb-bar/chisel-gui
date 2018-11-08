@@ -21,12 +21,6 @@ object InspectedNode {
   }
 }
 
-case class DirectoryNode(name: String, signal: Option[Signal[_ <: Any]]) {
-  def toInspected: InspectedNode = {
-    InspectedNode(name, signal)
-  }
-}
-
 object TreeHelper {
   def viewableDepthFirstIterator(tree: Tree[SelectionNode]): Iterator[SelectionNode] = new Iterator[SelectionNode] {
     val treeModel: TreeModel[SelectionNode] = tree.model

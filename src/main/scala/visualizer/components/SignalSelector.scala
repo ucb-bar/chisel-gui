@@ -1,26 +1,23 @@
 package visualizer.components
 
-import javafx.scene.control.ToggleButton
-import javax.swing.{BorderFactory, Icon, ImageIcon}
 import javax.swing.tree.TreePath
+import javax.swing.{BorderFactory, ImageIcon}
 import scalaswingcontrib.event.TreeNodesInserted
 import scalaswingcontrib.tree.Tree
-import visualizer.controllers.{SelectionController, WaveFormController}
+import visualizer.controllers.SelectionController
 import visualizer.models._
 
-import scala.swing.BorderPanel.Position.North
 import scala.swing._
 import scala.swing.event.{ButtonClicked, MouseClicked}
 
 /**
   * Offers all signals in the design to be selected for viewing in wave form viewer
   * @param selectionController    underlying data model
-  * @param displayModel underlying waveFormController
   */
 class SignalSelector(selectionController: SelectionController) extends BoxPanel(Orientation.Vertical) {
 
   val displayModel: SignalSelectionModel = selectionController.directoryTreeModel
-  val me = this
+  val thisSelector: SignalSelector = this
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -45,12 +42,12 @@ class SignalSelector(selectionController: SelectionController) extends BoxPanel(
     }
   }
 
-  private val toolBar = new ToolBar() {
+  private val toolBar: ToolBar = new ToolBar() {
     peer.setFloatable(false)
 
-    val r = me.getClass.getResource("/images/ShowTemps.png")
+    val r = thisSelector.getClass.getResource("/images/ShowTemps.png")
     val icon = new ImageIcon(r)
-    val r2 = me.getClass.getResource("/images/ShowTemps.png")
+    val r2 = thisSelector.getClass.getResource("/images/ShowTemps.png")
     val icon2 = new ImageIcon(r)
 //    val tb = new ToggleButton
 //    tb.
