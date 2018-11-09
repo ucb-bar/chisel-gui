@@ -1,16 +1,10 @@
 package visualizer.components
 
-import javax.swing.{BorderFactory, DropMode, SwingUtilities}
-import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
-import javax.swing.tree.{DefaultMutableTreeNode, TreePath}
-import scalaswingcontrib.tree.Tree
+import javax.swing.BorderFactory
 import visualizer.controllers._
-import visualizer.{DrawMetrics, SignalsChanged}
-import visualizer.models._
 
+import scala.swing.BorderPanel.Position._
 import scala.swing._
-import BorderPanel.Position._
-import scala.swing.event.MouseClicked
 
 class InspectionContainer(waveFormController: WaveFormController) extends BorderPanel {
 
@@ -85,11 +79,11 @@ class InspectionContainer(waveFormController: WaveFormController) extends Border
     */
   def zoomToEnd(source: Component): Unit = {
     val oldVisibleRect = waveComponent.peer.getVisibleRect
-    val maxTimestamp = waveFormController.maxTimestamp
+    val maxTimestamp = waveFormController.getMaxTimeStamp
 
     val clockTickWidth = oldVisibleRect.width / waveFormController.scale
 
-    val minTimestamp = (maxTimestamp - clockTickWidth).max(0)
+    val minTimestamp = (maxTimestamp - clockTickWidth).max(0).toLong
 
     val centerTimestamp = (maxTimestamp - minTimestamp) / 2 + minTimestamp
 
@@ -97,6 +91,10 @@ class InspectionContainer(waveFormController: WaveFormController) extends Border
 
     val newVisibleRect = waveComponent.peer.getVisibleRect
     newVisibleRect.x = centerX - newVisibleRect.width / 2
+
+    //TODO: following line is CargoCultCode to get auto redraw on step, there must be a better way
+    waveFormController.setScale(waveFormController.scale, source)
+
     waveComponent.peer.scrollRectToVisible(newVisibleRect)
   }
 

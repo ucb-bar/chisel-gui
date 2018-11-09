@@ -115,7 +115,6 @@ object TreadleController extends SwingApplication with Publisher {
       addSelection(SelectionSignal(symbol))
     }
     mainWindow.repaint()
-    waveFormController.updateMaxTimestamp()
     publish(new PureSignalsChanged)
   }
 

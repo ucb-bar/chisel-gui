@@ -76,7 +76,7 @@ class TimelineComponent(waveFormController: WaveFormController) extends Componen
   }
 
   def computeBounds(): Unit = {
-    preferredSize = new Dimension((waveFormController.maxTimestamp * waveFormController.scale).toInt, preferredSize.height)
+    preferredSize = new Dimension((waveFormController.getMaxTimeStamp * waveFormController.scale).toInt, preferredSize.height)
     revalidate()
   }
 

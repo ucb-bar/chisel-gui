@@ -36,7 +36,7 @@ class SignalSelector(selectionController: SelectionController) extends BoxPanel(
         else if(m.clicks == 2) {
           println(s"mouse double clicked in tree ${m.clicks}")
           selection.cellValues.foreach { node =>
-            displayModel.addSelectionNode(node, stringPath = Seq.empty, sortGroup = 0)
+            selectionController.addToWaveFormViewer(node)
           }
         }
     }

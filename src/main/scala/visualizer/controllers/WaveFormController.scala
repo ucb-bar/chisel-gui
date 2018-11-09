@@ -15,6 +15,12 @@ import visualizer.models._
 import scala.collection.mutable
 import scala.swing.event.MouseClicked
 
+/**
+  * The controller for the wave form viewer
+  * manages the list of signals selected for viewing and the wave forms themselves
+  * responds to signal being added from the signal selector
+  * and wave forms being changed by the input panel
+  */
 class WaveFormController extends Publisher {
   // Maps node to WaveDisplaySetting
   val waveDisplaySettings: mutable.HashMap[SelectionNode, WaveDisplaySetting]   = new mutable.HashMap()
@@ -23,7 +29,15 @@ class WaveFormController extends Publisher {
   val treeModel: SignalSelectionModel     = new SignalSelectionModel
   val RootPath:  Tree.Path[SelectionNode] = SelectionNode.RootPath
 
-  val waveFormController = this
+  val waveFormController: WaveFormController = this
+
+  def getMaxTimeStamp: Long = {
+    TreadleController.tester match {
+      case Some(t) =>
+        t.wallTime.currentTime
+      case _ => 0L
+    }
+  }
 
   // Popup menu when a signal name is right-clicked
   private def popupMenu(signal: Option[Signal[_ <: Any]]): PopupMenu = new PopupMenu {
@@ -135,20 +149,7 @@ class WaveFormController extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Timescale and Max Timestamp
   ///////////////////////////////////////////////////////////////////////////
-  var maxTimestamp: Long = 0
-  def updateMaxTimestamp(): Unit = {
-    var newMaxTimestamp: Long = 0
-//    directoryTreeModel.depthFirstIterator.foreach {
-//
-//      case signal: SelectionSignal  =>
-//      //          newMaxTimestamp = math.max(newMaxTimestamp, signal.waveform.get.transitions.last.timestamp)
-//      case _ =>
-//    }
-    if (newMaxTimestamp > maxTimestamp) {
-      maxTimestamp = newMaxTimestamp
-      publish(new MaxTimestampChanged)
-    }
-  }
+
   var timescale: Int = -9
 
   ///////////////////////////////////////////////////////////////////////////
@@ -176,55 +177,57 @@ class WaveFormController extends Publisher {
 
               val signal = new PureSignal(symbol.name, waveform, sortGroup)
               waveFormDataMap(node) = signal
-              waveDisplaySettings(node) = new WaveDisplaySetting()
+              waveDisplaySettings(node) = WaveDisplaySetting()
             }
           }
           case _ =>
           }
       }
 
-      publish(SignalsChanged(inspectionContainer.selectionComponent)) // TODO: Rename to NodesChanged
-      publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
+    publish(SignalsChanged(inspectionContainer.selectionComponent)) // TODO: Rename to NodesChanged
+    publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
+  }
+
+  def addGroup(): Unit = {
+    val node = SelectionGroup("New Group")
+    treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
+  }
+
+  // Removes all selected signals, selected groups, and children of selected groups
+  // TODO: change type of paths?
+  def removeSelectedSignals(source: Component, paths: Iterator[Tree.Path[SelectionNode]]): Unit = {
+    paths.foreach { path =>
+      treeModel.remove(path)
+    }
+    publish(SignalsChanged(source))
+  }
+
+  def moveSignals(source: Component): Unit = {
+    publish(SignalsChanged(source))
+  }
+
+  def loadMoreWaveformValues(): Unit = {
+    TreadleController.tester match {
+      case Some(t) =>
+        val clk = t.clockInfoList.head
+        //          val wv = t.waveformValues(startCycle = ((getMaxTimeStamp - clk.initialOffset) / clk.period + 1).toInt)
+        val wv = t.waveformValues()
+        Util.toValueChange(wv, initializing = false).foreach {
+          case (symbol, waveform) =>
+            val node = SelectionSignal(symbol)
+            if (waveFormDataMap.contains(node)) {
+              waveFormDataMap(node).asInstanceOf[PureSignal].addNewValues(waveform)
+            }
+            else {
+              waveFormDataMap(node) = new PureSignal(node.name, Some(new Waveform(waveform)), 0)
+            }
+        }
+
+      case None =>
     }
 
-    def addGroup(): Unit = {
-      val node = SelectionGroup("New Group")
-      treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
-    }
-
-    // Removes all selected signals, selected groups, and children of selected groups
-    // TODO: change type of paths?
-    def removeSelectedSignals(source: Component, paths: Iterator[Tree.Path[SelectionNode]]): Unit = {
-      paths.foreach { path =>
-        treeModel.remove(path)
-      }
-      publish(SignalsChanged(source))
-    }
-
-    def moveSignals(source: Component): Unit = {
-      publish(SignalsChanged(source))
-    }
-
-    def loadMoreWaveformValues(): Unit = {
-      TreadleController.tester match {
-        case Some(t) =>
-          val clk = t.clockInfoList.head
-          val wv = t.waveformValues(startCycle = ((maxTimestamp - clk.initialOffset) / clk.period + 1).toInt)
-          Util.toValueChange(wv, initializing = false).foreach {
-            case (symbol, waveform) =>
-              val node = SelectionSignal(symbol)
-              if (waveFormDataMap.contains(node)) {
-                waveFormDataMap(node).asInstanceOf[PureSignal].addNewValues(waveform)
-              }
-              else {
-                waveFormDataMap(node) = new PureSignal(node.name, Some(new Waveform(waveform)), 0)
-              }
-          }
-
-          updateMaxTimestamp()
-        case None =>
-    }
-      inspectionContainer.waveComponent.repaint()
+    inspectionContainer.zoomToEnd(inspectionContainer.waveComponent)
+    inspectionContainer.waveComponent.repaint()
   }
 
   ///////////////////////////////////////////////////////////////////////////

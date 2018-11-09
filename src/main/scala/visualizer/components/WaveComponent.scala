@@ -94,7 +94,7 @@ class WaveComponent(waveFormController: WaveFormController) extends BorderPanel 
   // Helper functions
   //
   def computeBounds(): Unit = {
-    preferredSize = new Dimension(waveFormController.timestampToXCoordinate(waveFormController.maxTimestamp),
+    preferredSize = new Dimension(waveFormController.timestampToXCoordinate(waveFormController.getMaxTimeStamp),
       TreeHelper.viewableDepthFirstIterator(tree).size
         * DrawMetrics.WaveformVerticalSpacing)
     revalidate()
