@@ -165,7 +165,7 @@ class WaveFormController extends Publisher {
   def addFromDirectoryToInspected(node: SelectionNode, source: Component): Unit = {
     val waveNode = node match {
       case signal: SelectionSignal =>
-        WaveSignal(signal.symbol, node.sortGroup)
+        WaveSignal(signal.symbol, signal.sortGroup)
       case group: SelectionGroup =>
         WaveGroup(group.name, group.sortGroup)
       case _ =>
@@ -174,24 +174,27 @@ class WaveFormController extends Publisher {
     treeModel.insertUnder(RootPath, waveNode, treeModel.getChildrenOf(RootPath).size)
 
     if (!waveFormDataMap.contains(waveNode)) {
-      node match {
-        case SelectionSignal(symbol, _) =>
+      waveNode match {
+        case WaveSignal(symbol, _) =>
           val tester = TreadleController.tester.get
           val wv = tester.allWaveformValues
 
-          Util.toValueChange(wv, initializing = true).foreach { case (symbol, transitions) =>
-            if (!symbol.name.contains("/")) {
-              val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
-              val sortGroup = 100
+          Util.toValueChange(wv, initializing = true).get(symbol) match {
+            case Some(transitions) =>
+              if (!symbol.name.contains("/")) {
+                val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
+                val sortGroup = 100
 
-              val signal = new PureSignal(symbol.name, waveform, sortGroup)
-              waveFormDataMap(node) = signal
-              waveDisplaySettings(node) = WaveDisplaySetting()
-            }
+                val signal = new PureSignal(symbol.name, waveform, sortGroup)
+                waveFormDataMap(waveNode) = signal
+                waveDisplaySettings(waveNode) = WaveDisplaySetting()
+              }
+            case _ =>
+
           }
           case _ =>
-          }
       }
+    }
 
     publish(SignalsChanged(inspectionContainer.selectionComponent)) // TODO: Rename to NodesChanged
     publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
@@ -226,9 +229,6 @@ class WaveFormController extends Publisher {
             val node = SelectionSignal(symbol)
             if (waveFormDataMap.contains(node)) {
               waveFormDataMap(node).asInstanceOf[PureSignal].addNewValues(waveform)
-            }
-            else {
-              waveFormDataMap(node) = new PureSignal(node.name, Some(new Waveform(waveform)), 0)
             }
         }
 
