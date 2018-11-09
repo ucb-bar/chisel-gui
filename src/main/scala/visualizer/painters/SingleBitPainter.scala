@@ -9,19 +9,16 @@ import visualizer.models._
 import scala.swing.Graphics2D
 
 class SingleBitPainter(displayModel: WaveFormController) extends Painter(displayModel) {
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, signal: Signal[_]): Unit = {
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, untypedWaveform: Waveform[_]): Unit = {
+    val waveform = untypedWaveform.asInstanceOf[Waveform[BigInt]]
 
-    require(signal.waveform.isDefined)
-    require(signal.isInstanceOf[PureSignal])
-
-    val pureSignal = signal.asInstanceOf[PureSignal]
     val startTimestamp = displayModel.xCoordinateToTimestamp(visibleRect.x)
     g.setColor(Color.black)
 
     // Only paint from first transition at or before the start timestamp
     // up until the first transition after the end timestamp
     try {
-      pureSignal.waveform.get.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
+      waveform.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
         displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
       }.foreach { transitionPair =>
         // length could be 1 if findTransition(startTimestamp) has length 1

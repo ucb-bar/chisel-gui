@@ -83,38 +83,51 @@ class SignalNameRenderer(waveFormController: WaveFormController) extends Tree.Re
         valueBaseLine += border
       }
 
-      waveFormController.waveFormDataMap.get(node) match {
-        case Some(signal) if signal.waveform.isDefined =>
-          // Background
-          if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)
-          g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing)
+      // Background
+      if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)
+      g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing)
 
-          // Signal Name
-          g.setFont(SignalNameFont)
-          if (isSelected) g.setColor(Color.white) else g.setColor(Color.black)
-          g.drawString(node.name, 1, labelBaseLine)
+      // Signal Name
+      g.setFont(SignalNameFont)
+      if (isSelected) g.setColor(Color.white) else g.setColor(Color.black)
+      g.drawString(node.name, 1, labelBaseLine)
 
-          // Value
-          g.setFont(ValueFont)
-          if (isSelected) g.setColor(Color.white) else g.setColor(Color.blue)
-          val value = signal.waveform.get.findTransition(waveFormController.cursorPosition).next().value
-          val txt = signal match {
-            case _: PureSignal if value.asInstanceOf[BigInt] != null =>
-              waveFormController.waveDisplaySettings(node).dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
-            case _: CombinedSignal =>
-              val pair = value.asInstanceOf[Array[BigInt]]
-              if (pair != null) {
-                (pair(0).toInt, pair(1).toInt) match {
-                  case (0, 0) => "Not ready"
-                  case (1, 1) => "Ready"
-                  case _ => "Waiting"
-                }
-              } else {
-                ""
-              }
-            case _ => ""
+      // Value
+      g.setFont(ValueFont)
+      if (isSelected) g.setColor(Color.white) else g.setColor(Color.blue)
+
+      node match {
+        case waveSignal: WaveSignal =>
+          val waveform = waveSignal.waveform
+          val iterator = waveform.findTransition(waveFormController.cursorPosition)
+          if(iterator.hasNext) {
+            val value    = iterator.next().value
+            waveFormController.waveDisplaySettings(node).dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
           }
-          g.drawString(txt, 1, valueBaseLine)
+
+
+        case waveGroup: WaveGroup =>
+          //TODO: make this work with groups that are based on composition of child waveforms
+//          val waveform = waveGroup.waveform
+//          val value = waveform.findTransition(waveFormController.cursorPosition).next().value
+//
+//          val txt = signal match {
+//            case _: PureSignal if value.asInstanceOf[BigInt] != null =>
+//              waveFormController.waveDisplaySettings(node).dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
+//            case _: CombinedSignal =>
+//              val pair = value.asInstanceOf[Array[BigInt]]
+//              if (pair != null) {
+//                (pair(0).toInt, pair(1).toInt) match {
+//                  case (0, 0) => "Not ready"
+//                  case (1, 1) => "Ready"
+//                  case _ => "Waiting"
+//                }
+//              } else {
+//                ""
+//              }
+//            case _ => ""
+//          }
+//          g.drawString(txt, 1, valueBaseLine)
         case _ =>
           // Node is a group
           // Background

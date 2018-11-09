@@ -7,7 +7,7 @@ import javax.swing.{DropMode, SwingUtilities}
 import scala.collection.mutable.ArrayBuffer
 import scala.swing._
 import scalaswingcontrib.tree._
-import treadle.executable.ClockInfo
+import treadle.executable.{ClockInfo, Symbol}
 import visualizer._
 import visualizer.components.{InspectionContainer, SignalNameRenderer}
 import visualizer.models._
@@ -24,7 +24,8 @@ import scala.swing.event.MouseClicked
 class WaveFormController extends Publisher {
   // Maps node to WaveDisplaySetting
   val waveDisplaySettings: mutable.HashMap[SelectionNode, WaveDisplaySetting]   = new mutable.HashMap()
-  val waveFormDataMap:     mutable.HashMap[SelectionNode, Signal[_]] = new mutable.HashMap()
+
+  val symbolToWaveSignal:  mutable.HashMap[Symbol, WaveSignal] = new mutable.HashMap()
 
   val treeModel: SignalSelectionModel     = new SignalSelectionModel
   val RootPath:  Tree.Path[SelectionNode] = SelectionNode.RootPath
@@ -159,42 +160,37 @@ class WaveFormController extends Publisher {
   def xCoordinateToTimestamp(x: Int): Long = (x / scale).toLong
   def timestampToXCoordinate(timestamp: Long): Int = (timestamp * scale).toInt
 
+  var currentTreadleValues: mutable.HashMap[Symbol, ArrayBuffer[Transition[BigInt]]] = new mutable.HashMap()
+
   ///////////////////////////////////////////////////////////////////////////
   // Signals
   ///////////////////////////////////////////////////////////////////////////
   def addFromDirectoryToInspected(node: SelectionNode, source: Component): Unit = {
     val waveNode = node match {
       case signal: SelectionSignal =>
-        WaveSignal(signal.symbol, signal.sortGroup)
+        val waveSignal = WaveSignal(signal.symbol, signal.sortGroup)
+        symbolToWaveSignal(signal.symbol) = waveSignal
+        if(signal.symbol.bitWidth == 1) {
+          waveSignal.isBinary = true
+          waveSignal.format = DecFormat
+        }
+        else {
+          waveSignal.isBinary = false
+          waveSignal.format = DecFormat
+        }
+        currentTreadleValues.get(waveSignal.symbol) match {
+          case Some(waveValues) =>
+            waveSignal.waveform.addNewValues(waveValues)
+          case _ =>
+        }
+        waveSignal
       case group: SelectionGroup =>
         WaveGroup(group.name, group.sortGroup)
       case _ =>
         throw new Exception(s"Unknown kind of entry from select signals $node")
     }
+
     treeModel.insertUnder(RootPath, waveNode, treeModel.getChildrenOf(RootPath).size)
-
-    if (!waveFormDataMap.contains(waveNode)) {
-      waveNode match {
-        case WaveSignal(symbol, _) =>
-          val tester = TreadleController.tester.get
-          val wv = tester.allWaveformValues
-
-          Util.toValueChange(wv, initializing = true).get(symbol) match {
-            case Some(transitions) =>
-              if (!symbol.name.contains("/")) {
-                val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
-                val sortGroup = 100
-
-                val signal = new PureSignal(symbol.name, waveform, sortGroup)
-                waveFormDataMap(waveNode) = signal
-                waveDisplaySettings(waveNode) = WaveDisplaySetting()
-              }
-            case _ =>
-
-          }
-          case _ =>
-      }
-    }
 
     publish(SignalsChanged(inspectionContainer.selectionComponent)) // TODO: Rename to NodesChanged
     publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
@@ -219,20 +215,25 @@ class WaveFormController extends Publisher {
   }
 
   def loadMoreWaveformValues(): Unit = {
+
     TreadleController.tester match {
       case Some(t) =>
-        val clk = t.clockInfoList.head
-        //          val wv = t.waveformValues(startCycle = ((getMaxTimeStamp - clk.initialOffset) / clk.period + 1).toInt)
         val wv = t.waveformValues()
-        Util.toValueChange(wv, initializing = false).foreach {
-          case (symbol, waveform) =>
-            val node = SelectionSignal(symbol)
-            if (waveFormDataMap.contains(node)) {
-              waveFormDataMap(node).asInstanceOf[PureSignal].addNewValues(waveform)
-            }
-        }
+        currentTreadleValues = Util.toValueChange(wv, initializing = false)
 
-      case None =>
+      //      val clk = t.clockInfoList.head
+      //      val wv = t.waveformValues(startCycle = ((getMaxTimeStamp - clk.initialOffset) / clk.period + 1).toInt)
+      case _ =>
+      // I guess we aren't loaded if we get here
+    }
+
+    currentTreadleValues.foreach { case (symbol, waveform) =>
+      symbolToWaveSignal(symbol) match {
+        case waveSignal: WaveSignal =>
+          waveSignal.waveform.addNewValues(waveform)
+        case _ =>
+      }
+      case _ =>
     }
 
     inspectionContainer.zoomToEnd(inspectionContainer.waveComponent)

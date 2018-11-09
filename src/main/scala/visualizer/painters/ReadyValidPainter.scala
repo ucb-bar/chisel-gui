@@ -13,30 +13,29 @@ class ReadyValidPainter(displayModel: WaveFormController) extends Painter(displa
   val ReadySetColor = new Color(255, 240, 106)
   val ValidSetColor = new Color(255, 208, 98)
 
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, signal: Signal[_]): Unit = {
-    val combinedSignal = signal.asInstanceOf[CombinedSignal]
-    val startTimestamp = displayModel.xCoordinateToTimestamp(visibleRect.x)
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, untypedWaveform: Waveform[_]): Unit = {
+    //TODO: get the following code working again
 
-
-
-    try {
-      combinedSignal.waveform.get.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
-        displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
-      }.foreach { transitionPair =>
-        // length could be 1 if findTransition(startTimestamp) has length 1
-        if (transitionPair.length == 2) {
-          val left: Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
-          val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
-
-          assert(transitionPair.head.value.length == 2)
-          drawSegment(g, left, right, top, transitionPair.head.value(0) == 1, transitionPair.head.value(1) == 1)
-        }
-      }
-    } catch {
-      // If there's only 1 transition in the iterator returned by findTransition,
-      // sliding will throw IndexOutOfBoundsException
-      case _: IndexOutOfBoundsException =>
-    }
+//    val combinedSignal = signal.asInstanceOf[CombinedSignal]
+//    val startTimestamp = displayModel.xCoordinateToTimestamp(visibleRect.x)
+//    try {
+//      combinedSignal.waveform.get.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
+//        displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
+//      }.foreach { transitionPair =>
+//        // length could be 1 if findTransition(startTimestamp) has length 1
+//        if (transitionPair.length == 2) {
+//          val left: Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
+//          val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
+//
+//          assert(transitionPair.head.value.length == 2)
+//          drawSegment(g, left, right, top, transitionPair.head.value(0) == 1, transitionPair.head.value(1) == 1)
+//        }
+//      }
+//    } catch {
+//      // If there's only 1 transition in the iterator returned by findTransition,
+//      // sliding will throw IndexOutOfBoundsException
+//      case _: IndexOutOfBoundsException =>
+//    }
   }
 
   def drawSegment(g: Graphics2D, left: Int, right: Int, top: Int, ready: Boolean, valid: Boolean): Unit = {
