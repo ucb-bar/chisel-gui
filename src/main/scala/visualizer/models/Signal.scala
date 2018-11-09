@@ -2,6 +2,7 @@ package visualizer.models
 
 import visualizer.Util
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 ///////////////////////////////////////////////////////////////////////////
@@ -69,6 +70,16 @@ class Waveform[T](val transitions: ArrayBuffer[Transition[T]]) {
         isBin = Some(res)
         res
     }
+  }
+}
+
+/**
+  * contains factories for common Waveform types
+  */
+object Waveform {
+  def ofBigInt: Waveform[BigInt] = new Waveform(new mutable.ArrayBuffer[Transition[BigInt]]())
+  def ofCombinedBigInt: Waveform[Array[BigInt]] = {
+    new Waveform(new mutable.ArrayBuffer[Transition[Array[BigInt]]]())
   }
 }
 

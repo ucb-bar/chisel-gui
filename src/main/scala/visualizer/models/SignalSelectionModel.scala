@@ -174,11 +174,13 @@ trait WaveNode extends SelectionNode {
 }
 
 case class WaveGroup(name: String, sortGroup: Int = 0) extends WaveNode {
+  val combinedWaveform: Waveform[Array[BigInt]] = Waveform.ofCombinedBigInt
 }
 
 case class WaveSignal(symbol: Symbol, sortGroup: Int = 1000) extends SelectionNode {
   val name: String = symbol.name
   var format: Format = DecFormat
+  val waveform: Waveform[BigInt] = Waveform.ofBigInt
 }
 
 

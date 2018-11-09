@@ -163,9 +163,17 @@ class WaveFormController extends Publisher {
   // Signals
   ///////////////////////////////////////////////////////////////////////////
   def addFromDirectoryToInspected(node: SelectionNode, source: Component): Unit = {
-    treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
+    val waveNode = node match {
+      case signal: SelectionSignal =>
+        WaveSignal(signal.symbol, node.sortGroup)
+      case group: SelectionGroup =>
+        WaveGroup(group.name, group.sortGroup)
+      case _ =>
+        throw new Exception(s"Unknown kind of entry from select signals $node")
+    }
+    treeModel.insertUnder(RootPath, waveNode, treeModel.getChildrenOf(RootPath).size)
 
-    if (!waveFormDataMap.contains(node)) {
+    if (!waveFormDataMap.contains(waveNode)) {
       node match {
         case SelectionSignal(symbol, _) =>
           val tester = TreadleController.tester.get
@@ -190,7 +198,7 @@ class WaveFormController extends Publisher {
   }
 
   def addGroup(): Unit = {
-    val node = SelectionGroup("New Group")
+    val node = WaveGroup("New Group")
     treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
   }
 
