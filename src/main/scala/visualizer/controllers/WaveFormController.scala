@@ -40,7 +40,7 @@ class WaveFormController extends Publisher {
   }
 
   // Popup menu when a signal name is right-clicked
-  private def popupMenu(signal: Option[Signal[_ <: Any]]): PopupMenu = new PopupMenu {
+  private def popupMenu(node: SelectionNode): PopupMenu = new PopupMenu {
     contents += new Menu("Data Format") {
       contents += new MenuItem(Action("Binary") {
         waveFormController.setWaveFormat(this, tree.selection.cellValues, BinFormat)
@@ -52,10 +52,11 @@ class WaveFormController extends Publisher {
         waveFormController.setWaveFormat(this, tree.selection.cellValues, HexFormat)
       })
     }
-    if (signal.isDefined && signal.get.isInstanceOf[PureSignal]) {
-      val pureSignalName = signal.get.asInstanceOf[PureSignal].name
+    node match {
+      case selectionNode: SelectionNode =>
+
       contents += new MenuItem(Action("Show Dependency Graph") {
-        waveFormController.showDependency(pureSignalName, this)
+        waveFormController.showDependency(selectionNode.name, this)
       })
     }
   }
@@ -113,8 +114,8 @@ class WaveFormController extends Publisher {
 
             val path = tree.peer.getClosestPathForLocation(e.point.x, e.point.y)
             val peerNode = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
-            val node = peerNode.getUserObject.asInstanceOf[InspectedNode]
-            popupMenu(node.signal).show(inspectionContainer, e.point.x, e.point.y)
+            val node = peerNode.getUserObject.asInstanceOf[SelectionNode]
+            popupMenu(node).show(inspectionContainer, e.point.x, e.point.y)
           }
         } else {
           if(e.clicks == 1) {
