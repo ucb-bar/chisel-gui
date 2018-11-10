@@ -44,10 +44,6 @@ object TreadleController extends SwingApplication with Publisher {
     io.Source.fromFile(file).mkString
   }
 
-  def getPureSignal(node: SelectionNode): Option[PureSignal] = {
-    None
-  }
-
   def addSelection(node: SelectionNode): Unit = {
     val fullPath = node.name.split("""\.""")
     val modules = fullPath.init

@@ -4,12 +4,12 @@ import java.awt.{Color, Font}
 
 import scalaswingcontrib.tree.Tree
 import visualizer._
-import visualizer.controllers.{DecFormat, WaveFormController}
+import visualizer.controllers.WaveFormController
 import visualizer.models._
 
+import scala.swing.BorderPanel.Position.Center
 import scala.swing._
 import scala.swing.event._
-import BorderPanel.Position.Center
 
 /**
   * This is the organizing list of the users selected signals.
@@ -102,9 +102,8 @@ class SignalNameRenderer(waveFormController: WaveFormController) extends Tree.Re
           val iterator = waveform.findTransition(waveFormController.cursorPosition)
           if(iterator.hasNext) {
             val value    = iterator.next().value
-            waveFormController.waveDisplaySettings(node).dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
+            waveSignal.format(value.asInstanceOf[BigInt])
           }
-
 
         case waveGroup: WaveGroup =>
           //TODO: make this work with groups that are based on composition of child waveforms

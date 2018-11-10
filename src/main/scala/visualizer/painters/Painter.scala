@@ -4,7 +4,7 @@ import java.awt.{FontMetrics, Polygon, Rectangle}
 
 import visualizer.DrawMetrics
 import visualizer.controllers.WaveFormController
-import visualizer.models.{InspectedNode, PureSignal, Signal, Waveform}
+import visualizer.models.Waveform
 
 import scala.swing.{Font, Graphics2D}
 
