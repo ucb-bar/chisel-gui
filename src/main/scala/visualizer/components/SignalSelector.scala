@@ -1,12 +1,14 @@
 package visualizer.components
 
 import javax.swing.tree.TreePath
-import javax.swing.{BorderFactory, ImageIcon}
+import javax.swing.{BorderFactory, ImageIcon, SwingUtilities}
 import scalaswingcontrib.event.TreeNodesInserted
 import scalaswingcontrib.tree.Tree
-import visualizer.controllers.SelectionController
+import visualizer.{SourceInfoRequested, TreadleController}
+import visualizer.controllers.{BinFormat, DecFormat, HexFormat, SelectionController}
 import visualizer.models._
 
+import scala.collection.mutable
 import scala.swing._
 import scala.swing.event.{ButtonClicked, MouseClicked}
 
@@ -31,39 +33,88 @@ class SignalSelector(selectionController: SelectionController) extends BoxPanel(
     reactions += {
       case m: MouseClicked =>
         if(m.clicks == 1) {
-          println(s"Got mouse click in tree ${m.clicks}")
+          val isRightMouseButton = SwingUtilities.isRightMouseButton(m.peer)
+
+          println(s"mouse clicked in signal selector ${m.clicks}, " +
+                  s"isRight $isRightMouseButton")
+          if(! isRightMouseButton) {
+            selection.cellValues.foreach {
+                case group: SelectionGroup =>
+                  //TODO: Can we open all below
+                  var foundPathOpt: Option[Tree.Path[SelectionNode]] = None
+                  var selectPaths = new mutable.ArrayBuffer[Tree.Path[SelectionNode]]
+                  var row = 0
+
+                  displayModel.walk { case (path, child) =>
+                    print(s"At node ${path.mkString("/")} $child")
+                    if(child == group) {
+                      foundPathOpt = Some(path :+ child)
+                    }
+                    if(foundPathOpt.isDefined &&
+                      foundPathOpt.get.length == path.length &&
+                      foundPathOpt.get.zip(path).forall { case (a, b) => a == b }
+                    ) {
+                      selectPaths += path :+ child
+                    }
+                    row += 1
+                  }
+
+                  tree.selectPaths(selectPaths :_*)
+                case _ =>
+            }
+          }
+          else { // Here for right click
+            popupMenu().show(tree, m.point.x, m.point.y)
+          }
         }
         else if(m.clicks == 2) {
           println(s"mouse double clicked in tree ${m.clicks}")
-          selection.cellValues.foreach { node =>
-            selectionController.addToWaveFormViewer(node)
-          }
         }
     }
   }
 
+  // Popup menu when a signal name is right-clicked
+  private def popupMenu(): PopupMenu = new PopupMenu {
+    contents += new MenuItem(Action("Add to Waveforms") {
+      tree.selection.cellValues.foreach { node =>
+        selectionController.addToWaveFormViewer(node)
+      }
+    })
+
+    contents += new MenuItem(Action("Show Source") {
+      val symbols = tree.selection.cellValues.collect { case s: SelectionSignal => s }.map(_.symbol).toSeq
+      selectionController.showSourceInfo(symbols, tree)
+    })
+
+    contents += new MenuItem(Action("Show Dependency Graph") {
+      val symbols = tree.selection.cellValues.collect { case s: SelectionSignal => s }.map(_.symbol).toSeq
+      TreadleController.waveFormController.showDependency(symbols, this)
+    })
+  }
+
+
   private val toolBar: ToolBar = new ToolBar() {
     peer.setFloatable(false)
 
-    val r = thisSelector.getClass.getResource("/images/ShowTemps.png")
-    val icon = new ImageIcon(r)
-    val r2 = thisSelector.getClass.getResource("/images/ShowTemps.png")
-    val icon2 = new ImageIcon(r)
-//    val tb = new ToggleButton
-//    tb.
-//    tb.icon = icon
-
-    val toggleButton1 = new Button("Hide _T") {
-      if(text.startsWith("Hide")) { text = "Show _T" }
-      else { text = "Hide _T"}
-    }
-    val toggleButton2 = new Button("Hide _GEN") {
-      if(text.startsWith("Hide")) { text = "Show _GEN" }
-      else { text = "Hide _GEN"}
-    }
-
-    contents += toggleButton1
-    contents += toggleButton2
+//    val r = thisSelector.getClass.getResource("/images/ShowTemps.png")
+//    val icon = new ImageIcon(r)
+//    val r2 = thisSelector.getClass.getResource("/images/ShowTemps.png")
+//    val icon2 = new ImageIcon(r)
+////    val tb = new ToggleButton
+////    tb.
+////    tb.icon = icon
+//
+//    val toggleButton1 = new Button("Hide _T") {
+//      if(text.startsWith("Hide")) { text = "Show _T" }
+//      else { text = "Hide _T"}
+//    }
+//    val toggleButton2 = new Button("Hide _GEN") {
+//      if(text.startsWith("Hide")) { text = "Show _GEN" }
+//      else { text = "Hide _GEN"}
+//    }
+//
+//    contents += toggleButton1
+//    contents += toggleButton2
   }
 
   contents += toolBar

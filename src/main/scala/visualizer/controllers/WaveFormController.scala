@@ -1,7 +1,7 @@
 package visualizer.controllers
 
 import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
-import javax.swing.tree.{DefaultMutableTreeNode, TreePath}
+import javax.swing.tree.{DefaultMutableTreeNode, MutableTreeNode, TreePath}
 import javax.swing.{DropMode, SwingUtilities}
 
 import scala.collection.mutable.ArrayBuffer
@@ -54,12 +54,39 @@ class WaveFormController extends Publisher {
       })
     }
     node match {
-      case selectionNode: SelectionNode =>
+      case selectionNode: WaveSignal =>
 
-      contents += new MenuItem(Action("Show Dependency Graph") {
-        waveFormController.showDependency(selectionNode.name, this)
-      })
+        contents += new MenuItem(Action("Show Dependency Graph") {
+          val symbols = tree.selection.cellValues.collect { case s: WaveSignal => s }.map(_.symbol).toSeq
+
+          waveFormController.showDependency(symbols, this)
+        })
+        contents += new Menu(s"Add signals that drive ${node.name}") {
+          contents += new MenuItem(Action("1 deep") {
+            waveFormController.addDrivingSignals(selectionNode.symbol, 1, this)
+          })
+          contents += new MenuItem(Action("2 deep") {
+            waveFormController.addDrivingSignals(selectionNode.symbol, 2, this)
+          })
+          contents += new MenuItem(Action("3 deep") {
+            waveFormController.addDrivingSignals(selectionNode.symbol, 3, this)
+          })
+        }
+        contents += new Menu(s"Add signals that are driven by ${node.name}") {
+          contents += new MenuItem(Action("1 deep") {
+            waveFormController.addDrivenBySignals(selectionNode.symbol, 1, this)
+          })
+          contents += new MenuItem(Action("2 deep") {
+            waveFormController.addDrivenBySignals(selectionNode.symbol, 2, this)
+          })
+          contents += new MenuItem(Action("3 deep") {
+            waveFormController.addDrivenBySignals(selectionNode.symbol, 3, this)
+          })
+        }
     }
+    contents += new MenuItem(Action("Remove") {
+      removeSelected()
+    })
   }
 
   val tree: Tree[SelectionNode] = new Tree[SelectionNode] {
@@ -101,7 +128,9 @@ class WaveFormController extends Publisher {
       case _: SignalsChanged =>
         tree.peer.expandPath(new TreePath(model.peer.getRoot))
       case e: MouseClicked =>
-        println(s"mouse clicked in inspectionContainer ${e.clicks}")
+        val isRightMouseButton = SwingUtilities.isRightMouseButton(e.peer)
+        println(s"mouse clicked in inspectionContainer ${e.clicks}, " +
+                s"isRight $isRightMouseButton, isPoint ${isPointInNode(e.point)}")
         if (SwingUtilities.isRightMouseButton(e.peer)) {
           if (isPointInNode(e.point)) {
             val row = getClosestRowForLocation(e.point.x, e.point.y)
@@ -136,6 +165,15 @@ class WaveFormController extends Publisher {
     }
   }
 
+  def removeSelected(): Unit = {
+    val paths = tree.peer.getSelectionPaths
+
+    for(path <- paths) {
+      val node = path.getLastPathComponent.asInstanceOf[MutableTreeNode]
+      treeModel.peer.removeNodeFromParent(node)
+    }
+  }
+
   val inspectionContainer = new InspectionContainer(this)
 
   var scale: Double = 2
@@ -162,6 +200,21 @@ class WaveFormController extends Publisher {
 
   var currentTreadleValues: mutable.HashMap[Symbol, ArrayBuffer[Transition[BigInt]]] = new mutable.HashMap()
 
+  def addDrivingSignals(symbol: Symbol, depth: Int, menu: Menu): Unit = {
+    val drivenSignals = TreadleUtils.getSignalsRelatedTo(symbol, depth, drivenBy = true)
+
+    drivenSignals.foreach { drivenSignal =>
+      addFromDirectoryToInspected(SelectionSignal(drivenSignal), inspectionContainer.selectionComponent)
+    }
+  }
+
+  def addDrivenBySignals(symbol: Symbol, depth: Int, menu: Menu): Unit = {
+    val drivenSignals = TreadleUtils.getSignalsRelatedTo(symbol, depth, drivenBy = false)
+
+    drivenSignals.foreach { drivenSignal =>
+      addFromDirectoryToInspected(SelectionSignal(drivenSignal), inspectionContainer.selectionComponent)
+    }
+  }
   ///////////////////////////////////////////////////////////////////////////
   // Signals
   ///////////////////////////////////////////////////////////////////////////
@@ -228,8 +281,8 @@ class WaveFormController extends Publisher {
     }
 
     currentTreadleValues.foreach { case (symbol, waveform) =>
-      symbolToWaveSignal(symbol) match {
-        case waveSignal: WaveSignal =>
+      symbolToWaveSignal.get(symbol) match {
+        case Some(waveSignal: WaveSignal) =>
           waveSignal.waveform.addNewValues(waveform)
         case _ =>
       }
@@ -394,8 +447,8 @@ class WaveFormController extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Dependency Graph
   ///////////////////////////////////////////////////////////////////////////
-  def showDependency(pureSignalName: String, source: Component): Unit = {
-    publish(DependencyComponentRequested(pureSignalName, source))
+  def showDependency(symbols: Seq[Symbol], source: Component): Unit = {
+    publish(DependencyComponentRequested(symbols, source))
   }
 }
 

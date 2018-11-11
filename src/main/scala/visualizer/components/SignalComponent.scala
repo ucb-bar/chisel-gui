@@ -8,7 +8,7 @@ import visualizer.controllers.WaveFormController
 import visualizer.models._
 
 import scala.swing.BorderPanel.Position.Center
-import scala.swing._
+import scala.swing.{Font, _}
 import scala.swing.event._
 
 /**
@@ -52,7 +52,9 @@ class SignalComponent(waveFormController: WaveFormController) extends BorderPane
 class SignalNameRenderer(waveFormController: WaveFormController) extends Tree.Renderer[SelectionNode] {
   private var labelBaseLine = -1
   private var valueBaseLine = 0
-  val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)
+//  val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)
+  val SignalNameFont = new Font("Arial", 0, 12)
+
   val ValueFont = new Font("SansSerif", Font.PLAIN, 8)
 
   def componentFor(
