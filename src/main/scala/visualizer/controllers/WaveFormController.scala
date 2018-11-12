@@ -107,7 +107,7 @@ class WaveFormController extends Publisher {
 
     peer.setRowHeight(DrawMetrics.WaveformVerticalSpacing)
 
-    // Make it rearrangeable
+    // Make it re-arrangeable
     peer.setDragEnabled(true)
     peer.setDropMode(DropMode.ON_OR_INSERT)
     peer.setTransferHandler(new TreeTransferHandler(waveFormController))
@@ -127,43 +127,49 @@ class WaveFormController extends Publisher {
     reactions += {
       case _: SignalsChanged =>
         tree.peer.expandPath(new TreePath(model.peer.getRoot))
-      case e: MouseClicked =>
-        val isRightMouseButton = SwingUtilities.isRightMouseButton(e.peer)
-        println(s"mouse clicked in inspectionContainer ${e.clicks}, " +
-                s"isRight $isRightMouseButton, isPoint ${isPointInNode(e.point)}")
-        if (SwingUtilities.isRightMouseButton(e.peer)) {
-          if (isPointInNode(e.point)) {
-            val row = getClosestRowForLocation(e.point.x, e.point.y)
+      case m: MouseClicked =>
+        val isRightMouseButton = SwingUtilities.isRightMouseButton(m.peer)
+
+        println(s"WaveFormTree: mouse ${if(isRightMouseButton) "right" else "left"} button " +
+                s"clicked ${m.clicks} times at position (${m.point.x}, ${m.point.y}")
+        if (SwingUtilities.isRightMouseButton(m.peer)) {
+          if (isPointInNode(m.point)) {
+            val row = getClosestRowForLocation(m.point.x, m.point.y)
 
             if (!selection.rows.contains(row)) {
               // Right clicked in a node that isn't selected
               // Then select only the node that was right clicked
-              selectRows(getClosestRowForLocation(e.point.x, e.point.y))
+              selectRows(getClosestRowForLocation(m.point.x, m.point.y))
             }
             repaint()
 
-            val path = tree.peer.getClosestPathForLocation(e.point.x, e.point.y)
+            val path = tree.peer.getClosestPathForLocation(m.point.x, m.point.y)
             val peerNode = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
             val node = peerNode.getUserObject.asInstanceOf[SelectionNode]
-            popupMenu(node).show(inspectionContainer, e.point.x, e.point.y)
+            popupMenu(node).show(inspectionContainer, m.point.x, m.point.y)
           }
         } else {
-          if(e.clicks == 1) {
-            if (!isPointInNode(e.point)) {
+          if(m.clicks == 1) {
+            if (!isPointInNode(m.point)) {
               selection.clear()
             }
           }
-          else if(e.clicks == 2) {
-            println(s"mouse clicked in inspectionContainer ${e.clicks}")
-            tree.selection.cellValues.foreach { node =>
-
-              waveFormController.addFromDirectoryToInspected(node, this)
-            }
-
+          else if(m.clicks == 2) {
+            println(s"mouse clicked in inspectionContainer ${m.clicks}")
           }
         }
     }
   }
+
+  def addHierarchy(path: Tree.Path[SelectionNode], node: SelectionNode): Unit = {
+    val wavePath = path.map { SelectionNode.selectionToWave }
+    val waveNode = SelectionNode.selectionToWave(node)
+    TreadleController.waveFormController.treeModel.insertUnderSorted(wavePath, waveNode)
+
+    publish(SignalsChanged(inspectionContainer.selectionComponent)) // TODO: Rename to NodesChanged
+//    publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
+  }
+
 
   def removeSelected(): Unit = {
     val paths = tree.peer.getSelectionPaths

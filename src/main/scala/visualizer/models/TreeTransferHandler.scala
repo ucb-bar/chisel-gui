@@ -10,9 +10,9 @@ import visualizer.controllers.WaveFormController
 import scala.collection.mutable.ArrayBuffer
 
 //
-// Transfer handler to make tree rearrangeable
+// Transfer handler to make tree re-arrangeable
 //
-class TreeTransferHandler(displayModel: WaveFormController) extends TransferHandler {
+class TreeTransferHandler(waveFormController: WaveFormController) extends TransferHandler {
   val mimeType: String = DataFlavor.javaJVMLocalObjectMimeType + ";class=\"" +
     classOf[Array[DefaultMutableTreeNode]].toString.drop(6) + "\""
   val nodesFlavor: DataFlavor = new DataFlavor(mimeType)
@@ -84,7 +84,7 @@ class TreeTransferHandler(displayModel: WaveFormController) extends TransferHand
       nodesToRemove.foreach { node =>
         model.removeNodeFromParent(node)
       }
-      displayModel.moveSignals(null)
+      waveFormController.moveSignals(null)
     }
   }
 

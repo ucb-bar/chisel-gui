@@ -35,16 +35,14 @@ class SignalComponent(waveFormController: WaveFormController) extends BorderPane
   ///////////////////////////////////////////////////////////////////////////
   listenTo(waveFormController)
   listenTo(keys, tree.keys)
-  listenTo(mouse.clicks)
   reactions += {
     case _: SignalsChanged =>
       computeBounds()
       repaint()
     case _: WaveFormatChanged | _: CursorSet =>
       repaint()
-    case m: MouseButtonEvent =>
-      println(s"Mouse clicked ${m.clicks}")
-    case KeyReleased(_, Key.BackSpace, _, _) =>
+    case KeyReleased(_, Key.BackSpace, _, _) |
+         KeyReleased(_, Key.Delete, _, _) =>
       waveFormController.removeSelectedSignals(this, tree.selection.paths.iterator)
   }
 }
@@ -53,7 +51,7 @@ class SignalNameRenderer(waveFormController: WaveFormController) extends Tree.Re
   private var labelBaseLine = -1
   private var valueBaseLine = 0
 //  val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)
-  val SignalNameFont = new Font("Arial", 0, 12)
+  val SignalNameFont = new Font("Lucinda Grande", 0, 12)
 
   val ValueFont = new Font("SansSerif", Font.PLAIN, 8)
 
@@ -90,7 +88,7 @@ class SignalNameRenderer(waveFormController: WaveFormController) extends Tree.Re
       g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing)
 
       // Signal Name
-      g.setFont(SignalNameFont)
+      // g.setFont(SignalNameFont)
       if (isSelected) g.setColor(Color.white) else g.setColor(Color.black)
       g.drawString(node.name, 1, labelBaseLine)
 

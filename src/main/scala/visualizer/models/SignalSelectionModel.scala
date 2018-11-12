@@ -167,6 +167,13 @@ case class SelectionSignal(symbol: Symbol, sortGroup: Int = 1000) extends Select
 
 object SelectionNode {
   val RootPath: Tree.Path[SelectionNode] = Tree.Path.empty[SelectionNode]
+
+  def selectionToWave(s: SelectionNode): SelectionNode = {
+    s match {
+      case SelectionSignal(symbol, sortGroup) => WaveSignal(symbol, sortGroup)
+      case SelectionGroup(symbol, sortGroup) => WaveGroup(symbol, sortGroup)
+    }
+  }
 }
 
 trait WaveNode extends SelectionNode {
@@ -183,5 +190,6 @@ case class WaveSignal(symbol: Symbol, sortGroup: Int = 1000) extends SelectionNo
   var isBinary: Boolean = false
   val waveform: Waveform[BigInt] = Waveform.ofBigInt
 }
+
 
 

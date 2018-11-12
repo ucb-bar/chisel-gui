@@ -10,7 +10,7 @@ import visualizer.models._
 
 import scala.collection.mutable
 import scala.swing._
-import scala.swing.event.{ButtonClicked, MouseClicked}
+import scala.swing.event.{ButtonClicked, Key, KeyReleased, MouseClicked}
 
 /**
   * Offers all signals in the design to be selected for viewing in wave form viewer
@@ -29,56 +29,72 @@ class SignalSelector(selectionController: SelectionController) extends BoxPanel(
     renderer = Tree.Renderer(_.name)
     showsRootHandles = true
 
+    peer.setDragEnabled(true)
+
     listenTo(mouse.clicks)
+    listenTo(keys, keys)
+
     reactions += {
+      case KeyReleased(_, Key.Enter, _, _) | KeyReleased(_, Key.Space, _, _) =>
+        moveSelectedToWaveForms()
+
       case m: MouseClicked =>
-        if(m.clicks == 1) {
-          val isRightMouseButton = SwingUtilities.isRightMouseButton(m.peer)
+        val isRightMouseButton = SwingUtilities.isRightMouseButton(m.peer)
 
-          println(s"mouse clicked in signal selector ${m.clicks}, " +
-                  s"isRight $isRightMouseButton")
-          if(! isRightMouseButton) {
-            selection.cellValues.foreach {
-                case group: SelectionGroup =>
-                  //TODO: Can we open all below
-                  var foundPathOpt: Option[Tree.Path[SelectionNode]] = None
-                  var selectPaths = new mutable.ArrayBuffer[Tree.Path[SelectionNode]]
-                  var row = 0
-
-                  displayModel.walk { case (path, child) =>
-                    print(s"At node ${path.mkString("/")} $child")
-                    if(child == group) {
-                      foundPathOpt = Some(path :+ child)
-                    }
-                    if(foundPathOpt.isDefined &&
-                      foundPathOpt.get.length == path.length &&
-                      foundPathOpt.get.zip(path).forall { case (a, b) => a == b }
-                    ) {
-                      selectPaths += path :+ child
-                    }
-                    row += 1
-                  }
-
-                  tree.selectPaths(selectPaths :_*)
-                case _ =>
-            }
+        println(s"SignalSelectorTree: mouse ${if (isRightMouseButton) "right" else "left"} button " +
+                s"clicked ${m.clicks} times at position ${m.point}")
+        if (m.clicks == 1) {
+          if (!isRightMouseButton) {
+            //TODO: does the following line allow parent container to pass along this event?
+            tree.peer.getParent.dispatchEvent(m.peer)
           }
           else { // Here for right click
             popupMenu().show(tree, m.point.x, m.point.y)
           }
         }
-        else if(m.clicks == 2) {
-          println(s"mouse double clicked in tree ${m.clicks}")
+        else if (m.clicks == 2) {
+          moveSelectedToWaveForms()
         }
     }
   }
 
+  def moveSelectedToWaveForms(): Unit = {
+    val nodesMoved = new mutable.HashSet[SelectionNode]
+    var fullPath = Tree.Path.empty[SelectionNode]
+    var parentPath = Tree.Path.empty[SelectionNode]
+
+    def addNode(node: SelectionNode): Unit = {
+      if (!nodesMoved.contains(node)) {
+        displayModel.getPathTo(node.name) match {
+          case Some(path) =>
+            println(s"path = ${path.mkString("\n")}")
+            fullPath = path
+            parentPath = path.dropRight(1)
+          case None =>
+            println(s"Could not find $node to transfer")
+            fullPath = selectionController.RootPath
+        }
+
+        TreadleController.waveFormController.addHierarchy(parentPath, node)
+
+        node match {
+          case group: SelectionGroup =>
+            displayModel.getChildrenOf(fullPath).foreach(addNode)
+          case signal: SelectionSignal =>
+            displayModel.getChildrenOf(fullPath).foreach(addNode)
+        }
+      }
+      nodesMoved += node
+    }
+
+    tree.selection.cellValues.foreach(addNode)
+  }
+
   // Popup menu when a signal name is right-clicked
   private def popupMenu(): PopupMenu = new PopupMenu {
+
     contents += new MenuItem(Action("Add to Waveforms") {
-      tree.selection.cellValues.foreach { node =>
-        selectionController.addToWaveFormViewer(node)
-      }
+      moveSelectedToWaveForms()
     })
 
     contents += new MenuItem(Action("Show Source") {
@@ -131,22 +147,10 @@ class SignalSelector(selectionController: SelectionController) extends BoxPanel(
   ///////////////////////////////////////////////////////////////////////////
   listenTo(addSymbolsButton)
   listenTo(tree)
-  listenTo(mouse.clicks)
   reactions += {
-    case m: MouseClicked =>
-      if(m.clicks == 1) {
-        println(s"Got mouse click in DirectoryComponent ${m.clicks}")
-      }
-      else if(m.clicks == 2) {
-        println(s"mouse double clicked in DirectoryComponent ${m.clicks}")
-        tree.selection.cellValues.foreach { node =>
-          selectionController.addToWaveFormViewer(node)
-        }
-      }
     case ButtonClicked(`addSymbolsButton`) =>
-      tree.selection.cellValues.foreach{node =>
-        selectionController.addToWaveFormViewer(node)
-      }
+      moveSelectedToWaveForms()
+
     case e: TreeNodesInserted[_] =>
       if (selectionController.directoryTreeModel.size == e.childIndices.length) {
         tree.peer.expandPath(new TreePath(selectionController.directoryTreeModel.peer.getRoot))
