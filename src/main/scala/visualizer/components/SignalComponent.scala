@@ -41,9 +41,22 @@ class SignalComponent(waveFormController: WaveFormController) extends BorderPane
       repaint()
     case _: WaveFormatChanged | _: CursorSet =>
       repaint()
-    case KeyReleased(_, Key.BackSpace, _, _) |
-         KeyReleased(_, Key.Delete, _, _) =>
-      waveFormController.removeSelectedSignals(this, tree.selection.paths.iterator)
+    case KeyReleased(_, Key.BackSpace, _, _) =>
+      tree.peer.getSelectionRows.headOption match {
+        case Some(row) =>
+          waveFormController.removeSelectedSignals(this, tree.selection.paths.iterator)
+          val newSelectedRow = (row - 1).max(0)
+          tree.selectRows(newSelectedRow)
+        case _ =>
+      }
+    case KeyReleased(_, Key.Delete, _, _) =>
+      tree.peer.getSelectionRows.lastOption match {
+        case Some(row) =>
+          waveFormController.removeSelectedSignals(this, tree.selection.paths.iterator)
+          val newSelectedRow = row.min(tree.peer.getRowCount - 1)
+          tree.selectRows(newSelectedRow)
+        case _ =>
+      }
   }
 }
 

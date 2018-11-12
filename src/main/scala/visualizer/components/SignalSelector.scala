@@ -35,8 +35,47 @@ class SignalSelector(selectionController: SelectionController) extends BoxPanel(
     listenTo(keys, keys)
 
     reactions += {
+      case KeyReleased(_, Key.PageDown, _, _) =>
+        val pageSize = peer.getVisibleRowCount - 1
+        val newSelectedRow = peer.getSelectionRows.lastOption match {
+          case Some(row) =>
+            (row + pageSize).max(peer.getRowCount - 1)
+          case _ =>
+            0
+        }
+        tree.selectRows(newSelectedRow)
+
+        //TODO: Make this work, probably need something like intellij does with a keymap
+      case KeyReleased(_, Key.PageUp, _, _) =>
+        val pageSize = peer.getVisibleRowCount - 1
+        val newSelectedRow = peer.getSelectionRows.lastOption match {
+          case Some(row) =>
+            (row - pageSize).max(0)
+          case _ =>
+            peer.getRowCount - 1
+        }
+        tree.selectRows(newSelectedRow)
+
+      //TODO: Make this work, probably need something like intellij does with a keymap
       case KeyReleased(_, Key.Enter, _, _) | KeyReleased(_, Key.Space, _, _) =>
         moveSelectedToWaveForms()
+        peer.getSelectionRows.lastOption match {
+          case Some(row) =>
+            selectRows(row + 1)
+          case _ =>
+        }
+
+      //TODO: Make this work, probably need something like intellij does with a keymap
+      case KeyReleased(_, Key.End, _, _) =>
+        val newSelectedRow = tree.peer.getRowCount - 1
+        tree.selectRows(newSelectedRow)
+
+        // Helpful for debugging
+      case event @ KeyReleased(_, key, modifiers, _) =>
+        println(f"SingalSelector: got key $key mods $modifiers%04x")
+        // I don't think this does anything because arrow keys work anyway
+//        tree.peer.getParent.dispatchEvent(event.peer)
+
 
       case m: MouseClicked =>
         val isRightMouseButton = SwingUtilities.isRightMouseButton(m.peer)

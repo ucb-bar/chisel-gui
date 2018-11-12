@@ -53,6 +53,9 @@ class WaveFormController extends Publisher {
         waveFormController.setWaveFormat(this, tree.selection.cellValues, HexFormat)
       })
     }
+
+    peer.addSeparator()
+
     node match {
       case selectionNode: WaveSignal =>
 
@@ -61,6 +64,8 @@ class WaveFormController extends Publisher {
 
           waveFormController.showDependency(symbols, this)
         })
+        peer.addSeparator()
+
         contents += new Menu(s"Add signals that drive ${node.name}") {
           contents += new MenuItem(Action("1 deep") {
             waveFormController.addDrivingSignals(selectionNode.symbol, 1, this)
@@ -72,6 +77,9 @@ class WaveFormController extends Publisher {
             waveFormController.addDrivingSignals(selectionNode.symbol, 3, this)
           })
         }
+
+        peer.addSeparator()
+
         contents += new Menu(s"Add signals that are driven by ${node.name}") {
           contents += new MenuItem(Action("1 deep") {
             waveFormController.addDrivenBySignals(selectionNode.symbol, 1, this)
