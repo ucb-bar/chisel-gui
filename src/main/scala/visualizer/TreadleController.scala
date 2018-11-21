@@ -31,6 +31,8 @@ object TreadleController extends SwingApplication with Publisher {
       val firrtlString = io.Source.fromFile(args.head).getLines().mkString("\n")
       setupTreadle(firrtlString)
     }
+
+    configureShutdown()
   }
 
   def loadFile(fileName: String): String = {
@@ -61,6 +63,26 @@ object TreadleController extends SwingApplication with Publisher {
       parentPath :+ node
     }
     selectionController.insertUnderSorted(parentPath, node)
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // State Saving and Restore Methods
+  ///////////////////////////////////////////////////////////////////////////
+  def configureShutdown(): Unit = {
+    // Configures the shutdown hook to save program settings on exit
+    sys.addShutdownHook({
+      println("shutting down")
+
+      val quitController = new QuitController
+
+
+      quitController.saveWaveformInfo(waveFormController.tree, "IOTest/waveTest.txt")
+
+    })
+  }
+
+  def restoreSettings(): Unit = {
+    // Called at startup, should attempt to restore settings for all relevant components
   }
 
   ///////////////////////////////////////////////////////////////////////////
