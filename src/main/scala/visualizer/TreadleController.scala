@@ -16,8 +16,8 @@ object TreadleController extends SwingApplication with Publisher {
   private val clkSteps = 2
 
   val selectionController = new SelectionController
-  val waveFormController = new WaveFormController
-  lazy val mainWindow = new MainWindow(selectionController, waveFormController)
+  val waveFormController  = new WaveFormController
+  lazy val mainWindow     = new MainWindow(selectionController, waveFormController)
 
   override def startup(args: Array[String]): Unit = {
     if (mainWindow.size == new Dimension(0, 0)) mainWindow.pack()
@@ -44,10 +44,6 @@ object TreadleController extends SwingApplication with Publisher {
       }
     }
     io.Source.fromFile(file).mkString
-  }
-
-  def getPureSignal(node: SelectionNode): Option[PureSignal] = {
-    None
   }
 
   def addSelection(node: SelectionNode): Unit = {
@@ -105,37 +101,31 @@ object TreadleController extends SwingApplication with Publisher {
 
   def setupClock(t: TreadleTester): Unit = {
     if (t.clockInfoList.nonEmpty) {
-
       waveFormController.setClock(t.clockInfoList.head)
     }
   }
 
   def setupWaveforms(t: TreadleTester): Unit = {
-//    val wv = t.allWaveformValues
-//    Util.toValueChange(wv, initializing = true).foreach { case (fullName, transitions) =>
-//      if (!fullName.contains("/")) {
-//        val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
-//        val sortGroup = if (t.isRegister(fullName)) {
-//          1
-//        } else {
-//          val signalName = fullName.split("\\.").last
-//          if (signalName.contains("io_")) {
-//            0
-//          } else if (signalName.contains("T_") || signalName.contains("GEN_")) {
-//            3
-//          } else {
-//            2
-//          }
-//        }
-//        val signal = new PureSignal(fullName, waveform, sortGroup)
-//        addSignal(fullName, signal)
-//      }
+//    t.engine.symbolTable.symbols.foreach { symbol =>
+//      addSelection(SelectionSignal(symbol))
 //    }
 
-    t.engine.symbolTable.symbols.foreach { symbol =>
-//      selectionController.addSymbol(symbol)
-      addSelection(SelectionSignal(symbol))
+    val symbolTable = t.engine.symbolTable
+    val model = selectionController.directoryTreeModel
+
+    symbolTable.symbols.foreach { symbol =>
+      if(symbolTable.inputPortsNames.contains(symbol.name)) {
+        model.addSymbol(symbol, "TopLevelInputs", sortGroup = 0)
+      }
+      else if(symbolTable.outputPortsNames.contains(symbol.name)) {
+        model.addSymbol(symbol, "TopLevelOutputs", sortGroup = 1)
+      }
+      else {
+        val directory = symbol.name.split("""\.""").init.mkString(".")
+        model.addSymbol(symbol, directory)
+      }
     }
+
     mainWindow.repaint()
     publish(new PureSignalsChanged)
   }

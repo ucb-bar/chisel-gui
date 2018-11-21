@@ -13,6 +13,8 @@ import scala.swing.event._
 
 class WaveComponent(waveFormController: WaveFormController) extends BorderPanel {
 
+  preferredSize = new Dimension (550, 700)
+
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
@@ -34,21 +36,34 @@ class WaveComponent(waveFormController: WaveFormController) extends BorderPanel 
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach { case (node, row) =>
       val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
 
-      for {
-        signal <- waveFormController.waveFormDataMap.get(node)
-        painter <- waveFormController.waveDisplaySettings.get(node)
-      } {
-        signal match {
-          case pureSignal: PureSignal if pureSignal.waveform.isDefined =>
-            if (pureSignal.waveform.get.isBinary)
-              singleBitPainter.paintWaveform(g, visibleRect, y, pureSignal)
-            else
-              multiBitPainter.paintWaveform(g, visibleRect, y, pureSignal)
-          case combinedSignal: CombinedSignal =>
-            readyValidPainter.paintWaveform(g, visibleRect, y, combinedSignal)
-          case _ =>
-        }
+      node match {
+        case waveSignal: WaveSignal =>
+          if(waveSignal.isBinary) {
+            singleBitPainter.paintWaveform(g, visibleRect, y, waveSignal.waveform)
+          }
+          else {
+            multiBitPainter.paintWaveform(g, visibleRect, y, waveSignal.waveform)
+          }
+        case waveGroup: WaveGroup =>
+          //TODO: get composite stuff working here
+//          readyValidPainter.paintWaveform(g, visibleRect, y, waveGroup.)
+
       }
+//      for {
+//        signal <- waveFormController.waveFormDataMap.get(node)
+//        painter <- waveFormController.waveDisplaySettings.get(node)
+//      } {
+//        signal match {
+//          case pureSignal: PureSignal if pureSignal.waveform.isDefined =>
+//            if (pureSignal.waveform.get.isBinary)
+//              singleBitPainter.paintWaveform(g, visibleRect, y, pureSignal)
+//            else
+//              multiBitPainter.paintWaveform(g, visibleRect, y, pureSignal)
+//          case combinedSignal: CombinedSignal =>
+//            readyValidPainter.paintWaveform(g, visibleRect, y, combinedSignal)
+//          case _ =>
+//        }
+//      }
 //      waveFormController.waveFormDataMap.get(node) match {
 //        case Some(pureSignal: PureSignal) =>
 //

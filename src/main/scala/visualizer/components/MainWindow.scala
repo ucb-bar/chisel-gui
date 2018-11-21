@@ -1,12 +1,9 @@
 package visualizer.components
 
-import java.awt.Color
-
 import javax.swing.BorderFactory
 import treadle.executable.ClockInfo
 import visualizer.controllers.{SelectionController, WaveFormController}
-import visualizer.models.SignalSelectionModel
-import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleController}
+import visualizer.{DependencyComponentRequested, MaxTimestampChanged, SourceInfoRequested, TreadleController}
 
 import scala.swing.Swing._
 import scala.swing._
@@ -56,8 +53,23 @@ class MainWindow(selectionController: SelectionController, waveFormController: W
 
   title = "Chisel Visualizer"
   menuBar = new MenuBar {
-    contents += new Menu("File")
+    contents += new Menu("File") {
+      contents += new MenuItem(Action("Open") {
+        //TODO: IMPLEMENT THIS
+      })
+      contents += new MenuItem(Action("Restart") {
+        //TODO: IMPLEMENT THIS
+      })
+      contents += new MenuItem(Action("Quit") {
+        System.exit(0)
+      })
+    }
+    contents += new Menu("Help") {
+      contents += new Menu("Not so much yet")
+    }
+
   }
+
   contents = new BorderPanel {
     import BorderPanel.Position._
 
@@ -77,18 +89,30 @@ class MainWindow(selectionController: SelectionController, waveFormController: W
       border = BorderFactory.createEmptyBorder()
     }
 
-    layout(splitPane) = Center
+    val secondSplitPane: SplitPane = new SplitPane(Orientation.Vertical,
+      splitPane,
+      inputControlPanel
+    ) {
+      border = BorderFactory.createEmptyBorder()
+    }
+
+    layout(secondSplitPane) = Center
     layout(dependencyComponent) = South
-    layout(inputControlPanel) = East
+    // layout(inputControlPanel) = East
 
     listenTo(waveFormController)
     listenTo(selectionController)
     reactions += {
-      case e: DependencyComponentRequested =>
-        dependencyComponent.textComponent.text = TreadleController.tester match {
-          case Some(t) => t.dependencyInfo(e.pureSignalName)
-          case None => ""
-        }
+      case DependencyComponentRequested(symbols, _) =>
+        dependencyComponent.textComponent.text = symbols.map { symbol =>
+          TreadleController.tester.get.dependencyInfo(symbol.name)
+        }.mkString("\n")
+
+      case SourceInfoRequested(symbols, _) =>
+        dependencyComponent.textComponent.text = symbols.map { symbol =>
+             s"Signal ${symbol.name} -- ${symbol.info}"
+          }.mkString("\n")
+
       case e: MaxTimestampChanged =>
         inspectionContainer.zoomToEnd(this)
     }

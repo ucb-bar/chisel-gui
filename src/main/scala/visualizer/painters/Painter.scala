@@ -4,12 +4,12 @@ import java.awt.{FontMetrics, Polygon, Rectangle}
 
 import visualizer.DrawMetrics
 import visualizer.controllers.WaveFormController
-import visualizer.models.{InspectedNode, PureSignal, Signal}
+import visualizer.models.Waveform
 
 import scala.swing.{Font, Graphics2D}
 
 abstract class Painter(displayModel: WaveFormController) {
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, signal: Signal[_]): Unit
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, untypedWaveform: Waveform[_]): Unit
 }
 
 object Painter {

@@ -30,20 +30,29 @@ class SignalSelectionModel extends InternalTreeModel[SelectionNode] {
     @tailrec
     def search(low: Int = 0, high: Int = children.length - 1): Int = {
       if (high <= low) {
-        if(newValue > children(low)) low + 1 else low
+        newValue.compare(children(low)) match {
+          case x if x > 0 => low + 1
+          case x if x < 0 => low
+          case _ => -1
+        }
       } else {
         val mid = (low + high)/2
         newValue.compare(children(mid)) match {
           case i if i > 0 => search(mid + 1, high)
           case i if i < 0 => search(low, mid - 1)
-          case _ =>
-            throw new Exception(s"Duplicate node $newValue cannot be added to the directory tree model")
+          case _ => -1
         }
       }
     }
 
     val index = if (children.isEmpty) 0 else search()
-    insertUnder(parentPath, newValue, index)
+    if(index >= 0) {
+      insertUnder(parentPath, newValue, index)
+    }
+    else {
+      println(s"Ignoreing duplicate node $newValue being added to tree")
+      false
+    }
   }
 
   def addSelectionNode(selectionNode: SelectionNode, stringPath: Seq[String], sortGroup: Int): Unit = {
@@ -167,6 +176,13 @@ case class SelectionSignal(symbol: Symbol, sortGroup: Int = 1000) extends Select
 
 object SelectionNode {
   val RootPath: Tree.Path[SelectionNode] = Tree.Path.empty[SelectionNode]
+
+  def selectionToWave(s: SelectionNode): SelectionNode = {
+    s match {
+      case SelectionSignal(symbol, sortGroup) => WaveSignal(symbol, sortGroup)
+      case SelectionGroup(symbol, sortGroup) => WaveGroup(symbol, sortGroup)
+    }
+  }
 }
 
 trait WaveNode extends SelectionNode {
@@ -180,7 +196,9 @@ case class WaveGroup(name: String, sortGroup: Int = 0) extends WaveNode {
 case class WaveSignal(symbol: Symbol, sortGroup: Int = 1000) extends SelectionNode {
   val name: String = symbol.name
   var format: Format = DecFormat
+  var isBinary: Boolean = false
   val waveform: Waveform[BigInt] = Waveform.ofBigInt
 }
+
 
 

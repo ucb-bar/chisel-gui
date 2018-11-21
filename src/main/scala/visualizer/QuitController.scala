@@ -20,7 +20,6 @@ class QuitController() {
     //var jsonResult = null
 
 
-
     // problem, dfs alone does not allow us to store a tree in a way that can be reconstructed
     TreeHelper.viewableDepthFirstIterator(tree).foreach {
       case signal: WaveSignal =>
@@ -42,16 +41,11 @@ class QuitController() {
       case group: WaveGroup =>
         // serialize and output
         //println(s"Group ${signal.}")
-
-
       case _ =>
         // generate error
+        // should not be any thing here, throw exception
+
     }
-
-
-
-
-
 
     val json = ("test1" ->
       ("1-1" -> "test1-1") ~
@@ -77,6 +71,7 @@ class QuitController() {
   // tree: an empty tree which we will write our data to following a load
   // fileName: the file on disk to read the tree from
   def readWaveformInfo(fileName: String, tree: Tree[SelectionNode]): Unit = {
+
     // read the file
     // TODO: add error trapping for file not existing, etc.
     val file = new File(fileName)

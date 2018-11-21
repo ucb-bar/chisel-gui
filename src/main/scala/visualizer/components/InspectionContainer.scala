@@ -28,6 +28,8 @@ class InspectionContainer(waveFormController: WaveFormController) extends Border
   }
   val waveScrollPane: ScrollPane = new ScrollPane(waveComponent) {
     preferredSize = new Dimension (550, 700)
+    minimumSize   = new Dimension (500, 600)
+
     horizontalScrollBar.unitIncrement = 16
     verticalScrollBar.unitIncrement = 16
     horizontalScrollBarPolicy = ScrollPane.BarPolicy.Always

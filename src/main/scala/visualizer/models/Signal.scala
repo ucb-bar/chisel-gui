@@ -1,9 +1,6 @@
 package visualizer.models
 
-import visualizer.Util
-
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 
 ///////////////////////////////////////////////////////////////////////////
 // Transition, Waveform, Signal
@@ -11,13 +8,13 @@ import scala.collection.mutable.ArrayBuffer
 case class Transition[T](timestamp: Long, value: T)
 
 // type Waveform[A] = ArrayBuffer[Transition[A]]
-class Waveform[T](val transitions: ArrayBuffer[Transition[T]]) {
+class Waveform[T](val transitions: mutable.ArrayBuffer[Transition[T]]) {
 
   // Return iterator starting from the transition at the timestamp or the
   // transition before the timestamp. If timestamp is before the first transition,
   // return the first transition
   def findTransition(timestamp: Long): Iterator[Transition[T]] = {
-    def search(low: Int = 0, high: Int = transitions.size - 1): ArrayBuffer[Transition[T]] = {
+    def search(low: Int = 0, high: Int = transitions.size - 1): mutable.ArrayBuffer[Transition[T]] = {
       val mid = (low + high)/2
 
       if (low > high) {
@@ -33,9 +30,9 @@ class Waveform[T](val transitions: ArrayBuffer[Transition[T]]) {
     search().iterator
   }
 
-  def addNewValues(newValues: ArrayBuffer[Transition[T]]): Unit = {
+  def addNewValues(newValues: mutable.ArrayBuffer[Transition[T]]): Unit = {
     assert(newValues.length >= 2)
-    assert(transitions.length >= 2)
+    //assert(transitions.length >= 2)
 //    assert(transitions.last.timestamp == newValues.head.timestamp,
 //      s"${transitions.length} ${newValues.length} \n ${Util.transitionsToString(transitions)} \n ${Util.transitionsToString(newValues)}")
 
@@ -81,12 +78,15 @@ object Waveform {
   def ofCombinedBigInt: Waveform[Array[BigInt]] = {
     new Waveform(new mutable.ArrayBuffer[Transition[Array[BigInt]]]())
   }
+  def apply[T](transitions: mutable.ArrayBuffer[Transition[T]]): Waveform[T] = {
+    new Waveform(transitions)
+  }
 }
 
 abstract class Signal[T] {
   var waveform: Option[Waveform[T]]
 
-  def addNewValues(newValues: ArrayBuffer[Transition[T]]): Unit = {
+  def addNewValues(newValues: mutable.ArrayBuffer[Transition[T]]): Unit = {
     waveform match {
       case Some(w) => w.addNewValues(newValues)
       case None => waveform = Some(new Waveform(newValues))
@@ -94,63 +94,68 @@ abstract class Signal[T] {
   }
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Three types of signals
-///////////////////////////////////////////////////////////////////////////
-class PureSignal(
-  var name: String,
-  var waveform: Option[Waveform[BigInt]],
-  val sortGroup: Int // (IOs, registers, other, Ts and Gens)
-) extends Signal[BigInt]
-
-class TruncatedSignal(
-  val pureSignal: PureSignal,
-  val bits: ArrayBuffer[Int],
-  var waveform: Option[Waveform[BigInt]]
-) extends Signal[BigInt]
-
 class CombinedSignal(
-  val pureSignals: Array[PureSignal],
-  var waveform: Option[Waveform[Array[BigInt]]]
-) extends Signal[Array[BigInt]]
+  val sourceWaves: Array[WaveNode],
+  var waveform: Waveform[ReadyValidState]
+)
+
+trait ReadyValidState
+
+object ReadValidStates {
+  case object Fired    extends ReadyValidState
+  case object ReadySet extends ReadyValidState
+  case object ValidSet extends ReadyValidState
+  case object Open     extends ReadyValidState
+
+  def getState(readyValue: BigInt, validValue: BigInt): ReadyValidState = {
+    (readyValue != BigInt(0), validValue != BigInt(0)) match {
+      case (true, true)   => Fired
+      case (true, false)  => ReadySet
+      case (false, true)  => ValidSet
+      case (false, false) => Open
+    }
+  }
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Ready Valid Combiner
 ///////////////////////////////////////////////////////////////////////////
 object ReadyValidCombiner {
-  def apply(sourceSignals: Array[PureSignal]): CombinedSignal = {
+  def apply(sourceSignals: Array[WaveNode]): CombinedSignal = {
     require(sourceSignals.length == 2)
-    assert(sourceSignals.forall(pureSignal => pureSignal.waveform.nonEmpty))
+    assert(sourceSignals.forall { _.isInstanceOf[WaveSignal] })
 
-    val readyIterator = sourceSignals.head.waveform.get.transitions.iterator
-    val validIterator = sourceSignals.last.waveform.get.transitions.iterator
+    val readyIterator = sourceSignals.asInstanceOf[WaveSignal].waveform.transitions.iterator
+    val validIterator = sourceSignals.asInstanceOf[WaveSignal].waveform.transitions.iterator
     var readyCurrent = readyIterator.next()
     var validCurrent = validIterator.next()
     var prevReadyVal: BigInt = -1
     var prevValidVal: BigInt = -1
-    val readyValidTransitions = new ArrayBuffer[Transition[Array[BigInt]]]()
+    val readyValidTransitions = new mutable.ArrayBuffer[Transition[ReadyValidState]]()
 
     assert(readyCurrent.timestamp == validCurrent.timestamp)
 
     while (readyIterator.hasNext && validIterator.hasNext) {
-      if (readyCurrent.timestamp < validCurrent.timestamp) {
+      val timeStamp = if (readyCurrent.timestamp < validCurrent.timestamp) {
         prevReadyVal = readyCurrent.value
-        readyValidTransitions += Transition[Array[BigInt]](readyCurrent.timestamp, Array(prevReadyVal, prevValidVal))
         readyCurrent = readyIterator.next()
+        readyCurrent.timestamp
       } else if (readyCurrent.timestamp > validCurrent.timestamp) {
         prevValidVal = validCurrent.value
-        readyValidTransitions += Transition[Array[BigInt]](validCurrent.timestamp, Array(prevReadyVal, prevValidVal))
         validCurrent = validIterator.next()
+        validCurrent.timestamp
       } else {
         prevReadyVal = readyCurrent.value
         prevValidVal = validCurrent.value
-        readyValidTransitions += Transition[Array[BigInt]](readyCurrent.timestamp, Array(prevReadyVal, prevValidVal))
         readyCurrent = readyIterator.next()
         validCurrent = validIterator.next()
+        readyCurrent.timestamp
       }
+
+      readyValidTransitions += Transition(timeStamp, ReadValidStates.getState(prevReadyVal, prevValidVal))
     }
 
-    readyValidTransitions += Transition[Array[BigInt]](math.min(readyCurrent.timestamp, validCurrent.timestamp), null)
-    new CombinedSignal(sourceSignals, Some(new Waveform(readyValidTransitions)))
+    readyValidTransitions += Transition[ReadyValidState](math.min(readyCurrent.timestamp, validCurrent.timestamp), null)
+    new CombinedSignal(sourceSignals, Waveform(readyValidTransitions))
   }
 }

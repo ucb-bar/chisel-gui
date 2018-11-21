@@ -4,12 +4,12 @@ import java.awt.{Color, Font}
 
 import scalaswingcontrib.tree.Tree
 import visualizer._
-import visualizer.controllers.{DecFormat, WaveFormController}
+import visualizer.controllers.WaveFormController
 import visualizer.models._
 
-import scala.swing._
+import scala.swing.BorderPanel.Position.Center
+import scala.swing.{Font, _}
 import scala.swing.event._
-import BorderPanel.Position.Center
 
 /**
   * This is the organizing list of the users selected signals.
@@ -35,24 +35,37 @@ class SignalComponent(waveFormController: WaveFormController) extends BorderPane
   ///////////////////////////////////////////////////////////////////////////
   listenTo(waveFormController)
   listenTo(keys, tree.keys)
-  listenTo(mouse.clicks)
   reactions += {
     case _: SignalsChanged =>
       computeBounds()
       repaint()
     case _: WaveFormatChanged | _: CursorSet =>
       repaint()
-    case m: MouseButtonEvent =>
-      println(s"Mouse clicked ${m.clicks}")
     case KeyReleased(_, Key.BackSpace, _, _) =>
-      waveFormController.removeSelectedSignals(this, tree.selection.paths.iterator)
+      tree.peer.getSelectionRows.headOption match {
+        case Some(row) =>
+          waveFormController.removeSelectedSignals(this, tree.selection.paths.iterator)
+          val newSelectedRow = (row - 1).max(0)
+          tree.selectRows(newSelectedRow)
+        case _ =>
+      }
+    case KeyReleased(_, Key.Delete, _, _) =>
+      tree.peer.getSelectionRows.lastOption match {
+        case Some(row) =>
+          waveFormController.removeSelectedSignals(this, tree.selection.paths.iterator)
+          val newSelectedRow = row.min(tree.peer.getRowCount - 1)
+          tree.selectRows(newSelectedRow)
+        case _ =>
+      }
   }
 }
 
 class SignalNameRenderer(waveFormController: WaveFormController) extends Tree.Renderer[SelectionNode] {
   private var labelBaseLine = -1
   private var valueBaseLine = 0
-  val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)
+//  val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)
+  val SignalNameFont = new Font("Lucinda Grande", 0, 12)
+
   val ValueFont = new Font("SansSerif", Font.PLAIN, 8)
 
   def componentFor(
@@ -83,38 +96,50 @@ class SignalNameRenderer(waveFormController: WaveFormController) extends Tree.Re
         valueBaseLine += border
       }
 
-      waveFormController.waveFormDataMap.get(node) match {
-        case Some(signal) if signal.waveform.isDefined =>
-          // Background
-          if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)
-          g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing)
+      // Background
+      if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)
+      g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing)
 
-          // Signal Name
-          g.setFont(SignalNameFont)
-          if (isSelected) g.setColor(Color.white) else g.setColor(Color.black)
-          g.drawString(node.name, 1, labelBaseLine)
+      // Signal Name
+      // g.setFont(SignalNameFont)
+      if (isSelected) g.setColor(Color.white) else g.setColor(Color.black)
+      g.drawString(node.name, 1, labelBaseLine)
 
-          // Value
-          g.setFont(ValueFont)
-          if (isSelected) g.setColor(Color.white) else g.setColor(Color.blue)
-          val value = signal.waveform.get.findTransition(waveFormController.cursorPosition).next().value
-          val txt = signal match {
-            case _: PureSignal if value.asInstanceOf[BigInt] != null =>
-              waveFormController.waveDisplaySettings(node).dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
-            case _: CombinedSignal =>
-              val pair = value.asInstanceOf[Array[BigInt]]
-              if (pair != null) {
-                (pair(0).toInt, pair(1).toInt) match {
-                  case (0, 0) => "Not ready"
-                  case (1, 1) => "Ready"
-                  case _ => "Waiting"
-                }
-              } else {
-                ""
-              }
-            case _ => ""
+      // Value
+      g.setFont(ValueFont)
+      if (isSelected) g.setColor(Color.white) else g.setColor(Color.blue)
+
+      node match {
+        case waveSignal: WaveSignal =>
+          val waveform = waveSignal.waveform
+          val iterator = waveform.findTransition(waveFormController.cursorPosition)
+          if(iterator.hasNext) {
+            val value    = iterator.next().value
+            waveSignal.format(value.asInstanceOf[BigInt])
           }
-          g.drawString(txt, 1, valueBaseLine)
+
+        case waveGroup: WaveGroup =>
+          //TODO: make this work with groups that are based on composition of child waveforms
+//          val waveform = waveGroup.waveform
+//          val value = waveform.findTransition(waveFormController.cursorPosition).next().value
+//
+//          val txt = signal match {
+//            case _: PureSignal if value.asInstanceOf[BigInt] != null =>
+//              waveFormController.waveDisplaySettings(node).dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
+//            case _: CombinedSignal =>
+//              val pair = value.asInstanceOf[Array[BigInt]]
+//              if (pair != null) {
+//                (pair(0).toInt, pair(1).toInt) match {
+//                  case (0, 0) => "Not ready"
+//                  case (1, 1) => "Ready"
+//                  case _ => "Waiting"
+//                }
+//              } else {
+//                ""
+//              }
+//            case _ => ""
+//          }
+//          g.drawString(txt, 1, valueBaseLine)
         case _ =>
           // Node is a group
           // Background
