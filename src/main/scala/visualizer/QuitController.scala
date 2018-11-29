@@ -25,16 +25,16 @@ class QuitController() {
       ("items" -> TreeHelper.viewableDepthFirstIterator(tree).toList.map( {
         case signal: WaveSignal =>
           // serialize and output
-          //("n" -> signal.name) ~ ("f" -> "add field")
-          ("serial" -> serializeToString(signal))
+          ("n" -> signal.name) ~ ("f" -> "add field")
+          //("serial" -> serializeToString(signal))
         case group: WaveGroup =>
           // serialize and output
-          //("g" -> group.name) ~ ("temp" -> "this is a group")
-          ("serial" -> serializeToString(group))
+          ("g" -> group.name) ~ ("temp" -> "this is a group")
+          //("serial" -> serializeToString(group))
         case _ =>
           // should not be any thing here, throw exception
-          //("nothing here" -> "none") ~ ("2" -> "2")
-          ("serial" -> "none")
+          ("nothing here" -> "none") ~ ("2" -> "2")
+          //("serial" -> "none")
       })
     )
 
