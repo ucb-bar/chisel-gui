@@ -188,12 +188,12 @@ object SelectionNode {
 trait WaveNode extends SelectionNode {
   self: SelectionNode =>
 }
-
-case class WaveGroup(name: String, sortGroup: Int = 0) extends WaveNode {
+@SerialVersionUID(1)
+case class WaveGroup(name: String, sortGroup: Int = 0) extends WaveNode with Serializable{
   val combinedWaveform: Waveform[Array[BigInt]] = Waveform.ofCombinedBigInt
 }
-
-case class WaveSignal(symbol: Symbol, sortGroup: Int = 1000) extends SelectionNode {
+@SerialVersionUID(1)
+case class WaveSignal(symbol: Symbol, sortGroup: Int = 1000) extends SelectionNode with Serializable {
   val name: String = symbol.name
   var format: Format = DecFormat
   var isBinary: Boolean = false
