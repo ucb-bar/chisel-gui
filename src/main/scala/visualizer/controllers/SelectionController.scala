@@ -32,14 +32,6 @@ class SelectionController extends Publisher {
     directoryTreeModel.addSymbol(symbol)
   }
 
-  def addToWaveFormViewer(node: SelectionNode): Unit = {
-    TreadleController.waveFormController.addFromDirectoryToInspected(node, signalSelector)
-  }
-
-//  def addToWaveFormViewer(selection: Iterator[SelectionNode]): Unit = {
-//    TreadleController.waveFormController.addFromDirectoryToInspected(node, signalSelector)
-//  }
-
   def showSourceInfo(symbols: Seq[Symbol], source: Component) {
     publish(SourceInfoRequested(symbols, source))
   }

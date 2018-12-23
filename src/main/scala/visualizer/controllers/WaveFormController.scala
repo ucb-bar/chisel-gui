@@ -42,6 +42,12 @@ class WaveFormController extends Publisher {
 
   // Popup menu when a signal name is right-clicked
   private def popupMenu(node: SelectionNode): PopupMenu = new PopupMenu {
+
+    def addRelatedSignals(node: WaveSignal, drivenBy: Boolean): Unit = {
+      val path = tree.selection.paths.head.dropRight(1)
+      waveFormController.addDrivingSignals(node.symbol,1, path, drivenBy)
+    }
+
     contents += new Menu("Data Format") {
       contents += new MenuItem(Action("Binary") {
         waveFormController.setWaveFormat(this, tree.selection.cellValues, BinFormat)
@@ -68,13 +74,13 @@ class WaveFormController extends Publisher {
 
         contents += new Menu(s"Add signals that drive ${node.name}") {
           contents += new MenuItem(Action("1 deep") {
-            waveFormController.addDrivingSignals(selectionNode.symbol, 1, this)
+            addRelatedSignals(selectionNode, drivenBy = false)
           })
           contents += new MenuItem(Action("2 deep") {
-            waveFormController.addDrivingSignals(selectionNode.symbol, 2, this)
+            addRelatedSignals(selectionNode, drivenBy = false)
           })
           contents += new MenuItem(Action("3 deep") {
-            waveFormController.addDrivingSignals(selectionNode.symbol, 3, this)
+            addRelatedSignals(selectionNode, drivenBy = false)
           })
         }
 
@@ -82,13 +88,13 @@ class WaveFormController extends Publisher {
 
         contents += new Menu(s"Add signals that are driven by ${node.name}") {
           contents += new MenuItem(Action("1 deep") {
-            waveFormController.addDrivenBySignals(selectionNode.symbol, 1, this)
+            addRelatedSignals(selectionNode, drivenBy = true)
           })
           contents += new MenuItem(Action("2 deep") {
-            waveFormController.addDrivenBySignals(selectionNode.symbol, 2, this)
+            addRelatedSignals(selectionNode, drivenBy = true)
           })
           contents += new MenuItem(Action("3 deep") {
-            waveFormController.addDrivenBySignals(selectionNode.symbol, 3, this)
+            addRelatedSignals(selectionNode, drivenBy = true)
           })
         }
     }
@@ -172,6 +178,21 @@ class WaveFormController extends Publisher {
   def addHierarchy(path: Tree.Path[SelectionNode], node: SelectionNode): Unit = {
     val wavePath = path.map { SelectionNode.selectionToWave }
     val waveNode = SelectionNode.selectionToWave(node)
+
+    waveNode match {
+      case waveSignal: WaveSignal =>
+        if(waveSignal.symbol.bitWidth == 1) {
+          waveSignal.isBinary = true
+          waveSignal.format = DecFormat
+        }
+        else {
+          waveSignal.isBinary = false
+          waveSignal.format = DecFormat
+        }
+        symbolToWaveSignal(waveSignal.symbol) = waveSignal
+      case _ =>
+    }
+
     TreadleController.waveFormController.treeModel.insertUnderSorted(wavePath, waveNode)
 
     publish(SignalsChanged(inspectionContainer.selectionComponent)) // TODO: Rename to NodesChanged
@@ -214,53 +235,22 @@ class WaveFormController extends Publisher {
 
   var currentTreadleValues: mutable.HashMap[Symbol, ArrayBuffer[Transition[BigInt]]] = new mutable.HashMap()
 
-  def addDrivingSignals(symbol: Symbol, depth: Int, menu: Menu): Unit = {
-    val drivenSignals = TreadleUtils.getSignalsRelatedTo(symbol, depth, drivenBy = true)
+  /**
+    * Add the signals that drive or are driven by symbol depending
+    * @param symbol    the target symbol
+    * @param depth     the degree of relatedness
+    * @param path      where to put the added signals
+    * @param drivenBy  selects driven or driven by symbols
+    */
+  def addDrivingSignals(symbol: Symbol, depth: Int, path: Tree.Path[SelectionNode], drivenBy: Boolean): Unit = {
+
+    val drivenSignals = TreadleUtils.getSignalsRelatedTo(symbol, depth, drivenBy)
 
     drivenSignals.foreach { drivenSignal =>
-      addFromDirectoryToInspected(SelectionSignal(drivenSignal), inspectionContainer.selectionComponent)
+      addHierarchy(path, SelectionSignal(drivenSignal))
     }
-  }
-
-  def addDrivenBySignals(symbol: Symbol, depth: Int, menu: Menu): Unit = {
-    val drivenSignals = TreadleUtils.getSignalsRelatedTo(symbol, depth, drivenBy = false)
-
-    drivenSignals.foreach { drivenSignal =>
-      addFromDirectoryToInspected(SelectionSignal(drivenSignal), inspectionContainer.selectionComponent)
-    }
-  }
-  ///////////////////////////////////////////////////////////////////////////
-  // Signals
-  ///////////////////////////////////////////////////////////////////////////
-  def addFromDirectoryToInspected(node: SelectionNode, source: Component): Unit = {
-    val waveNode = node match {
-      case signal: SelectionSignal =>
-        val waveSignal = WaveSignal(signal.symbol, signal.sortGroup)
-        symbolToWaveSignal(signal.symbol) = waveSignal
-        if(signal.symbol.bitWidth == 1) {
-          waveSignal.isBinary = true
-          waveSignal.format = DecFormat
-        }
-        else {
-          waveSignal.isBinary = false
-          waveSignal.format = DecFormat
-        }
-        currentTreadleValues.get(waveSignal.symbol) match {
-          case Some(waveValues) =>
-            waveSignal.waveform.addNewValues(waveValues)
-          case _ =>
-        }
-        waveSignal
-      case group: SelectionGroup =>
-        WaveGroup(group.name, group.sortGroup)
-      case _ =>
-        throw new Exception(s"Unknown kind of entry from select signals $node")
-    }
-
-    treeModel.insertUnder(RootPath, waveNode, treeModel.getChildrenOf(RootPath).size)
 
     publish(SignalsChanged(inspectionContainer.selectionComponent)) // TODO: Rename to NodesChanged
-    publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
   }
 
   def addGroup(): Unit = {
