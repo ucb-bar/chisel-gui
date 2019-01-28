@@ -41,6 +41,27 @@ object TreeHelper {
     }
   }
 
+  // the boolean argument sets whether children hidden in the UI are pushed onto the stack and iterated over
+  // defaults to false, meaning paths to all nodes are explored, even if they are hidden
+  def pathDepthFirstIterator(tree: Tree[SelectionNode], expandedOnly: Boolean = false): Iterator[Seq[SelectionNode]] = new Iterator[Seq[SelectionNode]] {
+    val treeModel: TreeModel[SelectionNode] = tree.model
+    var openNodes: Iterator[Path[SelectionNode]] = treeModel.roots.map(Path(_)).iterator
+
+    def hasNext: Boolean = openNodes.nonEmpty
+    def next(): Seq[SelectionNode] = if (openNodes.hasNext) {
+      val path = openNodes.next()
+      pushChildren(path)
+      return path.seq
+    } else throw new NoSuchElementException("No more items")
+
+    def pushChildren(path: Path[SelectionNode]): Unit = {
+      if (!expandedOnly || tree.isExpanded(path)) {
+        val open = openNodes
+        openNodes = treeModel.getChildPathsOf(path).toIterator ++ open
+      }
+    }
+  }
+
   def hasCompleteNode(tree: JTree): Boolean = {
     val selRows = tree.getSelectionRows
     var path = tree.getSelectionPath

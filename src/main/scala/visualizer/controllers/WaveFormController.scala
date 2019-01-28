@@ -463,19 +463,29 @@ case class WaveDisplaySetting(var painter: Option[Int] = None, var dataFormat: O
 // May want to consider size of the wire
 sealed trait Format {
   def apply(num: BigInt): String
+
+  // todo: evaluate whether this is necessary instead of simply using "toString"
+  // code used for storing and retrieving the format type on disk without serialization
+  //def code(): String
 }
 case object BinFormat extends Format {
   def apply(num: BigInt): String = {
     "0b" + num.toString(2)
   }
+
+  //def code(): String = {"b"}
 }
 case object DecFormat extends Format {
   def apply(num: BigInt): String = {
     num.toString(10)
   }
+
+  //def code(): String = {"d"}
 }
 case object HexFormat extends Format {
   def apply(num: BigInt): String = {
     "0x" + num.toString(16)
   }
+
+  //def code(): String = {"h"}
 }

@@ -32,6 +32,7 @@ object TreadleController extends SwingApplication with Publisher {
       setupTreadle(firrtlString)
     }
 
+    restoreSettings()
     configureShutdown()
   }
 
@@ -72,13 +73,16 @@ object TreadleController extends SwingApplication with Publisher {
       val quitController = new QuitController
 
 
-      quitController.saveWaveformInfo(waveFormController.tree, "IOTest/waveTest.txt")
+      quitController.saveWaveformInfo(waveFormController.tree, waveFormController.treeModel,  "IOTest/waveTest.txt")
 
     })
   }
 
   def restoreSettings(): Unit = {
     // Called at startup, should attempt to restore settings for all relevant components
+    val quitController = new QuitController
+
+    quitController.readWaveformInfo("IOTest/waveTest.txt", waveFormController.tree);
   }
 
   ///////////////////////////////////////////////////////////////////////////

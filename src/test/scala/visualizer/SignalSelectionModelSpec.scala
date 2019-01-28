@@ -1,5 +1,5 @@
 // See LICENSE for license details.
-
+/*
 package visualizer
 
 import org.scalatest.{FreeSpec, Matchers}
@@ -44,3 +44,4 @@ class SignalSelectionModelSpec extends FreeSpec with Matchers {
     model
   }
 }
+*/

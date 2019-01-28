@@ -156,6 +156,13 @@ trait SelectionNode extends Ordered[SelectionNode] {
       this.sortGroup - that.sortGroup
     }
   }
+
+  // Seq that stores the useful information in this node (all the information needed to reconstruct it from disk) in a
+  // format that can easily be stored on disk
+  // This is done as a method rather than a variable to reflect that the user can make changes to the data of some node
+  // during runtime (e.g. change Format of a signal)
+  def getStateData(): Seq[String] = { Seq(name, sortGroup.toString) }
+
 }
 
 /**
@@ -163,7 +170,10 @@ trait SelectionNode extends Ordered[SelectionNode] {
   * @param name      the directory name
   * @param sortGroup aggregate by sortGroup then alphabetically by name, case insensitive
   */
-case class SelectionGroup(name: String, sortGroup: Int = 0) extends SelectionNode
+case class SelectionGroup(name: String, sortGroup: Int = 0) extends SelectionNode {
+  // use "g" to denote a group
+  override def getStateData(): Seq[String] = { Seq("g", name, sortGroup.toString) }
+}
 
 /**
   * A symbol for the selection panel
@@ -172,6 +182,9 @@ case class SelectionGroup(name: String, sortGroup: Int = 0) extends SelectionNod
   */
 case class SelectionSignal(symbol: Symbol, sortGroup: Int = 1000) extends SelectionNode {
   val name: String = symbol.name
+
+  // use "s" to denote a signal
+  override def getStateData(): Seq[String] = { Seq("s", name, sortGroup.toString) }
 }
 
 object SelectionNode {
@@ -191,13 +204,19 @@ trait WaveNode extends SelectionNode {
 
 case class WaveGroup(name: String, sortGroup: Int = 0) extends WaveNode {
   val combinedWaveform: Waveform[Array[BigInt]] = Waveform.ofCombinedBigInt
+
+  override def getStateData(): Seq[String] = { Seq("g", name, sortGroup.toString) }
 }
 
+// todo: this class should extend WaveNode, not SelectionNode for consistency
 case class WaveSignal(symbol: Symbol, sortGroup: Int = 1000) extends SelectionNode {
   val name: String = symbol.name
   var format: Format = DecFormat
   var isBinary: Boolean = false
   val waveform: Waveform[BigInt] = Waveform.ofBigInt
+
+  override def getStateData(): Seq[String] = { Seq("s", name, format.toString, isBinary.toString, sortGroup.toString) }
+
 }
 
 
