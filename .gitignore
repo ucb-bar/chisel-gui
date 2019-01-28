@@ -17,3 +17,5 @@ dist
 /RUNNING_PID
 /project/*-shim.sbt
 /activator-sbt-*-shim.sbt
+/IOTest
+/UserSettings
