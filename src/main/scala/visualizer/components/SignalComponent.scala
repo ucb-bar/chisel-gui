@@ -10,8 +10,7 @@ import scala.swing._
 import scala.swing.event._
 import BorderPanel.Position.Center
 
-class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[InspectedNode])
-  extends BorderPanel {
+class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[InspectedNode]) extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -20,8 +19,9 @@ class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tr
   focusable = true
 
   def computeBounds(): Unit = {
-    preferredSize = new Dimension(125, TreeHelper.viewableDepthFirstIterator(tree).size *
-      DrawMetrics.WaveformVerticalSpacing)
+    preferredSize = new Dimension(125,
+                                  TreeHelper.viewableDepthFirstIterator(tree).size *
+                                    DrawMetrics.WaveformVerticalSpacing)
     revalidate()
   }
 
@@ -51,9 +51,9 @@ class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) exten
   val ValueFont = new Font("SansSerif", Font.PLAIN, 8)
 
   override def componentFor(
-      owner: Tree[_],
-      value: InspectedNode,
-      cellInfo: companion.CellInfo
+    owner:    Tree[_],
+    value:    InspectedNode,
+    cellInfo: companion.CellInfo
   ): Component = {
     new SignalNamePanel(value, cellInfo.isSelected)
   }
@@ -102,7 +102,7 @@ class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) exten
                 (pair(0).toInt, pair(1).toInt) match {
                   case (0, 0) => "Not ready"
                   case (1, 1) => "Ready"
-                  case _ => "Waiting"
+                  case _      => "Waiting"
                 }
               } else {
                 ""

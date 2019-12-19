@@ -12,15 +12,15 @@ class DisplayModel extends Publisher {
   // Maps nodeId to WaveDisplaySetting
   val waveDisplaySettings: mutable.HashMap[Int, WaveDisplaySetting] = new mutable.HashMap[Int, WaveDisplaySetting]()
 
-  val RootPath: Tree.Path[InspectedNode] = Tree.Path.empty[InspectedNode]
+  val RootPath:  Tree.Path[InspectedNode] = Tree.Path.empty[InspectedNode]
   val treeModel: InternalTreeModel[InspectedNode] = InternalTreeModel.empty[InspectedNode]
 
-  var scale: Double = 2
+  var scale:             Double = 2
   var minorTickInterval: Long = 1
 
   var clkMinorTickInterval: Long = 1
-  var useClock: Boolean = false
-  var clock: Option[ClockInfo] = None
+  var useClock:             Boolean = false
+  var clock:                Option[ClockInfo] = None
 
   // initial/constructor
   setScale(10, null)
@@ -28,7 +28,7 @@ class DisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Helper Functions
   ///////////////////////////////////////////////////////////////////////////
-  def xCoordinateToTimestamp(x: Int): Long = (x / scale).toLong
+  def xCoordinateToTimestamp(x:         Int):  Long = (x / scale).toLong
   def timestampToXCoordinate(timestamp: Long): Int = (timestamp * scale).toInt
 
   ///////////////////////////////////////////////////////////////////////////
@@ -72,7 +72,7 @@ class DisplayModel extends Publisher {
   // Wave Display Format
   ///////////////////////////////////////////////////////////////////////////
   def setWaveFormat(source: Component, nodes: Iterator[InspectedNode], format: Format): Unit = {
-    nodes.foreach{node =>
+    nodes.foreach { node =>
       node.signal match {
         case Some(_) =>
           waveDisplaySettings(node.nodeId).dataFormat = Some(format)
@@ -146,7 +146,7 @@ class DisplayModel extends Publisher {
 
   def addMarker(description: String, timestamp: Long): Unit = {
     // Adding to markers could be more efficient bc inserting into sorted sequence
-    markers  += Marker(nextMarkerId, description, timestamp)
+    markers += Marker(nextMarkerId, description, timestamp)
     markers.sortBy(_.timestamp)
 
     nextMarkerId += 1
@@ -157,7 +157,7 @@ class DisplayModel extends Publisher {
   def getMarkerAtTime(timestamp: Long): Int = {
     markers.reverse.indexWhere(timestamp >= _.timestamp) match {
       case i if i >= 0 => markers.size - 1 - i
-      case _ => 0
+      case _           => 0
     }
   }
 
@@ -229,9 +229,8 @@ class DisplayModel extends Publisher {
   }
 }
 
-case class Marker(id: Int, var description: String, timestamp: Long)
+case class Marker(id:                      Int, var description:               String, timestamp: Long)
 case class WaveDisplaySetting(var painter: Option[Int] = None, var dataFormat: Option[Format] = None)
-
 
 // May want to consider size of the wire
 sealed trait Format {

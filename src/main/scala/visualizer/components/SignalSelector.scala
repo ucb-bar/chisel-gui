@@ -18,11 +18,11 @@ import scala.swing.event.{ButtonClicked, MouseClicked}
   * @param displayModel underlying displayModel
   */
 class SignalSelector(
-  dataModel: DataModel,
+  dataModel:    DataModel,
   displayModel: DisplayModel
 ) extends BoxPanel(Orientation.Vertical) {
 
-  val me = this
+  val me: SignalSelector = this
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -35,10 +35,9 @@ class SignalSelector(
     listenTo(mouse.clicks)
     reactions += {
       case m: MouseClicked =>
-        if(m.clicks == 1) {
+        if (m.clicks == 1) {
           println(s"Got mouse click in tree ${m.clicks}")
-        }
-        else if(m.clicks == 2) {
+        } else if (m.clicks == 2) {
           println(s"mouse double clicked in tree ${m.clicks}")
           selection.cellValues.foreach { node =>
             displayModel.addFromDirectoryToInspected(node.toInspected, this)
@@ -59,12 +58,10 @@ class SignalSelector(
 //    tb.icon = icon
 
     val toggleButton1 = new Button("Hide _T") {
-      if(text.startsWith("Hide")) { text = "Show _T" }
-      else { text = "Hide _T"}
+      if (text.startsWith("Hide")) { text = "Show _T" } else { text = "Hide _T" }
     }
     val toggleButton2 = new Button("Hide _GEN") {
-      if(text.startsWith("Hide")) { text = "Show _GEN" }
-      else { text = "Hide _GEN"}
+      if (text.startsWith("Hide")) { text = "Show _GEN" } else { text = "Hide _GEN" }
     }
 
     contents += toggleButton1
@@ -88,17 +85,16 @@ class SignalSelector(
   listenTo(mouse.clicks)
   reactions += {
     case m: MouseClicked =>
-      if(m.clicks == 1) {
+      if (m.clicks == 1) {
         println(s"Got mouse click in DirectoryComponent ${m.clicks}")
-      }
-      else if(m.clicks == 2) {
+      } else if (m.clicks == 2) {
         println(s"mouse double clicked in DirectoryComponent ${m.clicks}")
         tree.selection.cellValues.foreach { node =>
           displayModel.addFromDirectoryToInspected(node.toInspected, this)
         }
       }
     case ButtonClicked(`addSymbolsButton`) =>
-      tree.selection.cellValues.foreach{node =>
+      tree.selection.cellValues.foreach { node =>
         displayModel.addFromDirectoryToInspected(node.toInspected, this)
       }
     case e: TreeNodesInserted[_] =>

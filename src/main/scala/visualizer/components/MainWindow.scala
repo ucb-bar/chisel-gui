@@ -65,12 +65,14 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
 
     layout(toolbar) = North
 
-    val splitPane: SplitPane = new SplitPane(Orientation.Vertical,
+    val splitPane: SplitPane = new SplitPane(
+      Orientation.Vertical,
       new ScrollPane(signalSelector) {
         preferredSize = new Dimension(150, 700)
         minimumSize = new Dimension(150, 300)
         border = BorderFactory.createEmptyBorder()
-      }, inspectionContainer
+      },
+      inspectionContainer
     ) {
       border = BorderFactory.createEmptyBorder()
     }
@@ -85,7 +87,7 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
       case e: DependencyComponentRequested =>
         dependencyComponent.textComponent.text = TreadleController.tester match {
           case Some(t) => t.dependencyInfo(e.pureSignalName)
-          case None => ""
+          case None    => ""
         }
       case e: MaxTimestampChanged =>
         inspectionContainer.zoomToEnd(this)

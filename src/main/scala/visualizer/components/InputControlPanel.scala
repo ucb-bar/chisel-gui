@@ -28,11 +28,13 @@ class InputControlPanel(dataModel: DataModel, displayModel: DisplayModel) extend
 
   def fillInputs(): Unit = {
     val inputArea: Component = new GridBagPanel {
-      def constraints(x: Int, y: Int,
-        gridWidth      : Int = 1, gridHeight: Int = 1,
-        weightX        : Double = 0.0, weightY: Double = 0.0,
-        fill           : GridBagPanel.Fill.Value = GridBagPanel.Fill.None)
-      : Constraints = {
+      def constraints(x:          Int,
+                      y:          Int,
+                      gridWidth:  Int = 1,
+                      gridHeight: Int = 1,
+                      weightX:    Double = 0.0,
+                      weightY:    Double = 0.0,
+                      fill:       GridBagPanel.Fill.Value = GridBagPanel.Fill.None): Constraints = {
         val c = new Constraints
         c.gridx = x
         c.gridy = y
@@ -70,10 +72,10 @@ class InputControlPanel(dataModel: DataModel, displayModel: DisplayModel) extend
           }, constraints(0, currentRow))
 
           currentRow += 1
-          for((inputPort, textField) <- inputNames.zip(inputValues)) {
+          for ((inputPort, textField) <- inputNames.zip(inputValues)) {
             add(
               new Label(inputPort) {
-                border=Swing.EtchedBorder(Swing.Lowered)
+                border = Swing.EtchedBorder(Swing.Lowered)
                 horizontalAlignment = Alignment.Left
               },
               constraints(0, currentRow, fill = GridBagPanel.Fill.Horizontal)
@@ -98,7 +100,7 @@ class InputControlPanel(dataModel: DataModel, displayModel: DisplayModel) extend
 
           currentRow += 1
           add(Button("Poke") { pokeAll() },
-            constraints(0, currentRow, gridWidth=3, fill=GridBagPanel.Fill.Horizontal))
+              constraints(0, currentRow, gridWidth = 3, fill = GridBagPanel.Fill.Horizontal))
 
           currentRow += 1
           add(new Separator(), constraints(0, currentRow, gridWidth = 2))
@@ -107,7 +109,7 @@ class InputControlPanel(dataModel: DataModel, displayModel: DisplayModel) extend
 
           add(
             new Label("Number of steps") {
-              border=Swing.EtchedBorder(Swing.Lowered)
+              border = Swing.EtchedBorder(Swing.Lowered)
               horizontalAlignment = Alignment.Left
             },
             constraints(0, currentRow, fill = GridBagPanel.Fill.Horizontal)
@@ -119,23 +121,23 @@ class InputControlPanel(dataModel: DataModel, displayModel: DisplayModel) extend
           add(stepsToTakeInput, constraints(1, currentRow))
 
           currentRow += 1
-          add(Button("Step") {
-            try {
-              val value = BigInt(stepsToTakeInput.text).toInt
-              tester.step(value)
-              dataModel.loadMoreWaveformValues()
-              textArea.append(s"Step $value cycles\n")
-              clockTextField.text = tester.cycleCount.toString
-            }
-            catch {
-              case _: NumberFormatException => // TODO: Notify that value is invalid
-              case StopException(message) =>
-                //TODO: Figure out what to do here, should stopped condition be cleared so treadle can keep going
-                textArea.append(message + "\n")
-            }
+          add(
+            Button("Step") {
+              try {
+                val value = BigInt(stepsToTakeInput.text).toInt
+                tester.step(value)
+                dataModel.loadMoreWaveformValues()
+                textArea.append(s"Step $value cycles\n")
+                clockTextField.text = tester.cycleCount.toString
+              } catch {
+                case _: NumberFormatException => // TODO: Notify that value is invalid
+                case StopException(message) =>
+                  //TODO: Figure out what to do here, should stopped condition be cleared so treadle can keep going
+                  textArea.append(message + "\n")
+              }
 
             },
-            constraints(0, currentRow, gridWidth=3, fill=GridBagPanel.Fill.Horizontal)
+            constraints(0, currentRow, gridWidth = 3, fill = GridBagPanel.Fill.Horizontal)
           )
 
         case None =>

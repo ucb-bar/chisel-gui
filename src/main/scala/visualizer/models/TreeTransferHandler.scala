@@ -14,8 +14,8 @@ import scala.collection.mutable.ArrayBuffer
 class TreeTransferHandler(displayModel: DisplayModel) extends TransferHandler {
   val mimeType: String = DataFlavor.javaJVMLocalObjectMimeType + ";class=\"" +
     classOf[Array[DefaultMutableTreeNode]].toString.drop(6) + "\""
-  val nodesFlavor: DataFlavor = new DataFlavor(mimeType)
-  val flavors: Array[DataFlavor] = Array[DataFlavor](nodesFlavor)
+  val nodesFlavor:   DataFlavor = new DataFlavor(mimeType)
+  val flavors:       Array[DataFlavor] = Array[DataFlavor](nodesFlavor)
   var nodesToRemove: Array[DefaultMutableTreeNode] = Array[DefaultMutableTreeNode]()
 
   override def canImport(support: TransferSupport): Boolean = {
@@ -105,7 +105,7 @@ class TreeTransferHandler(displayModel: DisplayModel) extends TransferHandler {
 
       // childIndex is -1 if the selected nodes are being inserted rather than placed within another node
       var index = if (childIndex == -1) parent.getChildCount else childIndex
-      nodes.foreach {node =>
+      nodes.foreach { node =>
         model.insertNodeInto(node, parent, index)
         index += 1
       }

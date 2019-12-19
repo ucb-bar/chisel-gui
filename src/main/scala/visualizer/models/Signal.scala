@@ -16,8 +16,9 @@ class Waveform[T](val transitions: ArrayBuffer[Transition[T]]) {
   // transition before the timestamp. If timestamp is before the first transition,
   // return the first transition
   def findTransition(timestamp: Long): Iterator[Transition[T]] = {
+    @scala.annotation.tailrec
     def search(low: Int = 0, high: Int = transitions.size - 1): ArrayBuffer[Transition[T]] = {
-      val mid = (low + high)/2
+      val mid = (low + high) / 2
 
       if (low > high) {
         if (low == 0) transitions else transitions.drop(low - 1)
@@ -35,8 +36,8 @@ class Waveform[T](val transitions: ArrayBuffer[Transition[T]]) {
   def addNewValues(newValues: ArrayBuffer[Transition[T]]): Unit = {
     assert(newValues.length >= 2)
     assert(transitions.length >= 2)
-    assert(transitions.last.timestamp == newValues.head.timestamp,
-      s"${transitions.length} ${newValues.length} \n ${Util.transitionsToString(transitions)} \n ${Util.transitionsToString(newValues)}")
+//    assert(transitions.last.timestamp == newValues.head.timestamp,
+//      s"${transitions.length} ${newValues.length} \n ${Util.transitionsToString(transitions)} \n ${Util.transitionsToString(newValues)}")
 
     transitions -= transitions.last
     if (transitions.last.value == newValues.head.value) {
@@ -45,7 +46,7 @@ class Waveform[T](val transitions: ArrayBuffer[Transition[T]]) {
       transitions ++= newValues
     }
 
-    // TODO: remove the linew below once isBin is fixed
+    // TODO: remove the line below once isBin is fixed
     isBin match {
       case Some(true) =>
         if (newValues.init.exists(t => t.value != 0 && t.value != 1)) {
@@ -74,7 +75,7 @@ abstract class Signal[T] {
   def addNewValues(newValues: ArrayBuffer[Transition[T]]): Unit = {
     waveform match {
       case Some(w) => w.addNewValues(newValues)
-      case None => waveform = Some(new Waveform(newValues))
+      case None    => waveform = Some(new Waveform(newValues))
     }
   }
 }
@@ -83,20 +84,20 @@ abstract class Signal[T] {
 // Three types of signals
 ///////////////////////////////////////////////////////////////////////////
 class PureSignal(
-  var name: String,
-  var waveform: Option[Waveform[BigInt]],
+  var name:      String,
+  var waveform:  Option[Waveform[BigInt]],
   val sortGroup: Int // (IOs, registers, other, Ts and Gens)
 ) extends Signal[BigInt]
 
 class TruncatedSignal(
   val pureSignal: PureSignal,
-  val bits: ArrayBuffer[Int],
-  var waveform: Option[Waveform[BigInt]]
+  val bits:       ArrayBuffer[Int],
+  var waveform:   Option[Waveform[BigInt]]
 ) extends Signal[BigInt]
 
 class CombinedSignal(
   val pureSignals: Array[PureSignal],
-  var waveform: Option[Waveform[Array[BigInt]]]
+  var waveform:    Option[Waveform[Array[BigInt]]]
 ) extends Signal[Array[BigInt]]
 
 ///////////////////////////////////////////////////////////////////////////

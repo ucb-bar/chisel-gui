@@ -7,7 +7,8 @@ import visualizer.models._
 import scala.collection.mutable.ArrayBuffer
 
 object Util {
-  def toValueChange(waveformValues: WaveformValues, initializing: Boolean): mutable.HashMap[String, ArrayBuffer[Transition[BigInt]]] = {
+  def toValueChange(waveformValues: WaveformValues,
+                    initializing:   Boolean): mutable.HashMap[String, ArrayBuffer[Transition[BigInt]]] = {
     val hashMap = new mutable.HashMap[String, ArrayBuffer[Transition[BigInt]]]()
     waveformValues.symbols.zip(waveformValues.symbolValues).foreach {
       case (symbol, values) =>
@@ -27,11 +28,13 @@ object Util {
     * @param initializing true if building a waveform scratch
     * @return
     */
-  def rollbackValuesToTransitions(clkValues: Array[BigInt], rollbackValues: Array[BigInt], initializing: Boolean): ArrayBuffer[Transition[BigInt]] = {
+  def rollbackValuesToTransitions(clkValues:      Array[BigInt],
+                                  rollbackValues: Array[BigInt],
+                                  initializing:   Boolean): ArrayBuffer[Transition[BigInt]] = {
     val buf = new ArrayBuffer[Transition[BigInt]]()
 
     if (clkValues.nonEmpty && rollbackValues.nonEmpty) {
-      var values: Array[BigInt] = rollbackValues
+      var values:      Array[BigInt] = rollbackValues
       var clockValues: Array[BigInt] = clkValues
 
       if (initializing && clockValues(0) != 0) {
@@ -48,12 +51,13 @@ object Util {
       var previousTimestamp = clockValues(0)
       buf += Transition[BigInt](clockValues(0).toLong, values(0))
 
-      values.zip(clockValues).tail.foreach { case (value, timestamp) =>
-        if (value != previousValue) {
-          buf += Transition[BigInt](timestamp.toLong, value)
-          previousValue = value
-          previousTimestamp = timestamp
-        }
+      values.zip(clockValues).tail.foreach {
+        case (value, timestamp) =>
+          if (value != previousValue) {
+            buf += Transition[BigInt](timestamp.toLong, value)
+            previousValue = value
+            previousTimestamp = timestamp
+          }
       }
     }
 

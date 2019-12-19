@@ -21,21 +21,23 @@ class ReadyValidPainter(dataModel: DataModel, displayModel: DisplayModel) extend
     val combinedSignal = signal.asInstanceOf[CombinedSignal]
     val startTimestamp = displayModel.xCoordinateToTimestamp(visibleRect.x)
 
-
-
     try {
-      combinedSignal.waveform.get.findTransition(startTimestamp).sliding(2).takeWhile { transitionPair =>
-        displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
-      }.foreach { transitionPair =>
-        // length could be 1 if findTransition(startTimestamp) has length 1
-        if (transitionPair.length == 2) {
-          val left: Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
-          val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
-
-          assert(transitionPair.head.value.length == 2)
-          drawSegment(g, left, right, top, transitionPair.head.value(0) == 1, transitionPair.head.value(1) == 1)
+      combinedSignal.waveform.get
+        .findTransition(startTimestamp)
+        .sliding(2)
+        .takeWhile { transitionPair =>
+          displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
         }
-      }
+        .foreach { transitionPair =>
+          // length could be 1 if findTransition(startTimestamp) has length 1
+          if (transitionPair.length == 2) {
+            val left:  Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
+            val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
+
+            assert(transitionPair.head.value.length == 2)
+            drawSegment(g, left, right, top, transitionPair.head.value(0) == 1, transitionPair.head.value(1) == 1)
+          }
+        }
     } catch {
       // If there's only 1 transition in the iterator returned by findTransition,
       // sliding will throw IndexOutOfBoundsException
