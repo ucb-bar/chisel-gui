@@ -10,8 +10,7 @@ import visualizer.painters.{MultiBitPainter, ReadyValidPainter, SingleBitPainter
 import scala.swing._
 import scala.swing.event._
 
-class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[InspectedNode])
-  extends BorderPanel {
+class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[InspectedNode]) extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -29,26 +28,27 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
     background = Color.white
 
     // Draw waveforms
-    TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach { case (node, row) =>
-      val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
-      node.signal match {
-        case Some(signal) if signal.waveform.isDefined =>
-          signal match {
-            case signal: PureSignal =>
-              displayModel.waveDisplaySettings(node.nodeId).painter match {
-                case _ =>
-                  if (signal.waveform.get.isBinary)
-                    singleBitPainter.paintWaveform(g, visibleRect, y, node)
-                  else
-                    multiBitPainter.paintWaveform(g, visibleRect, y, node)
-              }
-            case _: CombinedSignal =>
-              readyValidPainter.paintWaveform(g, visibleRect, y, node)
-          }
-        case _ =>
+    TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach {
+      case (node, row) =>
+        val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
+        node.signal match {
+          case Some(signal) if signal.waveform.isDefined =>
+            signal match {
+              case signal: PureSignal =>
+                displayModel.waveDisplaySettings(node.nodeId).painter match {
+                  case _ =>
+                    if (signal.waveform.get.isBinary)
+                      singleBitPainter.paintWaveform(g, visibleRect, y, node)
+                    else
+                      multiBitPainter.paintWaveform(g, visibleRect, y, node)
+                }
+              case _: CombinedSignal =>
+                readyValidPainter.paintWaveform(g, visibleRect, y, node)
+            }
+          case _ =>
           // node is a group. do nothing?
           // or node doesn't have a waveform
-      }
+        }
     }
 
     // Draw markers
@@ -78,8 +78,8 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
   //
   def computeBounds(): Unit = {
     preferredSize = new Dimension(displayModel.timestampToXCoordinate(dataModel.maxTimestamp),
-      TreeHelper.viewableDepthFirstIterator(tree).size
-        * DrawMetrics.WaveformVerticalSpacing)
+                                  TreeHelper.viewableDepthFirstIterator(tree).size
+                                    * DrawMetrics.WaveformVerticalSpacing)
     revalidate()
   }
 
@@ -106,7 +106,7 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
       if (!e.peer.isShiftDown)
         displayModel.selectionStart = timestamp
       displayModel.setCursorPosition(timestamp)
-      // displayModel.adjustingCursor = true
+    // displayModel.adjustingCursor = true
     case _: MouseReleased => // displayModel.adjustingCursor = false
     case e: MouseDragged =>
       val timestamp = displayModel.xCoordinateToTimestamp(e.peer.getX)

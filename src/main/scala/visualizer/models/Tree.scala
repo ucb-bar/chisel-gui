@@ -33,11 +33,12 @@ object TreeHelper {
     var openNodes: Iterator[Path[InspectedNode]] = treeModel.roots.map(Path(_)).iterator
 
     def hasNext: Boolean = openNodes.nonEmpty
-    def next(): InspectedNode = if (openNodes.hasNext) {
-      val path = openNodes.next()
-      pushChildren(path)
-      path.last
-    } else throw new NoSuchElementException("No more items")
+    def next(): InspectedNode =
+      if (openNodes.hasNext) {
+        val path = openNodes.next()
+        pushChildren(path)
+        path.last
+      } else throw new NoSuchElementException("No more items")
 
     def pushChildren(path: Path[InspectedNode]): Unit = {
       if (tree.isExpanded(path)) {

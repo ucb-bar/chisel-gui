@@ -2,7 +2,9 @@ package visualizer
 
 import java.io.File
 
-import treadle.{TreadleOptionsManager, TreadleTester}
+import firrtl.FileUtils
+import firrtl.stage.FirrtlSourceAnnotation
+import treadle.{RollBackBuffersAnnotation, TreadleOptionsManager, TreadleTester}
 import treadle.repl.HasReplConfig
 import visualizer.components.MainWindow
 import visualizer.models._
@@ -27,7 +29,7 @@ object TreadleController extends SwingApplication with Publisher {
       hackySetup()
     } else {
       assert(args.length == 1)
-      val firrtlString = io.Source.fromFile(args.head).getLines().mkString("\n")
+      val firrtlString = FileUtils.getText(args.head)
       setupTreadle(firrtlString)
     }
   }
@@ -36,11 +38,11 @@ object TreadleController extends SwingApplication with Publisher {
     var file = new File(fileName)
     if (!file.exists()) {
       file = new File(fileName + ".fir")
-      if (! file.exists()) {
+      if (!file.exists()) {
         throw new Exception(s"file $fileName does not exist")
       }
     }
-    io.Source.fromFile(file).mkString
+    FileUtils.getText(file)
   }
 
   def addSignal(fullName: String, signal: Signal[_ <: Any]): Unit = {
@@ -79,7 +81,10 @@ object TreadleController extends SwingApplication with Publisher {
     val optionsManager = new TreadleOptionsManager with HasReplConfig {
       treadleOptions = treadleOptions.copy(rollbackBuffers = clkSteps * 900)
     }
-    val t = treadle.TreadleTester(firrtlString, optionsManager)
+    val t = treadle.TreadleTester(Seq(
+      FirrtlSourceAnnotation(firrtlString),
+      RollBackBuffersAnnotation(clkSteps * 900)
+    ))
     tester = Some(t)
     t
   }
@@ -92,24 +97,25 @@ object TreadleController extends SwingApplication with Publisher {
 
   def setupWaveforms(t: TreadleTester): Unit = {
     val wv = t.allWaveformValues
-    Util.toValueChange(wv, initializing = true).foreach { case (fullName, transitions) =>
-      if (!fullName.contains("/")) {
-        val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
-        val sortGroup = if (t.isRegister(fullName)) {
-          1
-        } else {
-          val signalName = fullName.split("\\.").last
-          if (signalName.contains("io_")) {
-            0
-          } else if (signalName.contains("T_") || signalName.contains("GEN_")) {
-            3
+    Util.toValueChange(wv, initializing = true).foreach {
+      case (fullName, transitions) =>
+        if (!fullName.contains("/")) {
+          val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
+          val sortGroup = if (t.isRegister(fullName)) {
+            1
           } else {
-            2
+            val signalName = fullName.split("\\.").last
+            if (signalName.contains("io_")) {
+              0
+            } else if (signalName.contains("T_") || signalName.contains("GEN_")) {
+              3
+            } else {
+              2
+            }
           }
+          val signal = new PureSignal(fullName, waveform, sortGroup)
+          addSignal(fullName, signal)
         }
-        val signal = new PureSignal(fullName, waveform, sortGroup)
-        addSignal(fullName, signal)
-      }
     }
     mainWindow.repaint()
     dataModel.updateMaxTimestamp()
@@ -120,7 +126,10 @@ object TreadleController extends SwingApplication with Publisher {
   // Hard coded things
   ///////////////////////////////////////////////////////////////////////////
   def runSomeTreadle(t: TreadleTester): Unit = {
-    for (a <- 10 to 20; b <- 20 to 22) {
+    for {
+      a <- 10 to 20
+      b <- 20 to 22
+    } {
       t.poke("io_e", 1)
       t.poke("io_a", a)
       t.poke("io_b", b)
@@ -131,8 +140,9 @@ object TreadleController extends SwingApplication with Publisher {
   }
 
   def makeBinaryTransitions(times: ArrayBuffer[Int]): Waveform[BigInt] = {
-    val transitions = times.zipWithIndex.map{ case (time, index) =>
-      Transition[BigInt](time, index % 2)
+    val transitions = times.zipWithIndex.map {
+      case (time, index) =>
+        Transition[BigInt](time, index % 2)
     }
     new Waveform(transitions)
   }

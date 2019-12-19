@@ -91,15 +91,13 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
             popupMenu(node.signal).show(this, e.point.x, e.point.y)
           }
         } else {
-          if(e.clicks == 1) {
+          if (e.clicks == 1) {
             if (!isPointInNode(e.point)) {
               selection.clear()
             }
-          }
-          else if(e.clicks == 2) {
+          } else if (e.clicks == 2) {
             println(s"mouse clicked in inspectionContainer ${e.clicks}")
             tree.selection.cellValues.foreach { node =>
-
               displayModel.addFromDirectoryToInspected(node, this)
             }
 
@@ -127,7 +125,7 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
     horizontalScrollBarPolicy = ScrollPane.BarPolicy.Always
   }
   val waveScrollPane: ScrollPane = new ScrollPane(waveComponent) {
-    preferredSize = new Dimension (550, 700)
+    preferredSize = new Dimension(550, 700)
     horizontalScrollBar.unitIncrement = 16
     verticalScrollBar.unitIncrement = 16
     horizontalScrollBarPolicy = ScrollPane.BarPolicy.Always
@@ -138,7 +136,8 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
     waveScrollPane.verticalScrollBar.peer.getModel
   )
 
-  val splitPane: SplitPane = new SplitPane(Orientation.Vertical,
+  val splitPane: SplitPane = new SplitPane(
+    Orientation.Vertical,
     new BoxPanel(Orientation.Vertical) {
       contents += Swing.VStrut(timelineComponent.preferredSize.height)
       contents += signalScrollPane
@@ -148,7 +147,6 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
     border = BorderFactory.createEmptyBorder()
   }
   add(splitPane, Center)
-
 
   ///////////////////////////////////////////////////////////////////////////
   // Controller
@@ -204,5 +202,6 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
     val newVisibleRect = waveComponent.peer.getVisibleRect
     newVisibleRect.x = (oldVisibleRect.x + steps / displayModel.scale).toInt
 
-    waveComponent.peer.scrollRectToVisible(newVisibleRect)  }
+    waveComponent.peer.scrollRectToVisible(newVisibleRect)
+  }
 }

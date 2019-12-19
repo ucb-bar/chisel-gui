@@ -14,7 +14,7 @@ class DataModel extends Publisher {
   // Directory Tree Model and Pure Signals
   ///////////////////////////////////////////////////////////////////////////
   val directoryTreeModel: InternalTreeModel[DirectoryNode] = InternalTreeModel.empty[DirectoryNode]
-  val RootPath: Tree.Path[DirectoryNode] = Tree.Path.empty[DirectoryNode]
+  val RootPath:           Tree.Path[DirectoryNode] = Tree.Path.empty[DirectoryNode]
   val pureSignalMapping = new mutable.HashMap[String, PureSignal]
 
   def insertUnderSorted(parentPath: Path[DirectoryNode], newValue: DirectoryNode): Boolean = {
@@ -24,11 +24,11 @@ class DataModel extends Publisher {
       if (high <= low) {
         if (DirectoryNodeOrdering.compare(newValue, children(low)) > 0) low + 1 else low
       } else {
-        val mid = (low + high)/2
+        val mid = (low + high) / 2
         DirectoryNodeOrdering.compare(newValue, children(mid)) match {
           case i if i > 0 => search(mid + 1, high)
           case i if i < 0 => search(low, mid - 1)
-          case _ => throw new Exception("Duplicate node cannot be added to the directory tree model")
+          case _          => throw new Exception("Duplicate node cannot be added to the directory tree model")
         }
       }
     }
@@ -38,8 +38,9 @@ class DataModel extends Publisher {
   }
 
   def ioSignals: Seq[String] = {
-    val a = pureSignalMapping.flatMap { case (fullName, pureSignal) =>
-      if (pureSignal.sortGroup == 0) Some(fullName) else None
+    val a = pureSignalMapping.flatMap {
+      case (fullName, pureSignal) =>
+        if (pureSignal.sortGroup == 0) Some(fullName) else None
     }
     a.toSeq.sorted
   }
@@ -52,7 +53,7 @@ class DataModel extends Publisher {
         val wv = t.waveformValues(startCycle = ((maxTimestamp - clk.initialOffset) / clk.period + 1).toInt)
         Util.toValueChange(wv, initializing = false).foreach {
           case (fullName, waveform) =>
-            if(pureSignalMapping.contains(fullName)) {
+            if (pureSignalMapping.contains(fullName)) {
               pureSignalMapping(fullName).addNewValues(waveform)
             }
         }
@@ -90,17 +91,17 @@ object DirectoryNodeOrdering extends Ordering[DirectoryNode] {
         (xsignal, ysignal) match {
           case (xPureSignal: PureSignal, yPureSignal: PureSignal) =>
             if (xPureSignal.sortGroup == yPureSignal.sortGroup) {
-              x.name.toLowerCase compareTo y.name.toLowerCase
+              x.name.toLowerCase.compareTo(y.name.toLowerCase)
             } else {
               xPureSignal.sortGroup - yPureSignal.sortGroup
             }
-          case (xPureSignal: PureSignal, _) => if (xPureSignal.sortGroup <= 1) -1 else 1
-          case (_, yPureSignal: PureSignal) => if (yPureSignal.sortGroup <= 1) 1 else -1
-          case _ => x.name.toLowerCase compareTo y.name.toLowerCase
+          case (xPureSignal:    PureSignal, _) => if (xPureSignal.sortGroup <= 1) -1 else 1
+          case (_, yPureSignal: PureSignal)    => if (yPureSignal.sortGroup <= 1) 1 else -1
+          case _ => x.name.toLowerCase.compareTo(y.name.toLowerCase)
         }
       case (None, Some(_)) => -1
       case (Some(_), None) => 1
-      case (None, None) => x.name.toLowerCase compareTo y.name.toLowerCase
+      case (None, None)    => x.name.toLowerCase.compareTo(y.name.toLowerCase)
     }
   }
 }
