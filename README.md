@@ -3,7 +3,7 @@
 An experimental GUI to help debug Chisel.
 Currently this app allows you to essentially run the TreadleRepl on a specified Firrtl file.
 
-![chisel-gui-image](https://raw.githubusercontent.com/ucb-bar/chisel-gui/master/doc/images/chisel-gui-image.png?sanitize=true)
+![chisel-gui-image](https://raw.githubusercontent.com/ucb-bar/chisel-gui/master/doc/images/chisel-gui-image.png)
 
 ## How to run.
 From the sbt prompt do
