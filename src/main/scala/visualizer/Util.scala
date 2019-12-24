@@ -1,7 +1,10 @@
 package visualizer
 
+import treadle.TreadleTester
+
 import scala.collection.mutable
 import treadle.executable.WaveformValues
+import treadle.vcd.VCD
 import visualizer.models._
 
 import scala.collection.mutable.ArrayBuffer
@@ -15,6 +18,26 @@ object Util {
         hashMap += symbol.name -> rollbackValuesToTransitions(waveformValues.clockValues, values, initializing)
     }
     hashMap
+  }
+
+  def vcdToTransitions(vcd: VCD, initializing: Boolean): mutable.HashMap[String, ArrayBuffer[Transition[BigInt]]] = {
+    val nameToTransitions = new mutable.HashMap[String, ArrayBuffer[Transition[BigInt]]] {
+      override def default(key: String): ArrayBuffer[Transition[BigInt]] = {
+        this(key) = new ArrayBuffer[Transition[BigInt]]
+        this(key)
+      }
+    }
+    vcd.valuesAtTime.keys.toSeq.sorted.foreach { time =>
+      vcd.valuesAtTime(time).foreach { change =>
+        val name = change.wire.fullName
+        val transitions = nameToTransitions(name)
+        if( transitions.isEmpty && initializing && time > 0) {
+          transitions += Transition(0L, BigInt(0))
+        }
+        transitions += Transition(time, change.value)
+      }
+    }
+    nameToTransitions
   }
 
   /**
@@ -66,5 +89,20 @@ object Util {
 
   def transitionsToString[T](transitions: ArrayBuffer[Transition[T]]): String = {
     transitions.map(t => s"(${t.timestamp}, ${t.value})").mkString(" ")
+  }
+
+  def sortGroup(fullName: String, t: TreadleTester): Int = {
+    if (t.isRegister(fullName)) {
+      1
+    } else {
+      val signalName = fullName.split("\\.").last
+      if (signalName.contains("io_")) {
+        0
+      } else if (signalName.contains("T_") || signalName.contains("GEN_")) {
+        3
+      } else {
+        2
+      }
+    }
   }
 }

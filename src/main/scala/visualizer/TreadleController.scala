@@ -101,18 +101,7 @@ object TreadleController extends SwingApplication with Publisher {
       case (fullName, transitions) =>
         if (!fullName.contains("/")) {
           val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
-          val sortGroup = if (t.isRegister(fullName)) {
-            1
-          } else {
-            val signalName = fullName.split("\\.").last
-            if (signalName.contains("io_")) {
-              0
-            } else if (signalName.contains("T_") || signalName.contains("GEN_")) {
-              3
-            } else {
-              2
-            }
-          }
+          val sortGroup = Util.sortGroup(fullName, t)
           val signal = new PureSignal(fullName, waveform, sortGroup)
           addSignal(fullName, signal)
         }
