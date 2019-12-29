@@ -74,6 +74,7 @@ object TreadleController extends SwingApplication with Publisher {
   def setupTreadle(firrtlString: String): Unit = {
     val treadleTester = loadFirrtl(firrtlString)
     setupClock(treadleTester)
+    setupSignals(treadleTester)
     setupWaveforms(treadleTester)
   }
 
@@ -97,15 +98,24 @@ object TreadleController extends SwingApplication with Publisher {
     }
   }
 
+  def setupSignals(tester: TreadleTester): Unit = {
+    tester.engine.symbolTable.nameToSymbol.foreach { case (name, symbol) =>
+      if (! name.contains("/")) {
+        val sortGroup = Util.sortGroup(name, tester)
+        val signal = new PureSignal(name, Some(symbol), None, sortGroup)
+        addSignal(name, signal)
+      }
+    }
+  }
+
   def setupWaveforms(t: TreadleTester): Unit = {
     t.engine.vcdOption match {
       case Some(vcd) =>
         Util.vcdToTransitions(vcd, initializing = true).foreach {
           case (fullName, transitions) =>
-            val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
-            val sortGroup = Util.sortGroup(fullName, t)
-            val signal = new PureSignal(fullName, waveform, sortGroup)
-            addSignal(fullName, signal)
+            if (dataModel.pureSignalMapping.contains(fullName)) {
+              dataModel.pureSignalMapping(fullName).addNewValues(transitions)
+            }
         }
       case _ =>
     }
@@ -148,11 +158,11 @@ object TreadleController extends SwingApplication with Publisher {
     setupWaveforms(treadleTester)
 
     val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
-    val signalReady = new PureSignal("ready", Some(waveformReady), 0)
+    val signalReady = new PureSignal("ready", None, Some(waveformReady), 0)
     addSignal("module.io_fake_ready", signalReady)
 
     val waveformValid = makeBinaryTransitions(ArrayBuffer[Int](0, 36, 66, 96, 116, 146, 206, 286, 396, 406, 506))
-    val signalValid = new PureSignal("valid", Some(waveformValid), 0)
+    val signalValid = new PureSignal("valid", None, Some(waveformValid), 0)
     addSignal("module.io_fake_valid", signalValid)
 
     val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))

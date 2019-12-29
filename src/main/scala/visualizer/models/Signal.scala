@@ -34,11 +34,6 @@ class Waveform[T](val transitions: ArrayBuffer[Transition[T]]) {
   }
 
   def addNewValues(newValues: ArrayBuffer[Transition[T]]): Unit = {
-    assert(newValues.length >= 2)
-    assert(transitions.length >= 2)
-//    assert(transitions.last.timestamp == newValues.head.timestamp,
-//      s"${transitions.length} ${newValues.length} \n ${Util.transitionsToString(transitions)} \n ${Util.transitionsToString(newValues)}")
-
     transitions.clear()
     transitions ++= newValues
 
@@ -81,6 +76,7 @@ abstract class Signal[T] {
 ///////////////////////////////////////////////////////////////////////////
 class PureSignal(
   var name:      String,
+  var symbolOpt: Option[treadle.executable.Symbol],
   var waveform:  Option[Waveform[BigInt]],
   val sortGroup: Int // (IOs, registers, other, Ts and Gens)
 ) extends Signal[BigInt]

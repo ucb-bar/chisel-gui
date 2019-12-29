@@ -57,8 +57,6 @@ class DataModel extends Publisher {
           case Some(vcd) =>
             Util.vcdToTransitions(vcd, initializing = true).foreach {
               case (fullName, transitions) =>
-                val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
-
                 if (pureSignalMapping.contains(fullName)) {
                   pureSignalMapping(fullName).addNewValues(transitions)
                 }
