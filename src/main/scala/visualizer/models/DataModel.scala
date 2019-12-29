@@ -53,14 +53,27 @@ class DataModel extends Publisher {
   def loadMoreWaveformValues(): Unit = {
     TreadleController.tester match {
       case Some(t) =>
-        val clk = t.clockInfoList.head
-        val wv = t.waveformValues(startCycle = ((maxTimestamp - clk.initialOffset) / clk.period + 1).toInt)
-        Util.toValueChange(wv, initializing = false).foreach {
-          case (fullName, waveform) =>
-            if (pureSignalMapping.contains(fullName)) {
-              pureSignalMapping(fullName).addNewValues(waveform)
+        t.engine.vcdOption match {
+          case Some(vcd) =>
+            Util.vcdToTransitions(vcd, initializing = true).foreach {
+              case (fullName, transitions) =>
+                val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
+
+                if (pureSignalMapping.contains(fullName)) {
+                  pureSignalMapping(fullName).addNewValues(transitions)
+                }
             }
+          case _ =>
         }
+
+//        val clk = t.clockInfoList.head
+//        val wv = t.waveformValues(startCycle = ((maxTimestamp - clk.initialOffset) / clk.period + 1).toInt)
+//        Util.toValueChange(wv, initializing = false).foreach {
+//          case (fullName, waveform) =>
+//            if (pureSignalMapping.contains(fullName)) {
+//              pureSignalMapping(fullName).addNewValues(waveform)
+//            }
+//        }
         updateMaxTimestamp()
       case None =>
     }

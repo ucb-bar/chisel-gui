@@ -4,7 +4,7 @@ import java.io.File
 
 import firrtl.FileUtils
 import firrtl.stage.FirrtlSourceAnnotation
-import treadle.{RollBackBuffersAnnotation, TreadleOptionsManager, TreadleTester}
+import treadle.{RollBackBuffersAnnotation, TreadleOptionsManager, TreadleTester, WriteVcdAnnotation}
 import treadle.repl.HasReplConfig
 import visualizer.components.MainWindow
 import visualizer.models._
@@ -81,10 +81,12 @@ object TreadleController extends SwingApplication with Publisher {
     val optionsManager = new TreadleOptionsManager with HasReplConfig {
       treadleOptions = treadleOptions.copy(rollbackBuffers = clkSteps * 900)
     }
-    val t = treadle.TreadleTester(Seq(
-      FirrtlSourceAnnotation(firrtlString),
-      RollBackBuffersAnnotation(clkSteps * 900)
-    ))
+    val t = treadle.TreadleTester(
+      Seq(
+        FirrtlSourceAnnotation(firrtlString),
+        WriteVcdAnnotation
+      )
+    )
     tester = Some(t)
     t
   }
@@ -96,16 +98,18 @@ object TreadleController extends SwingApplication with Publisher {
   }
 
   def setupWaveforms(t: TreadleTester): Unit = {
-    val wv = t.allWaveformValues
-    Util.toValueChange(wv, initializing = true).foreach {
-      case (fullName, transitions) =>
-        if (!fullName.contains("/")) {
-          val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
-          val sortGroup = Util.sortGroup(fullName, t)
-          val signal = new PureSignal(fullName, waveform, sortGroup)
-          addSignal(fullName, signal)
+    t.engine.vcdOption match {
+      case Some(vcd) =>
+        Util.vcdToTransitions(vcd, initializing = true).foreach {
+          case (fullName, transitions) =>
+            val waveform = if (transitions.nonEmpty) Some(new Waveform(transitions)) else None
+            val sortGroup = Util.sortGroup(fullName, t)
+            val signal = new PureSignal(fullName, waveform, sortGroup)
+            addSignal(fullName, signal)
         }
+      case _ =>
     }
+
     mainWindow.repaint()
     dataModel.updateMaxTimestamp()
     publish(new PureSignalsChanged)

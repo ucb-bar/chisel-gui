@@ -39,12 +39,8 @@ class Waveform[T](val transitions: ArrayBuffer[Transition[T]]) {
 //    assert(transitions.last.timestamp == newValues.head.timestamp,
 //      s"${transitions.length} ${newValues.length} \n ${Util.transitionsToString(transitions)} \n ${Util.transitionsToString(newValues)}")
 
-    transitions -= transitions.last
-    if (transitions.last.value == newValues.head.value) {
-      transitions ++= newValues.tail
-    } else {
-      transitions ++= newValues
-    }
+    transitions.clear()
+    transitions ++= newValues
 
     // TODO: remove the line below once isBin is fixed
     isBin match {

@@ -30,11 +30,13 @@ object Util {
     vcd.valuesAtTime.keys.toSeq.sorted.foreach { time =>
       vcd.valuesAtTime(time).foreach { change =>
         val name = change.wire.fullName
-        val transitions = nameToTransitions(name)
-        if( transitions.isEmpty && initializing && time > 0) {
-          transitions += Transition(0L, BigInt(0))
+        if (!name.contains("/")) {
+          val transitions = nameToTransitions(name)
+          if (transitions.isEmpty && initializing && time > 0) {
+            transitions += Transition(0L, BigInt(0))
+          }
+          transitions += Transition(time, change.value)
         }
-        transitions += Transition(time, change.value)
       }
     }
     nameToTransitions
