@@ -38,12 +38,12 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
                 displayModel.waveDisplaySettings(node.nodeId).painter match {
                   case _ =>
                     if (signal.waveform.get.isBinary)
-                      singleBitPainter.paintWaveform(g, visibleRect, y, node)
+                      singleBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
                     else
-                      multiBitPainter.paintWaveform(g, visibleRect, y, node)
+                      multiBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
                 }
               case _: CombinedSignal =>
-                readyValidPainter.paintWaveform(g, visibleRect, y, node)
+                readyValidPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
             }
           case _ =>
           // node is a group. do nothing?

@@ -9,10 +9,10 @@ import scala.swing.Graphics2D
 
 /** This displays signals data that takes on integer values other than one and zero
   *
-  * @param displayModel
+  * @param displayModel data to construct this kind of bar
   */
 class MultiBitPainter(displayModel: DisplayModel) extends Painter(displayModel) {
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode): Unit = {
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode, maxTimestamp: Long): Unit = {
     require(node.signal.isDefined)
     val signal = node.signal.get
     require(signal.waveform.isDefined)
@@ -35,19 +35,37 @@ class MultiBitPainter(displayModel: DisplayModel) extends Painter(displayModel) 
         .takeWhile { transitionPair =>
           displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
         }
-        .foreach { transitionPair =>
+        .foreach {
+          case transition1 :: transition2 :: Nil =>
           // length could be 1 if findTransition(startTimestamp) has length 1
-          if (transitionPair.length == 2) {
-            val left:  Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
-            val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
+            val left:  Int = displayModel.timestampToXCoordinate(transition1.timestamp)
+            val right: Int = displayModel.timestampToXCoordinate(transition2.timestamp)
 
             g.drawPolygon(Painter.hexagon(left, right, top))
 
             val labelLeft = math.max(visibleRect.x, left + DrawMetrics.Foo)
             val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
-            drawLabel(g, labelLeft, labelRight, top, formatter(transitionPair.head.value))
-          }
+            drawLabel(g, labelLeft, labelRight, top, formatter(transition1.value))
+          case transition :: Nil =>
+            println(s"How did we get here node ${node.name} : $transition")
         }
+
+      pureSignal.waveform.get.transitions.lastOption match {
+        case Some(lastTransition) =>
+          if(lastTransition.timestamp < maxTimestamp) {
+            val left:  Int = displayModel.timestampToXCoordinate(lastTransition.timestamp)
+            val right: Int = displayModel.timestampToXCoordinate(maxTimestamp)
+            val z = if (lastTransition.value == 0L) DrawMetrics.WaveformHeight else 0
+
+            Painter.drawHalfHexagon(g, left, right, top)
+
+            val labelLeft = math.max(visibleRect.x, left + DrawMetrics.Foo)
+            val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
+            drawLabel(g, labelLeft, labelRight, top, formatter(lastTransition.value))
+          }
+        case _ =>
+      }
+
     } catch {
       // If there's only 1 transition in the iterator returned by findTransition,
       // sliding will throw IndexOutOfBoundsException

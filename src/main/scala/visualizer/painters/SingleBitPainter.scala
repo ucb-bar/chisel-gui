@@ -8,7 +8,7 @@ import visualizer.models._
 import scala.swing.Graphics2D
 
 class SingleBitPainter(displayModel: DisplayModel) extends Painter(displayModel) {
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode): Unit = {
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode, maxTimestamp: Long): Unit = {
     require(node.signal.isDefined)
     val signal = node.signal.get
     require(signal.waveform.isDefined)
@@ -43,10 +43,29 @@ class SingleBitPainter(displayModel: DisplayModel) extends Painter(displayModel)
             }
           }
         }
+
+      pureSignal.waveform.get.transitions.lastOption match {
+        case Some(lastTransition) =>
+          if(lastTransition.timestamp < maxTimestamp) {
+            val left:  Int = displayModel.timestampToXCoordinate(lastTransition.timestamp)
+            val right: Int = displayModel.timestampToXCoordinate(maxTimestamp)
+            val z = if (lastTransition.value == 0L) DrawMetrics.WaveformHeight else 0
+
+            // horizontal portion
+            g.drawLine(left, top + z, right, top + z)
+
+            // vertical portion
+            if (left != 0) {
+              g.drawLine(left, top, left, top + DrawMetrics.WaveformHeight)
+            }
+          }
+        case _ =>
+      }
     } catch {
       // If there's only 1 transition in the iterator returned by findTransition,
       // sliding will throw IndexOutOfBoundsException
-      case _: IndexOutOfBoundsException =>
+      case t: IndexOutOfBoundsException =>
+        throw t
     }
   }
 }

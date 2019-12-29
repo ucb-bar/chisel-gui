@@ -7,12 +7,13 @@ import visualizer.models._
 
 import scala.swing.Graphics2D
 
+//TODO Handle incomplete bars as is done with multibit and single bit painters
 class ReadyValidPainter(displayModel: DisplayModel) extends Painter(displayModel) {
   val FireColor = new Color(152, 251, 152)
   val ReadySetColor = new Color(255, 240, 106)
   val ValidSetColor = new Color(255, 208, 98)
 
-  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode): Unit = {
+  def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode, maxTimestamp: Long): Unit = {
     require(node.signal.isDefined)
     val signal = node.signal.get
     require(signal.waveform.isDefined)
