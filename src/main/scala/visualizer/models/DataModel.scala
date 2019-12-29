@@ -8,6 +8,10 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.swing.Publisher
 
+/** This is the general model for all data relating to signals and their
+  * data values
+  *
+  */
 class DataModel extends Publisher {
 
   ///////////////////////////////////////////////////////////////////////////

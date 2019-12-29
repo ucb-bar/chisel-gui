@@ -8,6 +8,10 @@ import visualizer._
 
 import scala.collection.mutable
 
+/** This model describes the selected and organized nodes that
+  * have been selected to have their waveforms displayed
+  *
+  */
 class DisplayModel extends Publisher {
   // Maps nodeId to WaveDisplaySetting
   val waveDisplaySettings: mutable.HashMap[Int, WaveDisplaySetting] = new mutable.HashMap[Int, WaveDisplaySetting]()

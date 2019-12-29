@@ -10,6 +10,11 @@ import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleCon
 import scala.swing.Swing._
 import scala.swing._
 
+/** They main window of the application
+  *
+  * @param dataModel    Source of data
+  * @param displayModel Source of things selected for waveform view
+  */
 class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainFrame {
 
   ///////////////////////////////////////////////////////////////////////////
