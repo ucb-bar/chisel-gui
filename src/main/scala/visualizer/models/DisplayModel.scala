@@ -233,7 +233,8 @@ class DisplayModel extends Publisher {
   }
 }
 
-case class Marker(id:                      Int, var description:               String, timestamp: Long)
+case class Marker(id: Int, var description: String, timestamp: Long)
+
 case class WaveDisplaySetting(var painter: Option[Int] = None, var dataFormat: Option[Format] = None)
 
 // May want to consider size of the wire

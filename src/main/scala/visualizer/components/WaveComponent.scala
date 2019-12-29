@@ -15,9 +15,9 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  private val multiBitPainter = new MultiBitPainter(dataModel, displayModel)
-  private val singleBitPainter = new SingleBitPainter(dataModel, displayModel)
-  private val readyValidPainter = new ReadyValidPainter(dataModel, displayModel)
+  private val multiBitPainter = new MultiBitPainter(displayModel)
+  private val singleBitPainter = new SingleBitPainter(displayModel)
+  private val readyValidPainter = new ReadyValidPainter(displayModel)
 
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)

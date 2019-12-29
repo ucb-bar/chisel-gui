@@ -7,7 +7,7 @@ import visualizer.models._
 
 import scala.swing.Graphics2D
 
-class SingleBitPainter(dataModel: DataModel, displayModel: DisplayModel) extends Painter(displayModel) {
+class SingleBitPainter(displayModel: DisplayModel) extends Painter(displayModel) {
   def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode): Unit = {
     require(node.signal.isDefined)
     val signal = node.signal.get

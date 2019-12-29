@@ -7,7 +7,11 @@ import visualizer.models._
 
 import scala.swing.Graphics2D
 
-class MultiBitPainter(dataModel: DataModel, displayModel: DisplayModel) extends Painter(displayModel) {
+/** This displays signals data that takes on integer values other than one and zero
+  *
+  * @param displayModel
+  */
+class MultiBitPainter(displayModel: DisplayModel) extends Painter(displayModel) {
   def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: InspectedNode): Unit = {
     require(node.signal.isDefined)
     val signal = node.signal.get

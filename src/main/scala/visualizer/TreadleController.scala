@@ -137,7 +137,7 @@ object TreadleController extends SwingApplication with Publisher {
   }
 
   def hackySetup(): Unit = {
-    val firrtlString = loadFile("../treadle/samples/gcd.fir")
+    val firrtlString = loadFile("samples/gcd.fir")
     val treadleTester = loadFirrtl(firrtlString)
     setupClock(treadleTester)
     runSomeTreadle(treadleTester)
