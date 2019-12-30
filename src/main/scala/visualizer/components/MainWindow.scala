@@ -4,11 +4,13 @@ import java.awt.Color
 
 import javax.swing.BorderFactory
 import treadle.executable.ClockInfo
-import visualizer.models._
 import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleController}
+import visualizer.models._
 
 import scala.swing.Swing._
 import scala.swing._
+import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
+
 
 /** They main window of the application
   *
@@ -24,6 +26,8 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
   val inspectionContainer = new InspectionContainer(dataModel, displayModel)
   val dependencyComponent = new DependencyComponent(dataModel, displayModel)
   val inputControlPanel = new InputControlPanel(dataModel, displayModel)
+
+  peer.setDefaultCloseOperation(DISPOSE_ON_CLOSE)
 
   private val toolbar = new ToolBar() {
     peer.setFloatable(false)
@@ -59,8 +63,29 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
 
   title = "Chisel Visualizer"
   menuBar = new MenuBar {
-    contents += new Menu("File")
+    contents += new Menu("File") {
+      contents += new Separator()
+      contents += new MenuItem(Action("Quit") {
+        doQuit()
+      })
+    }
   }
+
+  //TODO this does not seem to handle Command-Q as was hoped
+  override def closeOperation(): Unit = doQuit()
+
+  def doQuit(): Unit = {
+    println("Done")
+
+    TreadleController.tester match {
+      case Some(tester) =>
+        tester.finish
+      case _ =>
+    }
+    this.close()
+    System.exit(0)
+  }
+
   contents = new BorderPanel {
     import BorderPanel.Position._
 

@@ -1,5 +1,6 @@
 package visualizer
 
+import java.awt.event.{WindowAdapter, WindowEvent}
 import java.io.File
 
 import firrtl.FileUtils
@@ -25,12 +26,24 @@ object TreadleController extends SwingApplication with Publisher {
     mainWindow.visible = true
 
     // TODO: determine if args is info from treadle or vcd
-    if (args.isEmpty) {
-      hackySetup()
-    } else {
-      assert(args.length == 1)
-      val firrtlString = FileUtils.getText(args.head)
-      setupTreadle(firrtlString)
+    args.toList match {
+      case firrtlFileName :: vcdFileName :: Nil =>
+        val vcd = treadle.vcd.VCD.read(vcdFileName)
+        val firrtlString = FileUtils.getText(firrtlFileName)
+        setupTreadle(firrtlString)
+        tester match {
+          case Some(tester) =>
+            tester.seedFromVcd(vcd, stopAtTime = Long.MaxValue)
+          case _ =>
+        }
+      case firrtlFileName :: Nil =>
+        val firrtlString = FileUtils.getText(firrtlFileName)
+        setupTreadle(firrtlString)
+      case Nil =>
+        hackySetup()
+      case _ =>
+        println("Usage: chisel-gui firrtlFile [vcdFile]")
+        System.exit(1)
     }
   }
 
