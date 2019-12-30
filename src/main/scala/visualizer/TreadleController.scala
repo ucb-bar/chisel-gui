@@ -4,7 +4,9 @@ import java.awt.event.{WindowAdapter, WindowEvent}
 import java.io.File
 
 import firrtl.FileUtils
+import firrtl.ir.ClockType
 import firrtl.stage.FirrtlSourceAnnotation
+import treadle.executable.SymbolTable
 import treadle.{RollBackBuffersAnnotation, TreadleOptionsManager, TreadleTester, WriteVcdAnnotation}
 import treadle.repl.HasReplConfig
 import visualizer.components.MainWindow
@@ -33,18 +35,51 @@ object TreadleController extends SwingApplication with Publisher {
         setupTreadle(firrtlString)
         tester match {
           case Some(tester) =>
-            tester.seedFromVcd(vcd, stopAtTime = Long.MaxValue)
+            seedFromVcd(vcd, stopAtTime = Long.MaxValue)
+            dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
           case _ =>
         }
+        setupWaveforms(tester.get)
       case firrtlFileName :: Nil =>
         val firrtlString = FileUtils.getText(firrtlFileName)
         setupTreadle(firrtlString)
+        setupWaveforms(tester.get)
       case Nil =>
         hackySetup()
+        setupWaveforms(tester.get)
       case _ =>
         println("Usage: chisel-gui firrtlFile [vcdFile]")
         System.exit(1)
     }
+  }
+
+  def seedFromVcd(vcd: treadle.vcd.VCD, stopAtTime: Long = Long.MaxValue): Unit = {
+    val engine = tester.get.engine
+    val wallTime = tester.get.wallTime
+
+    vcd.valuesAtTime.keys.toSeq.sorted.foreach { time =>
+      for (change <- vcd.valuesAtTime(time)) {
+        if (time <= stopAtTime) {
+          wallTime.setTime(time)
+
+          engine.symbolTable.get(change.wire.fullName) match {
+            case Some(symbol) =>
+              engine.setValue(symbol.name, change.value, force = true)
+              if(symbol.firrtlType == ClockType) {
+                println(s"Setting ${symbol.name} to ${change.value} at $time")
+                val prevName = SymbolTable.makePreviousValue(symbol)
+                engine.setValue(prevName, change.value)
+              }
+
+            case _ =>
+              println(s"Could not find symbol for $change")
+          }
+        } else {
+          vcd.valuesAtTime.remove(time)
+        }
+      }
+    }
+
   }
 
   def loadFile(fileName: String): String = {
@@ -88,7 +123,6 @@ object TreadleController extends SwingApplication with Publisher {
     val treadleTester = loadFirrtl(firrtlString)
     setupClock(treadleTester)
     setupSignals(treadleTester)
-    setupWaveforms(treadleTester)
   }
 
   def loadFirrtl(firrtlString: String): TreadleTester = {

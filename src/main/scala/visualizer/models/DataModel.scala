@@ -72,6 +72,14 @@ class DataModel extends Publisher {
   // Timescale and Max Timestamp
   ///////////////////////////////////////////////////////////////////////////
   var maxTimestamp: Long = 0
+
+  def setMaxTimestamp(value: Long): Unit = {
+    if (value > maxTimestamp) {
+      maxTimestamp = value
+      publish(new MaxTimestampChanged)
+    }
+  }
+
   def updateMaxTimestamp(): Unit = {
     var newMaxTimestamp: Long = 0
     directoryTreeModel.depthFirstIterator.foreach { node =>
@@ -82,8 +90,7 @@ class DataModel extends Publisher {
       }
     }
     if (newMaxTimestamp > maxTimestamp) {
-      maxTimestamp = newMaxTimestamp
-      publish(new MaxTimestampChanged)
+      setMaxTimestamp(newMaxTimestamp)
     }
   }
   var timescale: Int = -9

@@ -1,15 +1,13 @@
 package visualizer.components
 
-import java.awt.Color
-
 import javax.swing.BorderFactory
+import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 import treadle.executable.ClockInfo
-import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleController}
 import visualizer.models._
+import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleController}
 
 import scala.swing.Swing._
 import scala.swing._
-import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 
 /** They main window of the application
