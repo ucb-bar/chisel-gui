@@ -63,15 +63,6 @@ class DataModel extends Publisher {
             }
           case _ =>
         }
-
-//        val clk = t.clockInfoList.head
-//        val wv = t.waveformValues(startCycle = ((maxTimestamp - clk.initialOffset) / clk.period + 1).toInt)
-//        Util.toValueChange(wv, initializing = false).foreach {
-//          case (fullName, waveform) =>
-//            if (pureSignalMapping.contains(fullName)) {
-//              pureSignalMapping(fullName).addNewValues(waveform)
-//            }
-//        }
         updateMaxTimestamp()
       case None =>
     }
@@ -102,8 +93,8 @@ object DirectoryNodeOrdering extends Ordering[DirectoryNode] {
   // Sort order: Submodules, Pure signals that are registers, Mixed Signals, Other pure signals
   def compare(x: DirectoryNode, y: DirectoryNode): Int = {
     (x.signal, y.signal) match {
-      case (Some(xsignal), Some(ysignal)) =>
-        (xsignal, ysignal) match {
+      case (Some(xSignal), Some(ySignal)) =>
+        (xSignal, ySignal) match {
           case (xPureSignal: PureSignal, yPureSignal: PureSignal) =>
             if (xPureSignal.sortGroup == yPureSignal.sortGroup) {
               x.name.toLowerCase.compareTo(y.name.toLowerCase)

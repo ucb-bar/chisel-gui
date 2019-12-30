@@ -48,23 +48,15 @@ class SignalSelector(
     }
   }
 
+  val toggleButton1 = new Button("Show _T") {
+    if (text.startsWith("Hide")) { text = "Show _T" } else { text = "Hide _T" }
+  }
+  val toggleButton2 = new Button("Hide _GEN") {
+    if (text.startsWith("Hide")) { text = "Show _GEN" } else { text = "Hide _GEN" }
+  }
+
   private val toolBar = new ToolBar() {
     peer.setFloatable(false)
-
-    val r = me.getClass.getResource("/images/ShowTemps.png")
-    val icon = new ImageIcon(r)
-    val r2 = me.getClass.getResource("/images/ShowTemps.png")
-    val icon2 = new ImageIcon(r)
-//    val tb = new ToggleButton
-//    tb.
-//    tb.icon = icon
-
-    val toggleButton1 = new Button("Hide _T") {
-      if (text.startsWith("Hide")) { text = "Show _T" } else { text = "Hide _T" }
-    }
-    val toggleButton2 = new Button("Hide _GEN") {
-      if (text.startsWith("Hide")) { text = "Show _GEN" } else { text = "Hide _GEN" }
-    }
 
     contents += toggleButton1
     contents += toggleButton2
@@ -83,6 +75,8 @@ class SignalSelector(
   // Controller
   ///////////////////////////////////////////////////////////////////////////
   listenTo(addSymbolsButton)
+  listenTo(toggleButton1)
+  listenTo(addSymbolsButton)
   listenTo(tree)
   listenTo(mouse.clicks)
   reactions += {
@@ -96,6 +90,10 @@ class SignalSelector(
         }
       }
     case ButtonClicked(`addSymbolsButton`) =>
+      tree.selection.cellValues.foreach { node =>
+        displayModel.addFromDirectoryToInspected(node.toInspected, this)
+      }
+    case ButtonClicked(`toggleButton1`) =>
       tree.selection.cellValues.foreach { node =>
         displayModel.addFromDirectoryToInspected(node.toInspected, this)
       }

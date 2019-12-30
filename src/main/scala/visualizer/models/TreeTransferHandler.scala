@@ -9,7 +9,7 @@ import javax.swing.tree.{DefaultMutableTreeNode, DefaultTreeModel}
 import scala.collection.mutable.ArrayBuffer
 
 //
-// Transfer handler to make tree rearrangeable
+// Transfer handler to make tree re-arrangeable
 //
 class TreeTransferHandler(displayModel: DisplayModel) extends TransferHandler {
   val mimeType: String = DataFlavor.javaJVMLocalObjectMimeType + ";class=\"" +
