@@ -35,9 +35,15 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
           case Some(signal) if signal.waveform.isDefined =>
             signal match {
               case signal: PureSignal =>
+                val isBinary = signal.symbolOpt match {
+                  case Some(symbol) =>
+                    symbol.bitWidth == 1
+                  case None =>
+                    signal.waveform.get.isBinary
+                }
                 displayModel.waveDisplaySettings(node.nodeId).painter match {
                   case _ =>
-                    if (signal.waveform.get.isBinary)
+                    if (isBinary)
                       singleBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
                     else
                       multiBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)

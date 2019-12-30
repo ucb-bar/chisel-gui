@@ -27,12 +27,11 @@ class SingleBitPainter(displayModel: DisplayModel) extends Painter(displayModel)
         .takeWhile { transitionPair =>
           displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
         }
-        .foreach { transitionPair =>
-          // length could be 1 if findTransition(startTimestamp) has length 1
-          if (transitionPair.length == 2) {
-            val left:  Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
-            val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
-            val z = if (transitionPair.head.value == 0) DrawMetrics.WaveformHeight else 0
+        .foreach {
+          case transition1 :: transition2 :: Nil =>
+            val left: Int = displayModel.timestampToXCoordinate(transition1.timestamp)
+            val right: Int = displayModel.timestampToXCoordinate(transition2.timestamp)
+            val z = if (transition1.value == 0) DrawMetrics.WaveformHeight else 0
 
             // horizontal portion
             g.drawLine(left, top + z, right, top + z)
@@ -41,7 +40,18 @@ class SingleBitPainter(displayModel: DisplayModel) extends Painter(displayModel)
             if (left != 0) {
               g.drawLine(left, top, left, top + DrawMetrics.WaveformHeight)
             }
-          }
+          case transition :: Nil =>
+            val left: Int = displayModel.timestampToXCoordinate(0L)
+            val right: Int = displayModel.timestampToXCoordinate(transition.timestamp)
+            val z = if (transition.value == 0) DrawMetrics.WaveformHeight else 0
+
+            // horizontal portion
+            g.drawLine(left, top + z, right, top + z)
+
+            // vertical portion
+            if (left != 0) {
+              g.drawLine(left, top, left, top + DrawMetrics.WaveformHeight)
+            }
         }
 
       pureSignal.waveform.get.transitions.lastOption match {

@@ -37,7 +37,6 @@ class MultiBitPainter(displayModel: DisplayModel) extends Painter(displayModel) 
         }
         .foreach {
           case transition1 :: transition2 :: Nil =>
-          // length could be 1 if findTransition(startTimestamp) has length 1
             val left:  Int = displayModel.timestampToXCoordinate(transition1.timestamp)
             val right: Int = displayModel.timestampToXCoordinate(transition2.timestamp)
 
@@ -47,8 +46,14 @@ class MultiBitPainter(displayModel: DisplayModel) extends Painter(displayModel) 
             val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
             drawLabel(g, labelLeft, labelRight, top, formatter(transition1.value))
           case transition :: Nil =>
-            println(s"How did we get here node ${node.name} : $transition")
-        }
+            val left:  Int = displayModel.timestampToXCoordinate(0L)
+            val right: Int = displayModel.timestampToXCoordinate(transition.timestamp)
+
+            g.drawPolygon(Painter.hexagon(left, right, top))
+
+            val labelLeft = math.max(visibleRect.x, left + DrawMetrics.Foo)
+            val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
+            drawLabel(g, labelLeft, labelRight, top, formatter(transition.value))        }
 
       pureSignal.waveform.get.transitions.lastOption match {
         case Some(lastTransition) =>

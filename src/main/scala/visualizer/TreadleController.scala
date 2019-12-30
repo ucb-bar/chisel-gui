@@ -102,7 +102,9 @@ object TreadleController extends SwingApplication with Publisher {
     tester.engine.symbolTable.nameToSymbol.foreach { case (name, symbol) =>
       if (! name.contains("/")) {
         val sortGroup = Util.sortGroup(name, tester)
-        val signal = new PureSignal(name, Some(symbol), None, sortGroup)
+        val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
+        arrayBuffer += Transition(0L, BigInt(0))
+        val signal = new PureSignal(name, Some(symbol), Some(new Waveform(arrayBuffer)), sortGroup)
         addSignal(name, signal)
       }
     }
