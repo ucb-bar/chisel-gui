@@ -6,7 +6,12 @@ import scalaswingcontrib.tree.Tree.Path
 import scalaswingcontrib.tree.{Tree, TreeModel}
 
 // Nodes with no signal are groups if InspectedNode, or modules if DirectoryNode
-class InspectedNode(val nodeId: Int, val name: String, val signal: Option[Signal[_ <: Any]]) {
+
+trait SignalNode {
+  var isHidden = false
+}
+
+class InspectedNode(val nodeId: Int, val name: String, val signal: Option[Signal[_ <: Any]]) extends SignalNode {
   def copy: InspectedNode = {
     InspectedNode(name, signal)
   }
@@ -21,7 +26,7 @@ object InspectedNode {
   }
 }
 
-case class DirectoryNode(name: String, signal: Option[Signal[_ <: Any]]) {
+case class DirectoryNode(name: String, signal: Option[Signal[_ <: Any]]) extends SignalNode {
   def toInspected: InspectedNode = {
     InspectedNode(name, signal)
   }

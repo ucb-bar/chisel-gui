@@ -48,7 +48,7 @@ class SignalSelector(
     }
   }
 
-  val toggleButton1 = new Button("Show _T") {
+  val showTempSignalsButton = new Button("Show _T") {
     if (text.startsWith("Hide")) { text = "Show _T" } else { text = "Hide _T" }
   }
   val toggleButton2 = new Button("Hide _GEN") {
@@ -58,7 +58,7 @@ class SignalSelector(
   private val toolBar = new ToolBar() {
     peer.setFloatable(false)
 
-    contents += toggleButton1
+    contents += showTempSignalsButton
     contents += toggleButton2
   }
 
@@ -75,7 +75,7 @@ class SignalSelector(
   // Controller
   ///////////////////////////////////////////////////////////////////////////
   listenTo(addSymbolsButton)
-  listenTo(toggleButton1)
+  listenTo(showTempSignalsButton)
   listenTo(addSymbolsButton)
   listenTo(tree)
   listenTo(mouse.clicks)
@@ -93,9 +93,19 @@ class SignalSelector(
       tree.selection.cellValues.foreach { node =>
         displayModel.addFromDirectoryToInspected(node.toInspected, this)
       }
-    case ButtonClicked(`toggleButton1`) =>
-      tree.selection.cellValues.foreach { node =>
-        displayModel.addFromDirectoryToInspected(node.toInspected, this)
+    case ButtonClicked(`showTempSignalsButton`) =>
+
+      tree.cellValues.foreach { node =>
+        val hide = if (showTempSignalsButton.text.startsWith("Hide")) {
+          showTempSignalsButton.text = "Show _T"
+          true
+        } else {
+          showTempSignalsButton.text = "Hide _T"
+          false
+        }
+        if(node.name.contains("_T")) {
+          node.isHidden = hide
+        }
       }
     case e: TreeNodesInserted[_] =>
       if (dataModel.directoryTreeModel.size == e.childIndices.length) {
