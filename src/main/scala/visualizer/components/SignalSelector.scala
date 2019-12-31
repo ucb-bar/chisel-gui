@@ -8,7 +8,7 @@ import visualizer.DrawMetrics
 import visualizer.models._
 
 import scala.swing._
-import scala.swing.event.{ButtonClicked, MouseClicked}
+import scala.swing.event.{ButtonClicked, EditDone, MouseClicked}
 
 /**
   * Offers all signals in the design to be selected for viewing in
@@ -71,11 +71,16 @@ class SignalSelector(
   val showTempSignalsButton = new ToggleButton("_T")
   val showGenSignalsButton = new ToggleButton("_Gen")
 
+  val signalPatternText = new TextField("")
+  signalPatternText.preferredSize = new Dimension(100, 20)
+  signalPatternText.peer.setMaximumSize(signalPatternText.peer.getPreferredSize)
+
   private val toolBar = new ToolBar() {
     peer.setFloatable(false)
 
     contents += showTempSignalsButton
     contents += showGenSignalsButton
+    contents += signalPatternText
   }
 
   contents += toolBar
@@ -85,7 +90,12 @@ class SignalSelector(
     border = BorderFactory.createEmptyBorder()
   }
   contents += symbolList
-  contents += addSymbolsButton
+
+  val lowerToolbar = new FlowPanel {
+    contents += addSymbolsButton
+  }
+
+  contents += lowerToolbar
 
   ///////////////////////////////////////////////////////////////////////////
   // Controller
@@ -94,19 +104,22 @@ class SignalSelector(
   listenTo(showTempSignalsButton)
   listenTo(showGenSignalsButton)
   listenTo(addSymbolsButton)
+  listenTo(signalPatternText)
   listenTo(tree)
   listenTo(mouse.clicks)
 
   reactions += {
-    case m: MouseClicked =>
-      if (m.clicks == 1) {
-        println(s"Got mouse click in DirectoryComponent ${m.clicks}")
-      } else if (m.clicks == 2) {
-        println(s"mouse double clicked in DirectoryComponent ${m.clicks}")
-        tree.selection.cellValues.foreach { node =>
-          displayModel.addFromDirectoryToInspected(node.toInspected, this)
-        }
-      }
+    //TODO remove commented code, appears to be wrestling with mouse click listener above
+    //    case m: MouseClicked =>
+    //      if (m.clicks == 1) {
+    //        println(s"Got mouse click in DirectoryComponent ${m.clicks}")
+    //      } else if (m.clicks == 2) {
+    //        println(s"mouse double clicked in DirectoryComponent ${m.clicks}")
+    //        tree.selection.cellValues.foreach { node =>
+    //          displayModel.addFromDirectoryToInspected(node.toInspected, this)
+    //        }
+    //      }
+
     case ButtonClicked(`addSymbolsButton`) =>
       tree.selection.cellValues.foreach { node =>
         displayModel.addFromDirectoryToInspected(node.toInspected, this)
@@ -129,6 +142,13 @@ class SignalSelector(
         selectionModel.updateTreeModel()
         tree.model = selectionModel.directoryTreeModel
       }
+
+    case EditDone(`signalPatternText`) =>
+      selectionModel.dataModelFilter = selectionModel.dataModelFilter.copy(
+        pattern = signalPatternText.text
+      )
+      selectionModel.updateTreeModel()
+      tree.model = selectionModel.directoryTreeModel
 
     case e: TreeNodesInserted[_] =>
       if (selectionModel.directoryTreeModel.size == e.childIndices.length) {

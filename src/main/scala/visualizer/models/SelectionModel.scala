@@ -3,7 +3,6 @@ package visualizer.models
 import scalaswingcontrib.tree.Tree.Path
 import scalaswingcontrib.tree._
 import visualizer.TreadleController
-import visualizer.TreadleController.dataModel
 
 import scala.annotation.tailrec
 import scala.swing.Publisher
@@ -48,7 +47,7 @@ class SelectionModel extends Publisher {
     val signalName = fullPath.last
     val modules = fullPath.init
 
-    if (fullName.matches(dataModelFilter.pattern)) {
+    if (dataModelFilter.patternRegex.findFirstIn(fullName).isDefined) {
       if (!(signalName.endsWith("_T") || signalName.contains("_T_")) || dataModelFilter.showTempVariables) {
         if (!(signalName.endsWith("_GEN") || signalName.contains("_GEN_")) || dataModelFilter.showGenVariables) {
           val parentPath = modules.foldLeft(RootPath) { (parentPath, module) =>
@@ -69,11 +68,13 @@ class SelectionModel extends Publisher {
   def updateTreeModel(): Unit = {
     directoryTreeModel = InternalTreeModel.empty[DirectoryNode]
 
-    TreadleController.dataModel.pureSignalMapping.foreach { case (name, signal) =>
-      addSignalToSelectionList(name, signal)
+    TreadleController.dataModel.pureSignalMapping.foreach {
+      case (name, signal) =>
+        addSignalToSelectionList(name, signal)
     }
-    TreadleController.dataModel.combinedSignal.foreach { case (name, signal) =>
-      addSignalToSelectionList(name, signal)
+    TreadleController.dataModel.combinedSignal.foreach {
+      case (name, signal) =>
+        addSignalToSelectionList(name, signal)
     }
   }
 }
@@ -113,4 +114,6 @@ case class SelectionModelFilter(
                                  showGenVariables: Boolean = false,
                                  showOnlyRegisters: Boolean = false,
                                  pattern: String = ".*"
-                               )
+                               ) {
+  val patternRegex = pattern.r
+}
