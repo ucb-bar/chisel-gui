@@ -6,6 +6,7 @@ import visualizer.TreadleController
 
 import scala.annotation.tailrec
 import scala.swing.Publisher
+import scala.util.matching.Regex
 
 /** This manages the signal available for selection.
   * The list may be filtered.
@@ -19,7 +20,7 @@ class SelectionModel extends Publisher {
   var directoryTreeModel: InternalTreeModel[DirectoryNode] = InternalTreeModel.empty[DirectoryNode]
   val RootPath: Tree.Path[DirectoryNode] = Tree.Path.empty[DirectoryNode]
 
-  var dataModelFilter = SelectionModelFilter()
+  var dataModelFilter: SelectionModelFilter = SelectionModelFilter()
 
   def insertUnderSorted(parentPath: Path[DirectoryNode], newValue: DirectoryNode): Boolean = {
     val children = directoryTreeModel.getChildrenOf(parentPath)
@@ -115,5 +116,5 @@ case class SelectionModelFilter(
                                  showOnlyRegisters: Boolean = false,
                                  pattern: String = ".*"
                                ) {
-  val patternRegex = pattern.r
+  val patternRegex: Regex = pattern.r
 }

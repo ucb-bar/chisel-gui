@@ -46,19 +46,20 @@ class MultiBitPainter(displayModel: DisplayModel) extends Painter(displayModel) 
             val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
             drawLabel(g, labelLeft, labelRight, top, formatter(transition1.value))
           case transition :: Nil =>
-            val left:  Int = displayModel.timestampToXCoordinate(0L)
+            val left: Int = displayModel.timestampToXCoordinate(0L)
             val right: Int = displayModel.timestampToXCoordinate(transition.timestamp)
 
             g.drawPolygon(Painter.hexagon(left, right, top))
 
             val labelLeft = math.max(visibleRect.x, left + DrawMetrics.Foo)
             val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
-            drawLabel(g, labelLeft, labelRight, top, formatter(transition.value))        }
+            drawLabel(g, labelLeft, labelRight, top, formatter(transition.value))
+        }
 
       pureSignal.waveform.get.transitions.lastOption match {
         case Some(lastTransition) =>
-          if(lastTransition.timestamp < maxTimestamp) {
-            val left:  Int = displayModel.timestampToXCoordinate(lastTransition.timestamp)
+          if (lastTransition.timestamp < maxTimestamp) {
+            val left: Int = displayModel.timestampToXCoordinate(lastTransition.timestamp)
             val right: Int = displayModel.timestampToXCoordinate(maxTimestamp)
             val z = if (lastTransition.value == 0L) DrawMetrics.WaveformHeight else 0
 

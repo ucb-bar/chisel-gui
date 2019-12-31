@@ -9,7 +9,6 @@ import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleCon
 import scala.swing.Swing._
 import scala.swing._
 
-
 /** They main window of the application
   *
   * @param dataModel    Source of data

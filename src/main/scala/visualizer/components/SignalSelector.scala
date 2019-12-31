@@ -91,7 +91,7 @@ class SignalSelector(
   }
   contents += symbolList
 
-  val lowerToolbar = new FlowPanel {
+  private val lowerToolbar = new FlowPanel {
     contents += addSymbolsButton
   }
 

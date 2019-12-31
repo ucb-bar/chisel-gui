@@ -34,7 +34,6 @@ class DataModel extends Publisher {
     }
   }
 
-
   /** Call this if the vcd has changed in some way
     *
     */

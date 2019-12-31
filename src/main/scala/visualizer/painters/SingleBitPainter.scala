@@ -56,8 +56,8 @@ class SingleBitPainter(displayModel: DisplayModel) extends Painter(displayModel)
 
       pureSignal.waveform.get.transitions.lastOption match {
         case Some(lastTransition) =>
-          if(lastTransition.timestamp < maxTimestamp) {
-            val left:  Int = displayModel.timestampToXCoordinate(lastTransition.timestamp)
+          if (lastTransition.timestamp < maxTimestamp) {
+            val left: Int = displayModel.timestampToXCoordinate(lastTransition.timestamp)
             val right: Int = displayModel.timestampToXCoordinate(maxTimestamp)
             val z = if (lastTransition.value == 0L) DrawMetrics.WaveformHeight else 0
 
