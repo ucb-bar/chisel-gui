@@ -46,10 +46,10 @@ class SignalSelector(
           }
         }
     }
+  }
 
-    def updateModel(newModel: InternalTreeModel[DirectoryNode]): Unit = {
-      model = newModel
-    }
+  def updateModel(): Unit = {
+    tree.model = selectionModel.directoryTreeModel
   }
 
   class ToggleButton(name: String) extends Button(name) {

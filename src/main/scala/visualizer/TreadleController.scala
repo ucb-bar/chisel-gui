@@ -28,6 +28,7 @@ object TreadleController extends SwingApplication with Publisher {
 
     // TODO: determine if args is info from treadle or vcd
     args.toList match {
+
       case firrtlFileName :: vcdFileName :: Nil =>
         val vcd = treadle.vcd.VCD.read(vcdFileName)
         val firrtlString = FileUtils.getText(firrtlFileName)
@@ -40,15 +41,21 @@ object TreadleController extends SwingApplication with Publisher {
         }
         setupWaveforms(tester.get)
         selectionModel.updateTreeModel()
+        mainWindow.signalSelector.updateModel()
+
       case firrtlFileName :: Nil =>
         val firrtlString = FileUtils.getText(firrtlFileName)
         setupTreadle(firrtlString)
         setupWaveforms(tester.get)
         selectionModel.updateTreeModel()
+        mainWindow.signalSelector.updateModel()
+
       case Nil =>
         hackySetup()
         setupWaveforms(tester.get)
         selectionModel.updateTreeModel()
+        mainWindow.signalSelector.updateModel()
+
       case _ =>
         println("Usage: chisel-gui firrtlFile [vcdFile]")
         System.exit(1)
@@ -67,7 +74,7 @@ object TreadleController extends SwingApplication with Publisher {
           engine.symbolTable.get(change.wire.fullName) match {
             case Some(symbol) =>
               engine.setValue(symbol.name, change.value, force = true)
-              if(symbol.firrtlType == ClockType) {
+              if (symbol.firrtlType == ClockType) {
                 val prevName = SymbolTable.makePreviousValue(symbol)
                 engine.setValue(prevName, change.value)
               }
@@ -121,15 +128,16 @@ object TreadleController extends SwingApplication with Publisher {
   }
 
   def setupSignals(tester: TreadleTester): Unit = {
-    tester.engine.symbolTable.nameToSymbol.foreach { case (name, symbol) =>
-      if (! name.contains("/")) {
-        val sortGroup = Util.sortGroup(name, tester)
-        val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
-        arrayBuffer += Transition(0L, BigInt(0))
-        val signal = new PureSignal(name, Some(symbol), Some(new Waveform(arrayBuffer)), sortGroup)
+    tester.engine.symbolTable.nameToSymbol.foreach {
+      case (name, symbol) =>
+        if (!name.contains("/")) {
+          val sortGroup = Util.sortGroup(name, tester)
+          val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
+          arrayBuffer += Transition(0L, BigInt(0))
+          val signal = new PureSignal(name, Some(symbol), Some(new Waveform(arrayBuffer)), sortGroup)
 
-        dataModel.addSignal(name, signal)
-      }
+          dataModel.addSignal(name, signal)
+        }
     }
   }
 
