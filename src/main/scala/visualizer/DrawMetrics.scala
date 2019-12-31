@@ -1,5 +1,7 @@
 package visualizer
 
+import java.awt.Color
+
 object DrawMetrics {
   val Foo = 5
   val WaveformHeight = 20
@@ -9,4 +11,6 @@ object DrawMetrics {
   val TimescaleHeight = 25
   val MinorTickTop = 18
   val MinMinorTickHSpace = 5
+  val toggleSelectedBg = Color.darkGray
+  val toggleUnselectedBg = Color.lightGray
 }

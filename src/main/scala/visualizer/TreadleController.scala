@@ -1,14 +1,12 @@
 package visualizer
 
-import java.awt.event.{WindowAdapter, WindowEvent}
 import java.io.File
 
 import firrtl.FileUtils
 import firrtl.ir.ClockType
 import firrtl.stage.FirrtlSourceAnnotation
 import treadle.executable.SymbolTable
-import treadle.{RollBackBuffersAnnotation, TreadleOptionsManager, TreadleTester, WriteVcdAnnotation}
-import treadle.repl.HasReplConfig
+import treadle.{TreadleTester, WriteVcdAnnotation}
 import visualizer.components.MainWindow
 import visualizer.models._
 
@@ -20,8 +18,9 @@ object TreadleController extends SwingApplication with Publisher {
   private val clkSteps = 2
 
   val dataModel = new DataModel
+  val selectionModel = new SelectionModel
   val displayModel = new DisplayModel
-  lazy val mainWindow = new MainWindow(dataModel, displayModel)
+  lazy val mainWindow = new MainWindow(dataModel, selectionModel, displayModel)
 
   override def startup(args: Array[String]): Unit = {
     if (mainWindow.size == new Dimension(0, 0)) mainWindow.pack()
@@ -40,13 +39,16 @@ object TreadleController extends SwingApplication with Publisher {
           case _ =>
         }
         setupWaveforms(tester.get)
+        selectionModel.updateTreeModel()
       case firrtlFileName :: Nil =>
         val firrtlString = FileUtils.getText(firrtlFileName)
         setupTreadle(firrtlString)
         setupWaveforms(tester.get)
+        selectionModel.updateTreeModel()
       case Nil =>
         hackySetup()
         setupWaveforms(tester.get)
+        selectionModel.updateTreeModel()
       case _ =>
         println("Usage: chisel-gui firrtlFile [vcdFile]")
         System.exit(1)
@@ -66,7 +68,6 @@ object TreadleController extends SwingApplication with Publisher {
             case Some(symbol) =>
               engine.setValue(symbol.name, change.value, force = true)
               if(symbol.firrtlType == ClockType) {
-                println(s"Setting ${symbol.name} to ${change.value} at $time")
                 val prevName = SymbolTable.makePreviousValue(symbol)
                 engine.setValue(prevName, change.value)
               }
@@ -93,29 +94,6 @@ object TreadleController extends SwingApplication with Publisher {
     FileUtils.getText(file)
   }
 
-  def addSignal(fullName: String, signal: Signal[_ <: Any]): Unit = {
-    // the full name of the signal (from treadle) uses periods to separate modules
-    val fullPath = fullName.split("\\.")
-    val signalName = fullPath.last
-    val modules = fullPath.init
-
-    val parentPath = modules.foldLeft(dataModel.RootPath) { (parentPath, module) =>
-      val node = DirectoryNode(module, None)
-      val children = dataModel.directoryTreeModel.getChildrenOf(parentPath)
-      if (!children.contains(node)) {
-        dataModel.insertUnderSorted(parentPath, node)
-      }
-      parentPath :+ node
-    }
-    val node = DirectoryNode(signalName, Some(signal))
-    dataModel.insertUnderSorted(parentPath, node)
-
-    signal match {
-      case pureSignal: PureSignal => dataModel.pureSignalMapping(fullName) = pureSignal
-      case _ =>
-    }
-  }
-
   ///////////////////////////////////////////////////////////////////////////
   // Treadle specific methods
   ///////////////////////////////////////////////////////////////////////////
@@ -126,9 +104,6 @@ object TreadleController extends SwingApplication with Publisher {
   }
 
   def loadFirrtl(firrtlString: String): TreadleTester = {
-    val optionsManager = new TreadleOptionsManager with HasReplConfig {
-      treadleOptions = treadleOptions.copy(rollbackBuffers = clkSteps * 900)
-    }
     val t = treadle.TreadleTester(
       Seq(
         FirrtlSourceAnnotation(firrtlString),
@@ -152,7 +127,8 @@ object TreadleController extends SwingApplication with Publisher {
         val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
         arrayBuffer += Transition(0L, BigInt(0))
         val signal = new PureSignal(name, Some(symbol), Some(new Waveform(arrayBuffer)), sortGroup)
-        addSignal(name, signal)
+
+        dataModel.addSignal(name, signal)
       }
     }
   }
@@ -166,12 +142,12 @@ object TreadleController extends SwingApplication with Publisher {
               dataModel.pureSignalMapping(fullName).addNewValues(transitions)
             }
         }
+        dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
       case _ =>
     }
 
-    mainWindow.repaint()
-    dataModel.updateMaxTimestamp()
     publish(new PureSignalsChanged)
+    mainWindow.repaint()
   }
 
   ///////////////////////////////////////////////////////////////////////////
@@ -208,14 +184,16 @@ object TreadleController extends SwingApplication with Publisher {
 
     val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
     val signalReady = new PureSignal("ready", None, Some(waveformReady), 0)
-    addSignal("module.io_fake_ready", signalReady)
+    val fakeReady = "module.io_fake_ready"
+    dataModel.addSignal(fakeReady, signalReady)
+    selectionModel.addSignalToSelectionList(fakeReady, signalReady)
 
     val waveformValid = makeBinaryTransitions(ArrayBuffer[Int](0, 36, 66, 96, 116, 146, 206, 286, 396, 406, 506))
     val signalValid = new PureSignal("valid", None, Some(waveformValid), 0)
-    addSignal("module.io_fake_valid", signalValid)
+    dataModel.addSignal("module.io_fake_valid", signalValid)
 
     val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))
-    addSignal("module.io_rv", signalRV)
+    dataModel.addSignal("module.io_rv", signalRV)
 
     publish(new PureSignalsChanged)
   }

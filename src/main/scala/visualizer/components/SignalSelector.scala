@@ -1,13 +1,12 @@
 package visualizer.components
 
-import javafx.scene.control.ToggleButton
-import javax.swing.{BorderFactory, Icon, ImageIcon}
+import javax.swing.BorderFactory
 import javax.swing.tree.TreePath
 import scalaswingcontrib.event.TreeNodesInserted
-import scalaswingcontrib.tree.Tree
+import scalaswingcontrib.tree.{InternalTreeModel, Tree}
+import visualizer.DrawMetrics
 import visualizer.models._
 
-import scala.swing.BorderPanel.Position.North
 import scala.swing._
 import scala.swing.event.{ButtonClicked, MouseClicked}
 
@@ -20,9 +19,10 @@ import scala.swing.event.{ButtonClicked, MouseClicked}
   * @param displayModel underlying displayModel
   */
 class SignalSelector(
-  dataModel:    DataModel,
-  displayModel: DisplayModel
-) extends BoxPanel(Orientation.Vertical) {
+                      dataModel: DataModel,
+                      selectionModel: SelectionModel,
+                      displayModel: DisplayModel
+                    ) extends BoxPanel(Orientation.Vertical) {
 
   val me: SignalSelector = this
 
@@ -30,7 +30,7 @@ class SignalSelector(
   // View
   ///////////////////////////////////////////////////////////////////////////
   val tree: Tree[DirectoryNode] = new Tree[DirectoryNode] {
-    model = dataModel.directoryTreeModel
+    model = selectionModel.directoryTreeModel
     renderer = Tree.Renderer(_.name)
     showsRootHandles = true
 
@@ -46,20 +46,36 @@ class SignalSelector(
           }
         }
     }
+
+    def updateModel(newModel: InternalTreeModel[DirectoryNode]): Unit = {
+      model = newModel
+    }
   }
 
-  val showTempSignalsButton = new Button("Show _T") {
-    if (text.startsWith("Hide")) { text = "Show _T" } else { text = "Hide _T" }
+  class ToggleButton(name: String) extends Button(name) {
+    var pushed = false
+
+    def pushAction(thunk: => Unit): Unit = {
+      pushed = !pushed
+      peer.setForeground(
+        if (pushed) {
+          DrawMetrics.toggleSelectedBg
+        } else {
+          DrawMetrics.toggleUnselectedBg
+        }
+      )
+      thunk
+    }
   }
-  val toggleButton2 = new Button("Hide _GEN") {
-    if (text.startsWith("Hide")) { text = "Show _GEN" } else { text = "Hide _GEN" }
-  }
+
+  val showTempSignalsButton = new ToggleButton("_T")
+  val showGenSignalsButton = new ToggleButton("_Gen")
 
   private val toolBar = new ToolBar() {
     peer.setFloatable(false)
 
     contents += showTempSignalsButton
-    contents += toggleButton2
+    contents += showGenSignalsButton
   }
 
   contents += toolBar
@@ -76,9 +92,11 @@ class SignalSelector(
   ///////////////////////////////////////////////////////////////////////////
   listenTo(addSymbolsButton)
   listenTo(showTempSignalsButton)
+  listenTo(showGenSignalsButton)
   listenTo(addSymbolsButton)
   listenTo(tree)
   listenTo(mouse.clicks)
+
   reactions += {
     case m: MouseClicked =>
       if (m.clicks == 1) {
@@ -93,23 +111,28 @@ class SignalSelector(
       tree.selection.cellValues.foreach { node =>
         displayModel.addFromDirectoryToInspected(node.toInspected, this)
       }
-    case ButtonClicked(`showTempSignalsButton`) =>
 
-      tree.cellValues.foreach { node =>
-        val hide = if (showTempSignalsButton.text.startsWith("Hide")) {
-          showTempSignalsButton.text = "Show _T"
-          true
-        } else {
-          showTempSignalsButton.text = "Hide _T"
-          false
-        }
-        if(node.name.contains("_T")) {
-          node.isHidden = hide
-        }
+    case ButtonClicked(`showTempSignalsButton`) =>
+      showTempSignalsButton.pushAction {
+        selectionModel.dataModelFilter = selectionModel.dataModelFilter.copy(
+          showTempVariables = showTempSignalsButton.pushed
+        )
+        selectionModel.updateTreeModel()
+        tree.model = selectionModel.directoryTreeModel
       }
+
+    case ButtonClicked(`showGenSignalsButton`) =>
+      showGenSignalsButton.pushAction {
+        selectionModel.dataModelFilter = selectionModel.dataModelFilter.copy(
+          showGenVariables = showGenSignalsButton.pushed
+        )
+        selectionModel.updateTreeModel()
+        tree.model = selectionModel.directoryTreeModel
+      }
+
     case e: TreeNodesInserted[_] =>
-      if (dataModel.directoryTreeModel.size == e.childIndices.length) {
-        tree.peer.expandPath(new TreePath(dataModel.directoryTreeModel.peer.getRoot))
+      if (selectionModel.directoryTreeModel.size == e.childIndices.length) {
+        tree.peer.expandPath(new TreePath(selectionModel.directoryTreeModel.peer.getRoot))
       }
   }
 }

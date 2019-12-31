@@ -15,12 +15,12 @@ import scala.swing._
   * @param dataModel    Source of data
   * @param displayModel Source of things selected for waveform view
   */
-class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainFrame {
+class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayModel: DisplayModel) extends MainFrame {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  val signalSelector = new SignalSelector(dataModel, displayModel)
+  val signalSelector = new SignalSelector(dataModel, selectionModel, displayModel)
   val inspectionContainer = new InspectionContainer(dataModel, displayModel)
   val dependencyComponent = new DependencyComponent(dataModel, displayModel)
   val inputControlPanel = new InputControlPanel(dataModel, displayModel)

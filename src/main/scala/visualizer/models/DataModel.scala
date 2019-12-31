@@ -1,15 +1,13 @@
 package visualizer.models
 
-import scalaswingcontrib.tree.Tree.Path
-import scalaswingcontrib.tree._
+import visualizer.TreadleController.dataModel
 import visualizer.{MaxTimestampChanged, TreadleController, Util}
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.swing.Publisher
 
 /** This is the general model for all data relating to signals and their
-  * data values
+  * data values. Ground truth resides in the VCD in TreadleController
   *
   */
 class DataModel extends Publisher {
@@ -17,29 +15,8 @@ class DataModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Directory Tree Model and Pure Signals
   ///////////////////////////////////////////////////////////////////////////
-  val directoryTreeModel: InternalTreeModel[DirectoryNode] = InternalTreeModel.empty[DirectoryNode]
-  val RootPath:           Tree.Path[DirectoryNode] = Tree.Path.empty[DirectoryNode]
   val pureSignalMapping = new mutable.HashMap[String, PureSignal]
-
-  def insertUnderSorted(parentPath: Path[DirectoryNode], newValue: DirectoryNode): Boolean = {
-    val children = directoryTreeModel.getChildrenOf(parentPath)
-
-    @tailrec def search(low: Int = 0, high: Int = children.length - 1): Int = {
-      if (high <= low) {
-        if (DirectoryNodeOrdering.compare(newValue, children(low)) > 0) low + 1 else low
-      } else {
-        val mid = (low + high) / 2
-        DirectoryNodeOrdering.compare(newValue, children(mid)) match {
-          case i if i > 0 => search(mid + 1, high)
-          case i if i < 0 => search(low, mid - 1)
-          case _          => throw new Exception("Duplicate node cannot be added to the directory tree model")
-        }
-      }
-    }
-
-    val index = if (children.isEmpty) 0 else search()
-    directoryTreeModel.insertUnder(parentPath, newValue, index)
-  }
+  val combinedSignal = new mutable.HashMap[String, CombinedSignal]
 
   def ioSignals: Seq[String] = {
     val a = pureSignalMapping.flatMap {
@@ -49,7 +26,18 @@ class DataModel extends Publisher {
     a.toSeq.sorted
   }
 
-  // TODO: move tester part to TreadleController?
+  def addSignal(fullName: String, signal: Signal[_ <: Any]): Unit = {
+    signal match {
+      case pureSignal: PureSignal => dataModel.pureSignalMapping(fullName) = pureSignal
+      case combinedSignal: CombinedSignal => dataModel.combinedSignal(fullName) = combinedSignal
+      case _ =>
+    }
+  }
+
+
+  /** Call this if the vcd has changed in some way
+    *
+    */
   def loadMoreWaveformValues(): Unit = {
     TreadleController.tester match {
       case Some(t) =>
@@ -61,9 +49,9 @@ class DataModel extends Publisher {
                   pureSignalMapping(fullName).addNewValues(transitions)
                 }
             }
+            dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
           case _ =>
         }
-        updateMaxTimestamp()
       case None =>
     }
   }
@@ -80,41 +68,5 @@ class DataModel extends Publisher {
     }
   }
 
-  def updateMaxTimestamp(): Unit = {
-    var newMaxTimestamp: Long = 0
-    directoryTreeModel.depthFirstIterator.foreach { node =>
-      node.signal match {
-        case Some(signal) if signal.waveform.isDefined =>
-          newMaxTimestamp = math.max(newMaxTimestamp, signal.waveform.get.transitions.last.timestamp)
-        case _ =>
-      }
-    }
-    if (newMaxTimestamp > maxTimestamp) {
-      setMaxTimestamp(newMaxTimestamp)
-    }
-  }
   var timescale: Int = -9
-}
-
-object DirectoryNodeOrdering extends Ordering[DirectoryNode] {
-  // Sort order: Submodules, Pure signals that are registers, Mixed Signals, Other pure signals
-  def compare(x: DirectoryNode, y: DirectoryNode): Int = {
-    (x.signal, y.signal) match {
-      case (Some(xSignal), Some(ySignal)) =>
-        (xSignal, ySignal) match {
-          case (xPureSignal: PureSignal, yPureSignal: PureSignal) =>
-            if (xPureSignal.sortGroup == yPureSignal.sortGroup) {
-              x.name.toLowerCase.compareTo(y.name.toLowerCase)
-            } else {
-              xPureSignal.sortGroup - yPureSignal.sortGroup
-            }
-          case (xPureSignal:    PureSignal, _) => if (xPureSignal.sortGroup <= 1) -1 else 1
-          case (_, yPureSignal: PureSignal)    => if (yPureSignal.sortGroup <= 1) 1 else -1
-          case _ => x.name.toLowerCase.compareTo(y.name.toLowerCase)
-        }
-      case (None, Some(_)) => -1
-      case (Some(_), None) => 1
-      case (None, None)    => x.name.toLowerCase.compareTo(y.name.toLowerCase)
-    }
-  }
 }
