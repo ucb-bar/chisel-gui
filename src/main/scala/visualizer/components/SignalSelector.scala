@@ -91,8 +91,11 @@ class SignalSelector(
   }
   contents += symbolList
 
-  private val lowerToolbar = new FlowPanel {
+  private val lowerToolbar = new ToolBar {
+    peer.setFloatable(false)
+
     contents += addSymbolsButton
+    contents += Swing.Glue
   }
 
   contents += lowerToolbar

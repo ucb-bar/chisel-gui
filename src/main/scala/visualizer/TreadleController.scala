@@ -66,6 +66,10 @@ object TreadleController extends SwingApplication with Publisher {
     val engine = tester.get.engine
     val wallTime = tester.get.wallTime
 
+    var lastClockTransitionTime = 0L
+    var clockHalfPeriodGuess = 0L
+    var lastClockValue = 0L
+
     vcd.valuesAtTime.keys.toSeq.sorted.foreach { time =>
       for (change <- vcd.valuesAtTime(time)) {
         if (time <= stopAtTime) {
@@ -75,6 +79,9 @@ object TreadleController extends SwingApplication with Publisher {
             case Some(symbol) =>
               engine.setValue(symbol.name, change.value, force = true)
               if (symbol.firrtlType == ClockType) {
+                clockHalfPeriodGuess = time - lastClockTransitionTime
+                lastClockTransitionTime = time
+                lastClockValue = change.value.toLong
                 val prevName = SymbolTable.makePreviousValue(symbol)
                 engine.setValue(prevName, change.value)
               }
@@ -82,12 +89,12 @@ object TreadleController extends SwingApplication with Publisher {
             case _ =>
               println(s"Could not find symbol for $change")
           }
-        } else {
-          vcd.valuesAtTime.remove(time)
         }
       }
     }
-
+    if (lastClockValue == 0L) {
+      tester.get.advanceTime(clockHalfPeriodGuess)
+    }
   }
 
   def loadFile(fileName: String): String = {

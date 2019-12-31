@@ -52,7 +52,7 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
 
     peer.setRowHeight(DrawMetrics.WaveformVerticalSpacing)
 
-    // Make it rearrangeable
+    // Make it re-arrangeable
     peer.setDragEnabled(true)
     peer.setDropMode(DropMode.ON_OR_INSERT)
     peer.setTransferHandler(new TreeTransferHandler(displayModel))
