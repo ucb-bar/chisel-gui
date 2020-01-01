@@ -7,9 +7,7 @@ import scalaswingcontrib.tree.{Tree, TreeModel}
 
 // Nodes with no signal are groups if InspectedNode, or modules if DirectoryNode
 
-trait SignalNode {
-  var isHidden = false
-}
+trait SignalNode
 
 class InspectedNode(val nodeId: Int, val name: String, val signal: Option[Signal[_ <: Any]]) extends SignalNode {
   def copy: InspectedNode = {

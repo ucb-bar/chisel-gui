@@ -100,7 +100,6 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
             tree.selection.cellValues.foreach { node =>
               displayModel.addFromDirectoryToInspected(node, this)
             }
-
           }
         }
     }

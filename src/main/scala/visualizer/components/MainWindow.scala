@@ -1,5 +1,7 @@
 package visualizer.components
 
+import java.io.{File, PrintWriter}
+
 import javax.swing.BorderFactory
 import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 import treadle.executable.ClockInfo
@@ -61,6 +63,17 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
   title = "Chisel Visualizer"
   menuBar = new MenuBar {
     contents += new Menu("File") {
+      contents += new MenuItem(Action("Save") {
+        val chooser = new FileChooser(new File("."))
+        val suggestedName = TreadleController.tester.get.topName + ".save"
+        chooser.selectedFile = new File(suggestedName)
+
+        val result = chooser.showSaveDialog(this)
+        if (result == FileChooser.Result.Approve) {
+          val saveFile = chooser.selectedFile
+          saveSettings(saveFile)
+        }
+      })
       contents += new Separator()
       contents += new MenuItem(Action("Quit") {
         doQuit()
@@ -83,7 +96,19 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
     System.exit(0)
   }
 
+  def saveSettings(file: File): Unit = {
+    val writer = new PrintWriter(file)
+
+    inspectionContainer.tree.cellValues.foreach { node =>
+      writer.println(s"${node.name},${displayModel.waveDisplaySettings(node.nodeId).dataFormat}")
+    }
+
+    writer.close()
+
+  }
+
   contents = new BorderPanel {
+
     import BorderPanel.Position._
 
     preferredSize = (1000, 800)
