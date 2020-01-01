@@ -14,7 +14,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.swing.{Dimension, Publisher, SwingApplication}
 
 object TreadleController extends SwingApplication with Publisher {
-  var tester: Option[TreadleTester] = None
+  var testerOpt: Option[TreadleTester] = None
   private val clkSteps = 2
 
   val dataModel = new DataModel
@@ -33,26 +33,26 @@ object TreadleController extends SwingApplication with Publisher {
         val vcd = treadle.vcd.VCD.read(vcdFileName)
         val firrtlString = FileUtils.getText(firrtlFileName)
         setupTreadle(firrtlString)
-        tester match {
+        testerOpt match {
           case Some(tester) =>
             seedFromVcd(vcd, stopAtTime = Long.MaxValue)
             dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
           case _ =>
         }
-        setupWaveforms(tester.get)
+        setupWaveforms(testerOpt.get)
         selectionModel.updateTreeModel()
         mainWindow.signalSelector.updateModel()
 
       case firrtlFileName :: Nil =>
         val firrtlString = FileUtils.getText(firrtlFileName)
         setupTreadle(firrtlString)
-        setupWaveforms(tester.get)
+        setupWaveforms(testerOpt.get)
         selectionModel.updateTreeModel()
         mainWindow.signalSelector.updateModel()
 
       case Nil =>
         hackySetup()
-        setupWaveforms(tester.get)
+        setupWaveforms(testerOpt.get)
         selectionModel.updateTreeModel()
         mainWindow.signalSelector.updateModel()
 
@@ -63,8 +63,8 @@ object TreadleController extends SwingApplication with Publisher {
   }
 
   def seedFromVcd(vcd: treadle.vcd.VCD, stopAtTime: Long = Long.MaxValue): Unit = {
-    val engine = tester.get.engine
-    val wallTime = tester.get.wallTime
+    val engine = testerOpt.get.engine
+    val wallTime = testerOpt.get.wallTime
 
     var lastClockTransitionTime = 0L
     var clockHalfPeriodGuess = 0L
@@ -93,8 +93,12 @@ object TreadleController extends SwingApplication with Publisher {
       }
     }
     if (lastClockValue == 0L) {
-      tester.get.advanceTime(clockHalfPeriodGuess)
+      testerOpt.get.advanceTime(clockHalfPeriodGuess)
     }
+  }
+
+  def loadSaveFile(): Unit = {
+    testerOpt
   }
 
   def loadFile(fileName: String): String = {
@@ -124,7 +128,7 @@ object TreadleController extends SwingApplication with Publisher {
         WriteVcdAnnotation
       )
     )
-    tester = Some(t)
+    testerOpt = Some(t)
     t
   }
 

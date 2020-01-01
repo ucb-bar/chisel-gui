@@ -38,7 +38,7 @@ class DataModel extends Publisher {
     *
     */
   def loadMoreWaveformValues(): Unit = {
-    TreadleController.tester match {
+    TreadleController.testerOpt match {
       case Some(t) =>
         t.engine.vcdOption match {
           case Some(vcd) =>

@@ -65,7 +65,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
     contents += new Menu("File") {
       contents += new MenuItem(Action("Save") {
         val chooser = new FileChooser(new File("."))
-        val suggestedName = TreadleController.tester.get.topName + ".save"
+        val suggestedName = TreadleController.testerOpt.get.topName + ".save"
         chooser.selectedFile = new File(suggestedName)
 
         val result = chooser.showSaveDialog(this)
@@ -87,7 +87,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
   def doQuit(): Unit = {
     println("Done")
 
-    TreadleController.tester match {
+    TreadleController.testerOpt match {
       case Some(tester) =>
         tester.finish
       case _ =>
@@ -100,11 +100,20 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
     val writer = new PrintWriter(file)
 
     inspectionContainer.tree.cellValues.foreach { node =>
-      writer.println(s"${node.name},${displayModel.waveDisplaySettings(node.nodeId).dataFormat}")
+      val dataFormat = displayModel.waveDisplaySettings(node.nodeId).dataFormat match {
+        case Some(BinFormat) => "bin"
+        case Some(HexFormat) => "hex"
+        case Some(DecFormat) => "dec"
+        case _ => "none"
+      }
+      writer.println(s"node,${node.name},$dataFormat")
+    }
+
+    displayModel.markers.foreach { marker =>
+      writer.println(s"maker,${marker.timestamp}")
     }
 
     writer.close()
-
   }
 
   contents = new BorderPanel {
@@ -137,9 +146,9 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
     listenTo(dataModel)
     reactions += {
       case e: DependencyComponentRequested =>
-        dependencyComponent.textComponent.text = TreadleController.tester match {
+        dependencyComponent.textComponent.text = TreadleController.testerOpt match {
           case Some(t) => t.dependencyInfo(e.pureSignalName)
-          case None    => ""
+          case None => ""
         }
       case e: MaxTimestampChanged =>
         inspectionContainer.zoomToEnd(this)
