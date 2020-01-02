@@ -110,7 +110,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
     }
 
     displayModel.markers.foreach { marker =>
-      writer.println(s"maker,${marker.timestamp}")
+      writer.println(s"marker,${marker.timestamp}")
     }
 
     writer.close()

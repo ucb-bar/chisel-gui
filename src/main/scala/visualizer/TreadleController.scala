@@ -41,6 +41,7 @@ object TreadleController extends SwingApplication with Publisher {
         }
         setupWaveforms(testerOpt.get)
         selectionModel.updateTreeModel()
+        loadSaveFileOnStartUp()
         mainWindow.signalSelector.updateModel()
 
       case firrtlFileName :: Nil =>
@@ -48,6 +49,7 @@ object TreadleController extends SwingApplication with Publisher {
         setupTreadle(firrtlString)
         setupWaveforms(testerOpt.get)
         selectionModel.updateTreeModel()
+        loadSaveFileOnStartUp()
         mainWindow.signalSelector.updateModel()
 
       case Nil =>
@@ -97,8 +99,29 @@ object TreadleController extends SwingApplication with Publisher {
     }
   }
 
-  def loadSaveFile(): Unit = {
-    testerOpt
+  def loadSaveFileOnStartUp(): Unit = {
+    testerOpt.foreach { tester =>
+      val fileNameGuess = new File(tester.topName + ".save")
+      if (fileNameGuess.exists()) {
+        FileUtils.getLines(fileNameGuess).foreach { line =>
+          val fields = line.split(",").map(_.trim).toList
+          fields match {
+            case "node" :: signalName :: format :: Nil =>
+              dataModel.pureSignalMapping.get(signalName).foreach { signal =>
+                //                InspectedNode.nameToNode.get(signalName).foreach {
+                //                  case node: InspectedNode =>
+                //                    displayModel.addFromDirectoryToInspected(node, mainWindow.inspectionContainer)
+                //                  case _ =>
+                //                }
+              }
+            case "marker" :: time =>
+            case _ =>
+              println(s"Invalid line $line in save file")
+
+          }
+        }
+      }
+    }
   }
 
   def loadFile(fileName: String): String = {
