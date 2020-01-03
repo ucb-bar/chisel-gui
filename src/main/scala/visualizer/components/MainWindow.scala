@@ -105,12 +105,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
           case pureSignal: PureSignal =>
             displayModel.waveDisplaySettings.get(waveFormNode.name) match {
               case Some(waveDisplaySetting: WaveDisplaySetting) =>
-                val dataFormat = waveDisplaySetting.dataFormat match {
-                  case Some(BinFormat) => "bin"
-                  case Some(HexFormat) => "hex"
-                  case Some(DecFormat) => "dec"
-                  case _ => "none"
-                }
+                val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
                 writer.println(s"node,${waveFormNode.name},$dataFormat")
               case _ =>
             }

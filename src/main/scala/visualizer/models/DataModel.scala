@@ -13,12 +13,12 @@ import scala.swing.Publisher
 class DataModel extends Publisher {
 
   ///////////////////////////////////////////////////////////////////////////
-  // Directory Tree Model and Pure Signals
+  // Directory Tree Model manages the list of signals
   ///////////////////////////////////////////////////////////////////////////
-  val pureSignalMapping = new mutable.HashMap[String, Signal[_]]
+  val nameToSignal = new mutable.HashMap[String, Signal[_]]
 
   def ioSignals: Seq[String] = {
-    val a = pureSignalMapping.flatMap {
+    val a = nameToSignal.flatMap {
       case (fullName: String, pureSignal: PureSignal) =>
         if (pureSignal.sortGroup == 0) Some(fullName) else None
     }
@@ -26,7 +26,7 @@ class DataModel extends Publisher {
   }
 
   def addSignal(fullName: String, signal: Signal[_ <: Any]): Unit = {
-    dataModel.pureSignalMapping(fullName) = signal
+    dataModel.nameToSignal(fullName) = signal
   }
 
   /** Call this if the vcd has changed in some way
@@ -39,7 +39,7 @@ class DataModel extends Publisher {
           case Some(vcd) =>
             Util.vcdToTransitions(vcd, initializing = true).foreach {
               case (fullName, transitions) =>
-                pureSignalMapping.get(fullName) match {
+                nameToSignal.get(fullName) match {
                   case Some(pureSignal: PureSignal) =>
                     pureSignal.addNewValues(transitions)
                   case Some(combinedSignal: CombinedSignal) =>

@@ -109,13 +109,15 @@ object TreadleController extends SwingApplication with Publisher {
         FileUtils.getLines(fileNameGuess).foreach { line =>
           val fields = line.split(",").map(_.trim).toList
           fields match {
-            case "node" :: signalName :: format :: Nil =>
-              dataModel.pureSignalMapping.get(signalName) match {
+            case "node" :: signalName :: formatName :: Nil =>
+              dataModel.nameToSignal.get(signalName) match {
                 case Some(pureSignal: PureSignal) =>
                   val node = WaveFormNode(signalName, pureSignal)
                   displayModel.addFromDirectoryToInspected(node, mainWindow.signalSelector)
+                  displayModel.waveDisplaySettings(signalName) = {
+                    WaveDisplaySetting(None, Some(Format.deserialize(formatName)))
+                  }
                 case Some(combinedSignal: CombinedSignal) =>
-
               }
             case "marker" :: time =>
             case _ =>
@@ -184,7 +186,7 @@ object TreadleController extends SwingApplication with Publisher {
       case Some(vcd) =>
         Util.vcdToTransitions(vcd, initializing = true).foreach {
           case (fullName, transitions) =>
-            dataModel.pureSignalMapping.get(fullName) match {
+            dataModel.nameToSignal.get(fullName) match {
               case Some(pureSignal: PureSignal) =>
                 pureSignal.addNewValues(transitions)
               case Some(combinedSignal: CombinedSignal) =>

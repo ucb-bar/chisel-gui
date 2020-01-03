@@ -241,11 +241,32 @@ case class WaveDisplaySetting(var painter: Option[Int] = None, var dataFormat: O
 sealed trait Format {
   def apply(num: BigInt): String
 }
+
+object Format {
+  def serialize(format: Format): String = {
+    format.toString
+  }
+
+  def serialize(formatOpt: Option[Format]): String = {
+    if (formatOpt.isDefined) formatOpt.get.toString else "none"
+  }
+
+  def deserialize(string: String): Format = {
+    string match {
+      case "bin" => BinFormat
+      case "hex" => HexFormat
+      case "dec" => DecFormat
+      case _ => DecFormat
+    }
+  }
+}
+
 case object BinFormat extends Format {
   def apply(num: BigInt): String = {
     "0b" + num.toString(2)
   }
 }
+
 case object DecFormat extends Format {
   def apply(num: BigInt): String = {
     num.toString(10)

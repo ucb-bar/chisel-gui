@@ -79,7 +79,7 @@ class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) exten
         valueBaseLine += border
       }
 
-      dataModel.pureSignalMapping.get(node.name) match {
+      dataModel.nameToSignal.get(node.name) match {
         case Some(signal) if signal.waveform.isDefined =>
           // Background
           if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)

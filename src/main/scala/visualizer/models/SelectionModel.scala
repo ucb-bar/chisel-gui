@@ -70,7 +70,7 @@ class SelectionModel extends Publisher {
   def updateTreeModel(): Unit = {
     directoryTreeModel = InternalTreeModel.empty[GenericTreeNode]
 
-    TreadleController.dataModel.pureSignalMapping.foreach {
+    TreadleController.dataModel.nameToSignal.foreach {
       case (name, signal) =>
         addSignalToSelectionList(name, signal)
     }

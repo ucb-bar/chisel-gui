@@ -76,45 +76,49 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
       }
     }
 
+    def handleMouseClick(e: MouseClicked): Unit = {
+      println(s"mouse clicked in inspectionContainer ${e.clicks}")
+      if (SwingUtilities.isRightMouseButton(e.peer)) {
+        if (isPointInNode(e.point)) {
+          val row = getClosestRowForLocation(e.point.x, e.point.y)
+
+          if (!selection.rows.contains(row)) {
+            // Right clicked in a node that isn't selected
+            // Then select only the node that was right clicked
+            selectRows(getClosestRowForLocation(e.point.x, e.point.y))
+          }
+          repaint()
+
+          val path = tree.peer.getClosestPathForLocation(e.point.x, e.point.y)
+          val peerNode = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
+          val node = peerNode.getUserObject.asInstanceOf[GenericTreeNode]
+          node match {
+            case waveFormNode: WaveFormNode =>
+              popupMenu(Some(waveFormNode.signal)).show(this, e.point.x, e.point.y)
+            case _ =>
+          }
+        }
+      } else {
+        if (e.clicks == 1) {
+          if (!isPointInNode(e.point)) {
+            selection.clear()
+          }
+        } else if (e.clicks == 2) {
+          println(s"mouse clicked in inspectionContainer ${e.clicks}")
+          tree.selection.cellValues.foreach { node =>
+            displayModel.addFromDirectoryToInspected(node, this)
+          }
+        }
+      }
+    }
+
     listenTo(mouse.clicks)
     listenTo(displayModel)
     reactions += {
       case _: SignalsChanged =>
         tree.peer.expandPath(new TreePath(model.peer.getRoot))
       case e: MouseClicked =>
-        println(s"mouse clicked in inspectionContainer ${e.clicks}")
-        if (SwingUtilities.isRightMouseButton(e.peer)) {
-          if (isPointInNode(e.point)) {
-            val row = getClosestRowForLocation(e.point.x, e.point.y)
-
-            if (!selection.rows.contains(row)) {
-              // Right clicked in a node that isn't selected
-              // Then select only the node that was right clicked
-              selectRows(getClosestRowForLocation(e.point.x, e.point.y))
-            }
-            repaint()
-
-            val path = tree.peer.getClosestPathForLocation(e.point.x, e.point.y)
-            val peerNode = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
-            val node = peerNode.getUserObject.asInstanceOf[GenericTreeNode]
-            node match {
-              case waveFormNode: WaveFormNode =>
-                popupMenu(Some(waveFormNode.signal)).show(this, e.point.x, e.point.y)
-              case _ =>
-            }
-          }
-        } else {
-          if (e.clicks == 1) {
-            if (!isPointInNode(e.point)) {
-              selection.clear()
-            }
-          } else if (e.clicks == 2) {
-            println(s"mouse clicked in inspectionContainer ${e.clicks}")
-            tree.selection.cellValues.foreach { node =>
-              displayModel.addFromDirectoryToInspected(node, this)
-            }
-          }
-        }
+        handleMouseClick(e)
     }
   }
 
