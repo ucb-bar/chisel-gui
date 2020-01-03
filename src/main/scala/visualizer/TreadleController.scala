@@ -99,6 +99,9 @@ object TreadleController extends SwingApplication with Publisher {
     }
   }
 
+  /**
+    * looks through the save file and populates the inspection container
+    */
   def loadSaveFileOnStartUp(): Unit = {
     testerOpt.foreach { tester =>
       val fileNameGuess = new File(tester.topName + ".save")
@@ -107,12 +110,12 @@ object TreadleController extends SwingApplication with Publisher {
           val fields = line.split(",").map(_.trim).toList
           fields match {
             case "node" :: signalName :: format :: Nil =>
-              dataModel.pureSignalMapping.get(signalName).foreach { signal =>
-                //                InspectedNode.nameToNode.get(signalName).foreach {
-                //                  case node: InspectedNode =>
-                //                    displayModel.addFromDirectoryToInspected(node, mainWindow.inspectionContainer)
-                //                  case _ =>
-                //                }
+              dataModel.pureSignalMapping.get(signalName) match {
+                case Some(pureSignal: PureSignal) =>
+                  val node = WaveFormNode(signalName, pureSignal)
+                  displayModel.addFromDirectoryToInspected(node, mainWindow.signalSelector)
+                case Some(combinedSignal: CombinedSignal) =>
+
               }
             case "marker" :: time =>
             case _ =>

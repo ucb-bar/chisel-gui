@@ -16,7 +16,6 @@ class DataModel extends Publisher {
   // Directory Tree Model and Pure Signals
   ///////////////////////////////////////////////////////////////////////////
   val pureSignalMapping = new mutable.HashMap[String, Signal[_]]
-  val combinedSignal = new mutable.HashMap[String, CombinedSignal]
 
   def ioSignals: Seq[String] = {
     val a = pureSignalMapping.flatMap {
