@@ -29,7 +29,7 @@ class SignalSelector(
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  val tree: Tree[DirectoryNode] = new Tree[DirectoryNode] {
+  val tree: Tree[GenericTreeNode] = new Tree[GenericTreeNode] {
     model = selectionModel.directoryTreeModel
     renderer = Tree.Renderer(_.name)
     showsRootHandles = true
@@ -41,8 +41,12 @@ class SignalSelector(
           println(s"Got mouse click in tree ${m.clicks}")
         } else if (m.clicks == 2) {
           println(s"mouse double clicked in tree ${m.clicks}")
-          selection.cellValues.foreach { node =>
-            displayModel.addFromDirectoryToInspected(node.toInspected, this)
+          selection.cellValues.foreach {
+            case directoryNode: DirectoryNode =>
+              //TODO: This will not bring along the children, should it?
+              displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
+            case otherNode =>
+              displayModel.addFromDirectoryToInspected(otherNode, this)
           }
         }
     }
@@ -124,8 +128,12 @@ class SignalSelector(
     //      }
 
     case ButtonClicked(`addSymbolsButton`) =>
-      tree.selection.cellValues.foreach { node =>
-        displayModel.addFromDirectoryToInspected(node.toInspected, this)
+      tree.selection.cellValues.foreach {
+        case directoryNode: DirectoryNode =>
+          displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
+        case otherNode =>
+          displayModel.addFromDirectoryToInspected(otherNode, this)
+
       }
 
     case ButtonClicked(`showTempSignalsButton`) =>

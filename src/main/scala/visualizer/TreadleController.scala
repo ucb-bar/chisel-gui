@@ -173,6 +173,7 @@ object TreadleController extends SwingApplication with Publisher {
           dataModel.addSignal(name, signal)
         }
     }
+    selectionModel.updateTreeModel()
   }
 
   def setupWaveforms(t: TreadleTester): Unit = {
@@ -180,8 +181,12 @@ object TreadleController extends SwingApplication with Publisher {
       case Some(vcd) =>
         Util.vcdToTransitions(vcd, initializing = true).foreach {
           case (fullName, transitions) =>
-            if (dataModel.pureSignalMapping.contains(fullName)) {
-              dataModel.pureSignalMapping(fullName).addNewValues(transitions)
+            dataModel.pureSignalMapping.get(fullName) match {
+              case Some(pureSignal: PureSignal) =>
+                pureSignal.addNewValues(transitions)
+              case Some(combinedSignal: CombinedSignal) =>
+              //TODO: figure out if anything needs to happen here
+              case _ =>
             }
         }
         dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)

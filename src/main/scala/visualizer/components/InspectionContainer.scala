@@ -11,10 +11,16 @@ import scala.swing._
 import BorderPanel.Position._
 import scala.swing.event.MouseClicked
 
+/** This manages the signals selected for the waveform display
+  * signals can be added, moved, removed, and have their display formats changed
+  *
+  * @param dataModel    underlying data model
+  * @param displayModel model used by tree to describe selected signals
+  */
 class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) extends BorderPanel {
 
   // Popup menu when a signal name is right-clicked
-  private def popupMenu(signal: Option[Signal[_ <: Any]]): PopupMenu = new PopupMenu {
+  private def popupMenu(signal: Option[Signal[_]]): PopupMenu = new PopupMenu {
     contents += new Menu("Data Format") {
       contents += new MenuItem(Action("Binary") {
         displayModel.setWaveFormat(this, tree.selection.cellValues, BinFormat)
@@ -26,15 +32,17 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
         displayModel.setWaveFormat(this, tree.selection.cellValues, HexFormat)
       })
     }
-    if (signal.isDefined && signal.get.isInstanceOf[PureSignal]) {
-      val pureSignalName = signal.get.asInstanceOf[PureSignal].name
-      contents += new MenuItem(Action("Show Dependency Graph") {
-        displayModel.showDependency(pureSignalName, this)
-      })
+    signal match {
+      case Some(pureSignal: PureSignal) =>
+        val pureSignalName = pureSignal.name
+        contents += new MenuItem(Action("Show Dependency Graph") {
+          displayModel.showDependency(pureSignalName, this)
+        })
+      case _ =>
     }
   }
 
-  val tree: Tree[InspectedNode] = new Tree[InspectedNode] {
+  val tree: Tree[GenericTreeNode] = new Tree[GenericTreeNode] {
     model = displayModel.treeModel
     renderer = new SignalNameRenderer(dataModel, displayModel)
     showsRootHandles = true
@@ -43,6 +51,7 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
       override def treeExpanded(event: TreeExpansionEvent): Unit = {
         publish(SignalsChanged(InspectionContainer.this.tree))
       }
+
       override def treeCollapsed(event: TreeExpansionEvent): Unit = {
         publish(SignalsChanged(InspectionContainer.this.tree))
       }
@@ -87,8 +96,12 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
 
             val path = tree.peer.getClosestPathForLocation(e.point.x, e.point.y)
             val peerNode = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
-            val node = peerNode.getUserObject.asInstanceOf[InspectedNode]
-            popupMenu(node.signal).show(this, e.point.x, e.point.y)
+            val node = peerNode.getUserObject.asInstanceOf[GenericTreeNode]
+            node match {
+              case waveFormNode: WaveFormNode =>
+                popupMenu(Some(waveFormNode.signal)).show(this, e.point.x, e.point.y)
+              case _ =>
+            }
           }
         } else {
           if (e.clicks == 1) {

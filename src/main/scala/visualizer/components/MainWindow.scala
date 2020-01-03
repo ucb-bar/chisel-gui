@@ -99,14 +99,23 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
   def saveSettings(file: File): Unit = {
     val writer = new PrintWriter(file)
 
-    inspectionContainer.tree.cellValues.foreach { node =>
-      val dataFormat = displayModel.waveDisplaySettings(node.nodeId).dataFormat match {
-        case Some(BinFormat) => "bin"
-        case Some(HexFormat) => "hex"
-        case Some(DecFormat) => "dec"
-        case _ => "none"
-      }
-      writer.println(s"node,${node.name},$dataFormat")
+    inspectionContainer.tree.cellValues.foreach {
+      case waveFormNode: WaveFormNode =>
+        waveFormNode.signal match {
+          case pureSignal: PureSignal =>
+            displayModel.waveDisplaySettings.get(waveFormNode.name) match {
+              case Some(waveDisplaySetting: WaveDisplaySetting) =>
+                val dataFormat = waveDisplaySetting.dataFormat match {
+                  case Some(BinFormat) => "bin"
+                  case Some(HexFormat) => "hex"
+                  case Some(DecFormat) => "dec"
+                  case _ => "none"
+                }
+                writer.println(s"node,${waveFormNode.name},$dataFormat")
+              case _ =>
+            }
+          case _ =>
+        }
     }
 
     displayModel.markers.foreach { marker =>

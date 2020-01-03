@@ -10,7 +10,7 @@ import visualizer.painters.{MultiBitPainter, ReadyValidPainter, SingleBitPainter
 import scala.swing._
 import scala.swing.event._
 
-class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[InspectedNode]) extends BorderPanel {
+class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[GenericTreeNode]) extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -29,31 +29,25 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
 
     // Draw waveforms
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach {
-      case (node, row) =>
+      case (node: SignalTreeNode, row) =>
         val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
         node.signal match {
-          case Some(signal) if signal.waveform.isDefined =>
-            signal match {
-              case signal: PureSignal =>
-                val isBinary = signal.symbolOpt match {
-                  case Some(symbol) =>
-                    symbol.bitWidth == 1
-                  case None =>
-                    signal.waveform.get.isBinary
-                }
-                displayModel.waveDisplaySettings(node.nodeId).painter match {
-                  case _ =>
-                    if (isBinary)
-                      singleBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
-                    else
-                      multiBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
-                }
-              case _: CombinedSignal =>
-                readyValidPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
+          case signal: PureSignal =>
+            val isBinary = signal.symbolOpt match {
+              case Some(symbol) =>
+                symbol.bitWidth == 1
+              case None =>
+                signal.waveform.get.isBinary
             }
-          case _ =>
-          // node is a group. do nothing?
-          // or node doesn't have a waveform
+            displayModel.waveDisplaySettings(node.name).painter match {
+              case _ =>
+                if (isBinary)
+                  singleBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
+                else
+                  multiBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
+            }
+          case _: CombinedSignal =>
+            readyValidPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
         }
     }
 

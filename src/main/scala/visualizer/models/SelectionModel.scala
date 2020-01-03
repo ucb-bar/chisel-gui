@@ -17,12 +17,12 @@ class SelectionModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Directory Tree Model and Pure Signals
   ///////////////////////////////////////////////////////////////////////////
-  var directoryTreeModel: InternalTreeModel[DirectoryNode] = InternalTreeModel.empty[DirectoryNode]
-  val RootPath: Tree.Path[DirectoryNode] = Tree.Path.empty[DirectoryNode]
+  var directoryTreeModel: InternalTreeModel[GenericTreeNode] = InternalTreeModel.empty[GenericTreeNode]
+  val RootPath: Tree.Path[GenericTreeNode] = Tree.Path.empty[GenericTreeNode]
 
   var dataModelFilter: SelectionModelFilter = SelectionModelFilter()
 
-  def insertUnderSorted(parentPath: Path[DirectoryNode], newValue: DirectoryNode): Boolean = {
+  def insertUnderSorted(parentPath: Path[GenericTreeNode], newValue: GenericTreeNode): Boolean = {
     val children = directoryTreeModel.getChildrenOf(parentPath)
 
     @tailrec def search(low: Int = 0, high: Int = children.length - 1): Int = {
@@ -33,7 +33,8 @@ class SelectionModel extends Publisher {
         DirectoryNodeOrdering.compare(newValue, children(mid)) match {
           case i if i > 0 => search(mid + 1, high)
           case i if i < 0 => search(low, mid - 1)
-          case _ => throw new Exception("Duplicate node cannot be added to the directory tree model")
+          case _ =>
+            throw new Exception("Duplicate node cannot be added to the directory tree model")
         }
       }
     }
@@ -52,14 +53,14 @@ class SelectionModel extends Publisher {
       if (!(signalName.endsWith("_T") || signalName.contains("_T_")) || dataModelFilter.showTempVariables) {
         if (!(signalName.endsWith("_GEN") || signalName.contains("_GEN_")) || dataModelFilter.showGenVariables) {
           val parentPath = modules.foldLeft(RootPath) { (parentPath, module) =>
-            val node = DirectoryNode(module, None)
+            val node = WaveFormNode(module, signal)
             val children = directoryTreeModel.getChildrenOf(parentPath)
             if (!children.contains(node)) {
               insertUnderSorted(parentPath, node)
             }
             parentPath :+ node
           }
-          val node = DirectoryNode(signalName, Some(signal))
+          val node = WaveFormNode(signalName, signal)
           insertUnderSorted(parentPath, node)
         }
       }
@@ -67,39 +68,33 @@ class SelectionModel extends Publisher {
   }
 
   def updateTreeModel(): Unit = {
-    directoryTreeModel = InternalTreeModel.empty[DirectoryNode]
+    directoryTreeModel = InternalTreeModel.empty[GenericTreeNode]
 
     TreadleController.dataModel.pureSignalMapping.foreach {
-      case (name, signal) =>
-        addSignalToSelectionList(name, signal)
-    }
-    TreadleController.dataModel.combinedSignal.foreach {
       case (name, signal) =>
         addSignalToSelectionList(name, signal)
     }
   }
 }
 
-object DirectoryNodeOrdering extends Ordering[DirectoryNode] {
+object DirectoryNodeOrdering extends Ordering[GenericTreeNode] {
   // Sort order: Submodules, Pure signals that are registers, Mixed Signals, Other pure signals
-  def compare(x: DirectoryNode, y: DirectoryNode): Int = {
-    (x.signal, y.signal) match {
-      case (Some(xSignal), Some(ySignal)) =>
-        (xSignal, ySignal) match {
-          case (xPureSignal: PureSignal, yPureSignal: PureSignal) =>
-            if (xPureSignal.sortGroup == yPureSignal.sortGroup) {
-              x.name.toLowerCase.compareTo(y.name.toLowerCase)
-            } else {
-              xPureSignal.sortGroup - yPureSignal.sortGroup
-            }
-          case (xPureSignal: PureSignal, _) => if (xPureSignal.sortGroup <= 1) -1 else 1
-          case (_, yPureSignal: PureSignal) => if (yPureSignal.sortGroup <= 1) 1 else -1
-          case _ => x.name.toLowerCase.compareTo(y.name.toLowerCase)
-        }
-      case (None, Some(_)) => -1
-      case (Some(_), None) => 1
-      case (None, None) => x.name.toLowerCase.compareTo(y.name.toLowerCase)
-    }
+  def compare(x: GenericTreeNode, y: GenericTreeNode): Int = {
+    //TODO: re-institutes coherent sort
+    //    (x, y) match {
+    //      case (a:    DirectoryNode, b: DirectoryNode) => a.name.toLowerCase.compareTo(b.name.toLowerCase)
+    //      case (_, _: DirectoryNode) => 1
+    //      case (_: DirectoryNode, b) => -1
+    //      case (a: SignalTreeNode, b: SignalTreeNode) =>
+    //        (a.signal, b.signal) match {
+    //          case (i:    PureSignal, j: PureSignal) => i.sortGroup - j.sortGroup
+    //          case (_:    PureSignal, __) => 1
+    //          case (_, _: PureSignal) => -1
+    //          case (_, _) => a.name.toLowerCase.compareTo(b.name.toLowerCase)
+    //        }
+    //      case _ => x.name.toLowerCase.compareTo(y.name.toLowerCase)
+    //    }
+    x.name.toLowerCase.compareTo(y.name.toLowerCase)
   }
 }
 

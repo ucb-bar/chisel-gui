@@ -15,23 +15,19 @@ class DataModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Directory Tree Model and Pure Signals
   ///////////////////////////////////////////////////////////////////////////
-  val pureSignalMapping = new mutable.HashMap[String, PureSignal]
+  val pureSignalMapping = new mutable.HashMap[String, Signal[_]]
   val combinedSignal = new mutable.HashMap[String, CombinedSignal]
 
   def ioSignals: Seq[String] = {
     val a = pureSignalMapping.flatMap {
-      case (fullName, pureSignal) =>
+      case (fullName: String, pureSignal: PureSignal) =>
         if (pureSignal.sortGroup == 0) Some(fullName) else None
     }
     a.toSeq.sorted
   }
 
   def addSignal(fullName: String, signal: Signal[_ <: Any]): Unit = {
-    signal match {
-      case pureSignal: PureSignal => dataModel.pureSignalMapping(fullName) = pureSignal
-      case combinedSignal: CombinedSignal => dataModel.combinedSignal(fullName) = combinedSignal
-      case _ =>
-    }
+    dataModel.pureSignalMapping(fullName) = signal
   }
 
   /** Call this if the vcd has changed in some way
@@ -44,8 +40,12 @@ class DataModel extends Publisher {
           case Some(vcd) =>
             Util.vcdToTransitions(vcd, initializing = true).foreach {
               case (fullName, transitions) =>
-                if (pureSignalMapping.contains(fullName)) {
-                  pureSignalMapping(fullName).addNewValues(transitions)
+                pureSignalMapping.get(fullName) match {
+                  case Some(pureSignal: PureSignal) =>
+                    pureSignal.addNewValues(transitions)
+                  case Some(combinedSignal: CombinedSignal) =>
+                  //TODO: figure out if anything needs to happen here
+                  case _ =>
                 }
             }
             dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
