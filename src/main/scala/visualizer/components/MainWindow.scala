@@ -106,7 +106,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
     inspectionContainer.tree.cellValues.foreach {
       case waveFormNode: WaveFormNode =>
         waveFormNode.signal match {
-          case pureSignal: PureSignal =>
+          case _: PureSignal =>
             displayModel.waveDisplaySettings.get(waveFormNode.name) match {
               case Some(waveDisplaySetting: WaveDisplaySetting) =>
                 val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
@@ -158,7 +158,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
           case Some(t) => t.dependencyInfo(e.pureSignalName)
           case None => ""
         }
-      case e: MaxTimestampChanged =>
+      case _: MaxTimestampChanged =>
         inspectionContainer.zoomToEnd(this)
     }
   }

@@ -3,12 +3,12 @@ package visualizer.components
 import javax.swing.BorderFactory
 import javax.swing.tree.TreePath
 import scalaswingcontrib.event.TreeNodesInserted
-import scalaswingcontrib.tree.{InternalTreeModel, Tree}
+import scalaswingcontrib.tree.Tree
 import visualizer.DrawMetrics
 import visualizer.models._
 
 import scala.swing._
-import scala.swing.event.{ButtonClicked, EditDone, Key, KeyPressed, KeyReleased, MouseClicked}
+import scala.swing.event._
 
 /**
   * Offers all signals in the design to be selected for viewing in
@@ -38,12 +38,7 @@ class SignalSelector(
     reactions += {
       case KeyReleased(_, key, _, _) =>
         if (key == Key.Enter) {
-          tree.selection.cellValues.foreach {
-            case directoryNode: DirectoryNode =>
-              displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
-            case otherNode =>
-              displayModel.addFromDirectoryToInspected(otherNode, this)
-          }
+          addSelectedToInspection()
         }
       case m: MouseClicked =>
         if (m.clicks == 1) {
@@ -63,6 +58,15 @@ class SignalSelector(
 
   def updateModel(): Unit = {
     tree.model = selectionModel.directoryTreeModel
+  }
+
+  def addSelectedToInspection(): Unit = {
+    tree.selection.cellValues.foreach {
+      case directoryNode: DirectoryNode =>
+        displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
+      case otherNode =>
+        displayModel.addFromDirectoryToInspected(otherNode, this)
+    }
   }
 
   class ToggleButton(name: String) extends Button(name) {
@@ -137,12 +141,7 @@ class SignalSelector(
     //      }
 
     case ButtonClicked(`addSymbolsButton`) =>
-      tree.selection.cellValues.foreach {
-        case directoryNode: DirectoryNode =>
-          displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
-        case otherNode =>
-          displayModel.addFromDirectoryToInspected(otherNode, this)
-      }
+      addSelectedToInspection()
 
     case ButtonClicked(`showTempSignalsButton`) =>
       showTempSignalsButton.pushAction {
