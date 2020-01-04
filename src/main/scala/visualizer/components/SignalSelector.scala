@@ -8,7 +8,7 @@ import visualizer.DrawMetrics
 import visualizer.models._
 
 import scala.swing._
-import scala.swing.event.{ButtonClicked, EditDone, MouseClicked}
+import scala.swing.event.{ButtonClicked, EditDone, Key, KeyPressed, KeyReleased, MouseClicked}
 
 /**
   * Offers all signals in the design to be selected for viewing in
@@ -24,8 +24,6 @@ class SignalSelector(
                       displayModel: DisplayModel
                     ) extends BoxPanel(Orientation.Vertical) {
 
-  val me: SignalSelector = this
-
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
@@ -35,7 +33,18 @@ class SignalSelector(
     showsRootHandles = true
 
     listenTo(mouse.clicks)
+    listenTo(keys)
+
     reactions += {
+      case KeyReleased(_, key, _, _) =>
+        if (key == Key.Enter) {
+          tree.selection.cellValues.foreach {
+            case directoryNode: DirectoryNode =>
+              displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
+            case otherNode =>
+              displayModel.addFromDirectoryToInspected(otherNode, this)
+          }
+        }
       case m: MouseClicked =>
         if (m.clicks == 1) {
           println(s"Got mouse click in tree ${m.clicks}")
@@ -133,7 +142,6 @@ class SignalSelector(
           displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
         case otherNode =>
           displayModel.addFromDirectoryToInspected(otherNode, this)
-
       }
 
     case ButtonClicked(`showTempSignalsButton`) =>
@@ -166,4 +174,7 @@ class SignalSelector(
         tree.peer.expandPath(new TreePath(selectionModel.directoryTreeModel.peer.getRoot))
       }
   }
+
+  focusable = true
+  requestFocus()
 }

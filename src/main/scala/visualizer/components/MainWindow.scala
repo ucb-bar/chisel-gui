@@ -82,7 +82,9 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
   }
 
   //TODO this does not seem to handle Command-Q as was hoped
-  override def closeOperation(): Unit = doQuit()
+  override def closeOperation(): Unit = {
+    doQuit()
+  }
 
   def doQuit(): Unit = {
     println("Done")
@@ -93,6 +95,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
       case _ =>
     }
     this.close()
+    super.closeOperation()
     System.exit(0)
   }
 
