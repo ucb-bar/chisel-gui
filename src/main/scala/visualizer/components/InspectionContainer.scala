@@ -4,7 +4,7 @@ import javax.swing.{BorderFactory, DropMode, SwingUtilities}
 import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
 import javax.swing.tree.{DefaultMutableTreeNode, TreePath}
 import scalaswingcontrib.tree.Tree
-import visualizer.{DrawMetrics, SignalsChanged}
+import visualizer.{DrawMetrics, SignalsChanged, TreadleController}
 import visualizer.models._
 
 import scala.swing._
@@ -35,8 +35,9 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
     signal match {
       case Some(pureSignal: PureSignal) =>
         val pureSignalName = pureSignal.name
-        contents += new MenuItem(Action("Show Dependency Graph") {
-          displayModel.showDependency(pureSignalName, this)
+        contents += new MenuItem(Action("Add Driving Signals") {
+          TreadleController.loadDrivingSignals(pureSignal)
+          //          displayModel.showDependency(pureSignalName, this)
         })
       case _ =>
     }

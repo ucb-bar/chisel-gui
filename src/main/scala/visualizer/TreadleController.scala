@@ -5,11 +5,12 @@ import java.io.File
 import firrtl.FileUtils
 import firrtl.ir.ClockType
 import firrtl.stage.FirrtlSourceAnnotation
-import treadle.executable.SymbolTable
+import treadle.executable.{Symbol, SymbolTable}
 import treadle.{TreadleTester, WriteVcdAnnotation}
 import visualizer.components.MainWindow
 import visualizer.models._
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.swing.{Dimension, Publisher, SwingApplication}
 
@@ -200,6 +201,55 @@ object TreadleController extends SwingApplication with Publisher {
 
     publish(new PureSignalsChanged)
     mainWindow.repaint()
+  }
+
+  def loadDrivingSignals(signal: PureSignal): Unit = {
+    val maxDepth = 3
+    testerOpt.foreach { tester =>
+      val engine = tester.engine
+      val digraph = engine.symbolTable.parentsOf
+
+      val table = engine.symbolTable
+      val symbol = engine.symbolTable(signal.name)
+      val symbolsSeen = new mutable.HashSet[String]()
+      val symbolsAtDepth = Array.fill(maxDepth + 1) {
+        new mutable.HashSet[Symbol]
+      }
+
+      symbolsSeen += signal.name
+      walkGraph(symbol, depth = 0)
+
+      def walkGraph(symbol: Symbol, depth: Int): Unit = {
+        symbolsAtDepth(depth) += symbol
+
+        if (depth < maxDepth) {
+          digraph.getEdges(symbol).toSeq.sortBy(_.name).foreach { childSymbol =>
+            walkGraph(childSymbol, depth + 1)
+
+            if (table.isRegister(symbol.name)) {
+              walkGraph(table(SymbolTable.makeRegisterInputName(symbol)), depth + 1)
+            }
+          }
+        }
+
+        val showDepth = symbolsAtDepth.count(_.nonEmpty)
+        for (depth <- 0 until showDepth) {
+          var added = 0
+
+          println(s"driving symbols at distance $depth")
+          symbolsAtDepth(depth).toSeq.map(_.name).filterNot(symbolsSeen.contains).sorted.foreach { signalName =>
+            dataModel.nameToSignal.get(signalName).foreach { drivingSignal =>
+              print(signalName)
+              added += 1
+              symbolsSeen += signalName
+              val otherNode = WaveFormNode(signalName, drivingSignal)
+              displayModel.addFromDirectoryToInspected(otherNode, mainWindow.signalSelector)
+            }
+          }
+          if (added > 0) println()
+        }
+      }
+    }
   }
 
   ///////////////////////////////////////////////////////////////////////////
