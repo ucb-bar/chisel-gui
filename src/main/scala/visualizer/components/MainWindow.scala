@@ -102,6 +102,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
   def saveSettings(file: File): Unit = {
     val writer = new PrintWriter(file)
 
+    writer.println(s"windowsize,${size.width},${size.height}")
     inspectionContainer.tree.cellValues.foreach {
       case waveFormNode: WaveFormNode =>
         waveFormNode.signal match {

@@ -1,5 +1,6 @@
 package visualizer
 
+import java.awt.Dimension
 import java.io.File
 
 import firrtl.FileUtils
@@ -110,6 +111,10 @@ object TreadleController extends SwingApplication with Publisher {
         FileUtils.getLines(fileNameGuess).foreach { line =>
           val fields = line.split(",").map(_.trim).toList
           fields match {
+            case "windowsize" :: widthString :: heightString :: Nil =>
+              val size = new Dimension(widthString.toInt, heightString.toInt)
+              mainWindow.size = size
+              mainWindow.preferredSize = size
             case "node" :: signalName :: formatName :: Nil =>
               dataModel.nameToSignal.get(signalName) match {
                 case Some(pureSignal: PureSignal) =>
