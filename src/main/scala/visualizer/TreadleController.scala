@@ -120,7 +120,13 @@ object TreadleController extends SwingApplication with Publisher {
                   }
                 case Some(combinedSignal: CombinedSignal) =>
               }
-            case "marker" :: time =>
+            case "marker" :: timeString :: Nil =>
+              try {
+                displayModel.addMarker("ad", timeString.toLong)
+              }
+              catch {
+                case _: Throwable =>
+              }
             case _ =>
               println(s"Invalid line $line in save file")
 
