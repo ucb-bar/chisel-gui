@@ -11,7 +11,7 @@ class InputControlPanel(dataModel: DataModel, displayModel: DisplayModel) extend
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  preferredSize = new Dimension(400, 700)
+  preferredSize = new Dimension(300, 700)
   val textArea: TextArea = new TextArea {
     editable = false
   }
@@ -46,7 +46,7 @@ class InputControlPanel(dataModel: DataModel, displayModel: DisplayModel) extend
         c
       }
 
-      TreadleController.tester match {
+      TreadleController.testerOpt match {
         case Some(tester) =>
           val symbolTable = tester.engine.symbolTable
           val clockNames = tester.clockStepper.clockAssigners.keys.map(_.name).toSet

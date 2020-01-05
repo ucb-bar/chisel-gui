@@ -10,7 +10,8 @@ import scala.swing._
 import scala.swing.event._
 import BorderPanel.Position.Center
 
-class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[InspectedNode]) extends BorderPanel {
+class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[GenericTreeNode])
+    extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -20,8 +21,8 @@ class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tr
 
   def computeBounds(): Unit = {
     preferredSize = new Dimension(125,
-                                  TreeHelper.viewableDepthFirstIterator(tree).size *
-                                    DrawMetrics.WaveformVerticalSpacing)
+      TreeHelper.viewableDepthFirstIterator(tree).size *
+        DrawMetrics.WaveformVerticalSpacing)
     revalidate()
   }
 
@@ -44,21 +45,21 @@ class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tr
   }
 }
 
-class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) extends Tree.Renderer[InspectedNode] {
+class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) extends Tree.Renderer[GenericTreeNode] {
   private var labelBaseLine = -1
   private var valueBaseLine = 0
   val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)
   val ValueFont = new Font("SansSerif", Font.PLAIN, 8)
 
   override def componentFor(
-    owner:    Tree[_],
-    value:    InspectedNode,
-    cellInfo: companion.CellInfo
-  ): Component = {
+                             owner: Tree[_],
+                             value: GenericTreeNode,
+                             cellInfo: companion.CellInfo
+                           ): Component = {
     new SignalNamePanel(value, cellInfo.isSelected)
   }
 
-  class SignalNamePanel(node: InspectedNode, isSelected: Boolean) extends BorderPanel {
+  class SignalNamePanel(node: GenericTreeNode, isSelected: Boolean) extends BorderPanel {
     peer.setOpaque(true)
     preferredSize = new Dimension(200, DrawMetrics.WaveformVerticalSpacing)
 
@@ -78,39 +79,8 @@ class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) exten
         valueBaseLine += border
       }
 
-      node.signal match {
-        case Some(signal) if signal.waveform.isDefined =>
-          // Background
-          if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)
-          g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing)
-
-          // Signal Name
-          g.setFont(SignalNameFont)
-          if (isSelected) g.setColor(Color.white) else g.setColor(Color.black)
-          g.drawString(node.name, 1, labelBaseLine)
-
-          // Value
-          g.setFont(ValueFont)
-          if (isSelected) g.setColor(Color.white) else g.setColor(Color.blue)
-          val value = signal.waveform.get.findTransition(displayModel.cursorPosition).next().value
-          val txt = signal match {
-            case _: PureSignal if value.asInstanceOf[BigInt] != null =>
-              displayModel.waveDisplaySettings(node.nodeId).dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
-            case _: CombinedSignal =>
-              val pair = value.asInstanceOf[Array[BigInt]]
-              if (pair != null) {
-                (pair(0).toInt, pair(1).toInt) match {
-                  case (0, 0) => "Not ready"
-                  case (1, 1) => "Ready"
-                  case _      => "Waiting"
-                }
-              } else {
-                ""
-              }
-            case _ => ""
-          }
-          g.drawString(txt, 1, valueBaseLine)
-        case _ =>
+      node match {
+        case _: DirectoryNode =>
           // Node is a group
           // Background
           if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)
@@ -120,6 +90,45 @@ class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) exten
           g.setFont(SignalNameFont) // TODO: Rename SignalNameFont
           if (isSelected) g.setColor(Color.white) else g.setColor(Color.black)
           g.drawString(node.name, 1, labelBaseLine)
+
+        case signalTreeNode: SignalTreeNode =>
+          dataModel.nameToSignal.get(node.name) match {
+            case Some(signal) if signal.waveform.isDefined =>
+              // Background
+              if (isSelected) g.setColor(Color.blue) else g.setColor(Color.white)
+              g.fillRect(0, 0, peer.getWidth, DrawMetrics.WaveformVerticalSpacing)
+
+              // Signal Name
+              g.setFont(SignalNameFont)
+              if (isSelected) g.setColor(Color.white) else g.setColor(Color.black)
+              g.drawString(node.name, 1, labelBaseLine)
+
+              // Value
+              g.setFont(ValueFont)
+              if (isSelected) g.setColor(Color.white) else g.setColor(Color.blue)
+              val value = signal.waveform.get.findTransition(displayModel.cursorPosition).next().value
+              val txt = signal match {
+                case pureSignal: PureSignal if value.asInstanceOf[BigInt] != null =>
+                  val setting = displayModel.waveDisplaySettings(pureSignal.name)
+                  setting.dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
+                case _: CombinedSignal =>
+                  val pair = value.asInstanceOf[Array[BigInt]]
+                  if (pair != null) {
+                    (pair(0).toInt, pair(1).toInt) match {
+                      case (0, 0) => "Not ready"
+                      case (1, 1) => "Ready"
+                      case _ => "Waiting"
+                    }
+                  } else {
+                    ""
+                  }
+                case _ => ""
+              }
+              g.drawString(txt, 1, valueBaseLine)
+            case None =>
+          }
+
+        case _ =>
       }
     }
   }

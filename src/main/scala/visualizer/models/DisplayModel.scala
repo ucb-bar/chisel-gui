@@ -8,19 +8,24 @@ import visualizer._
 
 import scala.collection.mutable
 
+/** This model describes the selected and organized nodes that
+  * have been selected to have their waveforms displayed
+  *
+  */
 class DisplayModel extends Publisher {
   // Maps nodeId to WaveDisplaySetting
-  val waveDisplaySettings: mutable.HashMap[Int, WaveDisplaySetting] = new mutable.HashMap[Int, WaveDisplaySetting]()
+  val waveDisplaySettings: mutable.HashMap[String, WaveDisplaySetting] =
+    new mutable.HashMap[String, WaveDisplaySetting]()
 
-  val RootPath:  Tree.Path[InspectedNode] = Tree.Path.empty[InspectedNode]
-  val treeModel: InternalTreeModel[InspectedNode] = InternalTreeModel.empty[InspectedNode]
+  val RootPath: Tree.Path[GenericTreeNode] = Tree.Path.empty[GenericTreeNode]
+  val treeModel: InternalTreeModel[GenericTreeNode] = InternalTreeModel.empty[GenericTreeNode]
 
-  var scale:             Double = 2
+  var scale: Double = 2
   var minorTickInterval: Long = 1
 
   var clkMinorTickInterval: Long = 1
-  var useClock:             Boolean = false
-  var clock:                Option[ClockInfo] = None
+  var useClock: Boolean = false
+  var clock: Option[ClockInfo] = None
 
   // initial/constructor
   setScale(10, null)
@@ -28,36 +33,33 @@ class DisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Helper Functions
   ///////////////////////////////////////////////////////////////////////////
-  def xCoordinateToTimestamp(x:         Int):  Long = (x / scale).toLong
+  def xCoordinateToTimestamp(x: Int): Long = (x / scale).toLong
+
   def timestampToXCoordinate(timestamp: Long): Int = (timestamp * scale).toInt
 
   ///////////////////////////////////////////////////////////////////////////
   // Signals
   ///////////////////////////////////////////////////////////////////////////
-  def addFromDirectoryToInspected(node: InspectedNode, source: Component): Unit = {
+  def addFromDirectoryToInspected(node: GenericTreeNode, source: Component): Unit = {
     val inspectedNode = node
     treeModel.insertUnder(RootPath, inspectedNode, treeModel.getChildrenOf(RootPath).size)
 
-    node.signal match {
-      case Some(_) => // Add Signal
-        waveDisplaySettings.get(inspectedNode.nodeId) match {
-          case None =>
-            waveDisplaySettings += inspectedNode.nodeId -> WaveDisplaySetting()
-          case _ =>
-        }
-      case None =>
+    node match {
+      case waveFormNode: WaveFormNode =>
+        waveDisplaySettings.getOrElseUpdate(waveFormNode.name, WaveDisplaySetting())
+      case _ =>
     }
     publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
   }
 
   def addGroup(): Unit = {
-    val node = InspectedNode("New Group", None)
+    val node = DirectoryNode("New Group")
     treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
   }
 
   // Removes all selected signals, selected groups, and children of selected groups
   // TODO: change type of paths?
-  def removeSelectedSignals(source: Component, paths: Iterator[Tree.Path[InspectedNode]]): Unit = {
+  def removeSelectedSignals(source: Component, paths: Iterator[Tree.Path[GenericTreeNode]]): Unit = {
     paths.foreach { path =>
       treeModel.remove(path)
     }
@@ -71,13 +73,15 @@ class DisplayModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Wave Display Format
   ///////////////////////////////////////////////////////////////////////////
-  def setWaveFormat(source: Component, nodes: Iterator[InspectedNode], format: Format): Unit = {
-    nodes.foreach { node =>
-      node.signal match {
-        case Some(_) =>
-          waveDisplaySettings(node.nodeId).dataFormat = Some(format)
-        case None =>
-      }
+  def setWaveFormat(source: Component, nodes: Iterator[GenericTreeNode], format: Format): Unit = {
+    nodes.foreach {
+      case node: WaveFormNode =>
+        node.signal match {
+          case _: PureSignal =>
+            waveDisplaySettings(node.name).dataFormat = Some(format)
+          case _ =>
+        }
+      case _ =>
     }
     publish(WaveFormatChanged(source))
   }
@@ -229,18 +233,40 @@ class DisplayModel extends Publisher {
   }
 }
 
-case class Marker(id:                      Int, var description:               String, timestamp: Long)
+case class Marker(id: Int, var description: String, timestamp: Long)
+
 case class WaveDisplaySetting(var painter: Option[Int] = None, var dataFormat: Option[Format] = None)
 
 // May want to consider size of the wire
 sealed trait Format {
   def apply(num: BigInt): String
 }
+
+object Format {
+  def serialize(format: Format): String = {
+    format.toString
+  }
+
+  def serialize(formatOpt: Option[Format]): String = {
+    if (formatOpt.isDefined) formatOpt.get.toString else "none"
+  }
+
+  def deserialize(string: String): Format = {
+    string match {
+      case "bin" => BinFormat
+      case "hex" => HexFormat
+      case "dec" => DecFormat
+      case _ => DecFormat
+    }
+  }
+}
+
 case object BinFormat extends Format {
   def apply(num: BigInt): String = {
     "0b" + num.toString(2)
   }
 }
+
 case object DecFormat extends Format {
   def apply(num: BigInt): String = {
     num.toString(10)

@@ -9,7 +9,7 @@ import javax.swing.tree.{DefaultMutableTreeNode, DefaultTreeModel}
 import scala.collection.mutable.ArrayBuffer
 
 //
-// Transfer handler to make tree rearrangeable
+// Transfer handler to make tree re-arrangeable
 //
 class TreeTransferHandler(displayModel: DisplayModel) extends TransferHandler {
   val mimeType: String = DataFlavor.javaJVMLocalObjectMimeType + ";class=\"" +
@@ -64,16 +64,27 @@ class TreeTransferHandler(displayModel: DisplayModel) extends TransferHandler {
     }
   }
 
+  /**
+    * directory nodes must be copied because their contents can change from selection panel to
+    * inspection panel
+    *
+    * @param node node to copy
+    * @return
+    */
   def copy(node: DefaultMutableTreeNode): DefaultMutableTreeNode = {
-    val originalInspectedNode = node.getUserObject.asInstanceOf[InspectedNode]
-    val copiedInspectedNode = originalInspectedNode.copy
-    originalInspectedNode.signal match {
-      case Some(_) =>
-        displayModel.waveDisplaySettings(copiedInspectedNode.nodeId) =
-          displayModel.waveDisplaySettings(originalInspectedNode.nodeId)
-      case None =>
+    val originalInspectedNode = node.getUserObject.asInstanceOf[GenericTreeNode]
+    val newNode = originalInspectedNode match {
+      case directoryNode: DirectoryNode => directoryNode.copy()
+      case otherNode => otherNode
     }
-    new DefaultMutableTreeNode(copiedInspectedNode)
+    //TODO remove commented code, settings are accessed by name so don't need to be copied
+    //    originalInspectedNode match {
+    //      case waveFormNode: WaveFormNode =>
+    //        displayModel.waveDisplaySettings(copiedInspectedNode.nodeId) =
+    //          displayModel.waveDisplaySettings(originalInspectedNode.nodeId)
+    //      case None =>
+    //    }
+    new DefaultMutableTreeNode(newNode)
   }
 
   override def exportDone(source: JComponent, data: Transferable, action: Int): Unit = {

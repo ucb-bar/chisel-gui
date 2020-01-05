@@ -1,8 +1,9 @@
 package visualizer.components
 
-import java.awt.Color
+import java.io.{File, PrintWriter}
 
 import javax.swing.BorderFactory
+import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 import treadle.executable.ClockInfo
 import visualizer.models._
 import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleController}
@@ -10,15 +11,22 @@ import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleCon
 import scala.swing.Swing._
 import scala.swing._
 
-class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainFrame {
+/** They main window of the application
+  *
+  * @param dataModel    Source of data
+  * @param displayModel Source of things selected for waveform view
+  */
+class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayModel: DisplayModel) extends MainFrame {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  val signalSelector = new SignalSelector(dataModel, displayModel)
+  val signalSelector = new SignalSelector(dataModel, selectionModel, displayModel)
   val inspectionContainer = new InspectionContainer(dataModel, displayModel)
   val dependencyComponent = new DependencyComponent(dataModel, displayModel)
   val inputControlPanel = new InputControlPanel(dataModel, displayModel)
+
+  peer.setDefaultCloseOperation(DISPOSE_ON_CLOSE)
 
   private val toolbar = new ToolBar() {
     peer.setFloatable(false)
@@ -54,9 +62,70 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
 
   title = "Chisel Visualizer"
   menuBar = new MenuBar {
-    contents += new Menu("File")
+    contents += new Menu("File") {
+      contents += new MenuItem(Action("Save") {
+        val chooser = new FileChooser(new File("."))
+        val suggestedName = TreadleController.testerOpt.get.topName + ".save"
+        chooser.selectedFile = new File(suggestedName)
+
+        val result = chooser.showSaveDialog(this)
+        if (result == FileChooser.Result.Approve) {
+          val saveFile = chooser.selectedFile
+          saveSettings(saveFile)
+        }
+      })
+      contents += new Separator()
+      contents += new MenuItem(Action("Quit") {
+        doQuit()
+      })
+    }
   }
+
+  //TODO this does not seem to handle Command-Q as was hoped
+  override def closeOperation(): Unit = {
+    doQuit()
+  }
+
+  def doQuit(): Unit = {
+    println("Done")
+
+    TreadleController.testerOpt match {
+      case Some(tester) =>
+        tester.finish
+      case _ =>
+    }
+    this.close()
+    super.closeOperation()
+    System.exit(0)
+  }
+
+  def saveSettings(file: File): Unit = {
+    val writer = new PrintWriter(file)
+
+    writer.println(s"windowsize,${size.width},${size.height}")
+    inspectionContainer.tree.cellValues.foreach {
+      case waveFormNode: WaveFormNode =>
+        waveFormNode.signal match {
+          case _: PureSignal =>
+            displayModel.waveDisplaySettings.get(waveFormNode.name) match {
+              case Some(waveDisplaySetting: WaveDisplaySetting) =>
+                val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
+                writer.println(s"node,${waveFormNode.name},$dataFormat")
+              case _ =>
+            }
+          case _ =>
+        }
+    }
+
+    displayModel.markers.foreach { marker =>
+      writer.println(s"marker,${marker.timestamp}")
+    }
+
+    writer.close()
+  }
+
   contents = new BorderPanel {
+
     import BorderPanel.Position._
 
     preferredSize = (1000, 800)
@@ -85,11 +154,11 @@ class MainWindow(dataModel: DataModel, displayModel: DisplayModel) extends MainF
     listenTo(dataModel)
     reactions += {
       case e: DependencyComponentRequested =>
-        dependencyComponent.textComponent.text = TreadleController.tester match {
+        dependencyComponent.textComponent.text = TreadleController.testerOpt match {
           case Some(t) => t.dependencyInfo(e.pureSignalName)
-          case None    => ""
+          case None => ""
         }
-      case e: MaxTimestampChanged =>
+      case _: MaxTimestampChanged =>
         inspectionContainer.zoomToEnd(this)
     }
   }

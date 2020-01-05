@@ -5,48 +5,48 @@ import javax.swing.tree.DefaultMutableTreeNode
 import scalaswingcontrib.tree.Tree.Path
 import scalaswingcontrib.tree.{Tree, TreeModel}
 
+import scala.collection.mutable
+
 // Nodes with no signal are groups if InspectedNode, or modules if DirectoryNode
-class InspectedNode(val nodeId: Int, val name: String, val signal: Option[Signal[_ <: Any]]) {
-  def copy: InspectedNode = {
-    InspectedNode(name, signal)
-  }
+
+trait GenericTreeNode {
+  def name: String
 }
 
-object InspectedNode {
-  private var nodeId = 0
+trait SignalTreeNode extends GenericTreeNode {
+  def name: String
 
-  def apply(name: String, signal: Option[Signal[_ <: Any]]): InspectedNode = {
-    nodeId += 1
-    new InspectedNode(nodeId, name, signal)
-  }
+  def signal: Signal[_]
 }
 
-case class DirectoryNode(name: String, signal: Option[Signal[_ <: Any]]) {
-  def toInspected: InspectedNode = {
-    InspectedNode(name, signal)
-  }
+case class WaveFormNode(name: String, signal: Signal[_]) extends SignalTreeNode
+
+case class DirectoryNode(name: String) extends GenericTreeNode {
+  val children: mutable.ArrayBuffer[GenericTreeNode] = new mutable.ArrayBuffer()
 }
 
 object TreeHelper {
-  def viewableDepthFirstIterator(tree: Tree[InspectedNode]): Iterator[InspectedNode] = new Iterator[InspectedNode] {
-    val treeModel: TreeModel[InspectedNode] = tree.model
-    var openNodes: Iterator[Path[InspectedNode]] = treeModel.roots.map(Path(_)).iterator
+  def viewableDepthFirstIterator(tree: Tree[GenericTreeNode]): Iterator[GenericTreeNode] =
+    new Iterator[GenericTreeNode] {
+      val treeModel: TreeModel[GenericTreeNode] = tree.model
+      var openNodes: Iterator[Path[GenericTreeNode]] = treeModel.roots.map(Path(_)).iterator
 
-    def hasNext: Boolean = openNodes.nonEmpty
-    def next(): InspectedNode =
-      if (openNodes.hasNext) {
-        val path = openNodes.next()
-        pushChildren(path)
-        path.last
-      } else throw new NoSuchElementException("No more items")
+      def hasNext: Boolean = openNodes.nonEmpty
 
-    def pushChildren(path: Path[InspectedNode]): Unit = {
-      if (tree.isExpanded(path)) {
-        val open = openNodes
-        openNodes = treeModel.getChildPathsOf(path).toIterator ++ open
+      def next(): GenericTreeNode =
+        if (openNodes.hasNext) {
+          val path = openNodes.next()
+          pushChildren(path)
+          path.last
+        } else throw new NoSuchElementException("No more items")
+
+      def pushChildren(path: Path[GenericTreeNode]): Unit = {
+        if (tree.isExpanded(path)) {
+          val open = openNodes
+          openNodes = treeModel.getChildPathsOf(path).toIterator ++ open
+        }
       }
     }
-  }
 
   def hasCompleteNode(tree: JTree): Boolean = {
     val selRows = tree.getSelectionRows

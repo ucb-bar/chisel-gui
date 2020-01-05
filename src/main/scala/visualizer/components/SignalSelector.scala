@@ -1,71 +1,103 @@
 package visualizer.components
 
-import javafx.scene.control.ToggleButton
-import javax.swing.{BorderFactory, Icon, ImageIcon}
+import javax.swing.BorderFactory
 import javax.swing.tree.TreePath
 import scalaswingcontrib.event.TreeNodesInserted
 import scalaswingcontrib.tree.Tree
+import visualizer.DrawMetrics
 import visualizer.models._
 
-import scala.swing.BorderPanel.Position.North
 import scala.swing._
-import scala.swing.event.{ButtonClicked, MouseClicked}
+import scala.swing.event._
 
 /**
   * Offers all signals in the design to be selected for viewing in
-  * wave form viewer
+  * wave form viewer.
+  * Moves signals to the [[SignalComponent]]
+  *
   * @param dataModel    underlying data model
   * @param displayModel underlying displayModel
   */
 class SignalSelector(
-  dataModel:    DataModel,
-  displayModel: DisplayModel
-) extends BoxPanel(Orientation.Vertical) {
-
-  val me: SignalSelector = this
+                      dataModel: DataModel,
+                      selectionModel: SelectionModel,
+                      displayModel: DisplayModel
+                    ) extends BoxPanel(Orientation.Vertical) {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  val tree: Tree[DirectoryNode] = new Tree[DirectoryNode] {
-    model = dataModel.directoryTreeModel
+  val tree: Tree[GenericTreeNode] = new Tree[GenericTreeNode] {
+    model = selectionModel.directoryTreeModel
     renderer = Tree.Renderer(_.name)
     showsRootHandles = true
 
     listenTo(mouse.clicks)
+    listenTo(keys)
+
     reactions += {
+      case KeyReleased(_, key, _, _) =>
+        if (key == Key.Enter) {
+          addSelectedToInspection()
+        }
       case m: MouseClicked =>
         if (m.clicks == 1) {
           println(s"Got mouse click in tree ${m.clicks}")
         } else if (m.clicks == 2) {
           println(s"mouse double clicked in tree ${m.clicks}")
-          selection.cellValues.foreach { node =>
-            displayModel.addFromDirectoryToInspected(node.toInspected, this)
+          selection.cellValues.foreach {
+            case directoryNode: DirectoryNode =>
+              //TODO: This will not bring along the children, should it?
+              displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
+            case otherNode =>
+              displayModel.addFromDirectoryToInspected(otherNode, this)
           }
         }
     }
   }
 
+  def updateModel(): Unit = {
+    tree.model = selectionModel.directoryTreeModel
+  }
+
+  def addSelectedToInspection(): Unit = {
+    tree.selection.cellValues.foreach {
+      case directoryNode: DirectoryNode =>
+        displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
+      case otherNode =>
+        displayModel.addFromDirectoryToInspected(otherNode, this)
+    }
+  }
+
+  class ToggleButton(name: String) extends Button(name) {
+    var pushed = false
+
+    def pushAction(thunk: => Unit): Unit = {
+      pushed = !pushed
+      peer.setForeground(
+        if (pushed) {
+          DrawMetrics.toggleSelectedBg
+        } else {
+          DrawMetrics.toggleUnselectedBg
+        }
+      )
+      thunk
+    }
+  }
+
+  val showTempSignalsButton = new ToggleButton("_T")
+  val showGenSignalsButton = new ToggleButton("_Gen")
+
+  val signalPatternText = new TextField("")
+  signalPatternText.preferredSize = new Dimension(100, 20)
+  signalPatternText.peer.setMaximumSize(signalPatternText.peer.getPreferredSize)
+
   private val toolBar = new ToolBar() {
     peer.setFloatable(false)
 
-    val r = me.getClass.getResource("/images/ShowTemps.png")
-    val icon = new ImageIcon(r)
-    val r2 = me.getClass.getResource("/images/ShowTemps.png")
-    val icon2 = new ImageIcon(r)
-//    val tb = new ToggleButton
-//    tb.
-//    tb.icon = icon
-
-    val toggleButton1 = new Button("Hide _T") {
-      if (text.startsWith("Hide")) { text = "Show _T" } else { text = "Hide _T" }
-    }
-    val toggleButton2 = new Button("Hide _GEN") {
-      if (text.startsWith("Hide")) { text = "Show _GEN" } else { text = "Hide _GEN" }
-    }
-
-    contents += toggleButton1
-    contents += toggleButton2
+    contents += showTempSignalsButton
+    contents += showGenSignalsButton
+    contents += signalPatternText
   }
 
   contents += toolBar
@@ -75,31 +107,73 @@ class SignalSelector(
     border = BorderFactory.createEmptyBorder()
   }
   contents += symbolList
-  contents += addSymbolsButton
+
+  private val lowerToolbar = new ToolBar {
+    peer.setFloatable(false)
+
+    contents += addSymbolsButton
+    contents += Swing.Glue
+  }
+
+  contents += lowerToolbar
 
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
   listenTo(addSymbolsButton)
+  listenTo(showTempSignalsButton)
+  listenTo(showGenSignalsButton)
+  listenTo(addSymbolsButton)
+  listenTo(signalPatternText)
   listenTo(tree)
   listenTo(mouse.clicks)
+
   reactions += {
-    case m: MouseClicked =>
-      if (m.clicks == 1) {
-        println(s"Got mouse click in DirectoryComponent ${m.clicks}")
-      } else if (m.clicks == 2) {
-        println(s"mouse double clicked in DirectoryComponent ${m.clicks}")
-        tree.selection.cellValues.foreach { node =>
-          displayModel.addFromDirectoryToInspected(node.toInspected, this)
-        }
-      }
+    //TODO remove commented code, appears to be wrestling with mouse click listener above
+    //    case m: MouseClicked =>
+    //      if (m.clicks == 1) {
+    //        println(s"Got mouse click in DirectoryComponent ${m.clicks}")
+    //      } else if (m.clicks == 2) {
+    //        println(s"mouse double clicked in DirectoryComponent ${m.clicks}")
+    //        tree.selection.cellValues.foreach { node =>
+    //          displayModel.addFromDirectoryToInspected(node.toInspected, this)
+    //        }
+    //      }
+
     case ButtonClicked(`addSymbolsButton`) =>
-      tree.selection.cellValues.foreach { node =>
-        displayModel.addFromDirectoryToInspected(node.toInspected, this)
+      addSelectedToInspection()
+
+    case ButtonClicked(`showTempSignalsButton`) =>
+      showTempSignalsButton.pushAction {
+        selectionModel.dataModelFilter = selectionModel.dataModelFilter.copy(
+          showTempVariables = showTempSignalsButton.pushed
+        )
+        selectionModel.updateTreeModel()
+        tree.model = selectionModel.directoryTreeModel
       }
+
+    case ButtonClicked(`showGenSignalsButton`) =>
+      showGenSignalsButton.pushAction {
+        selectionModel.dataModelFilter = selectionModel.dataModelFilter.copy(
+          showGenVariables = showGenSignalsButton.pushed
+        )
+        selectionModel.updateTreeModel()
+        tree.model = selectionModel.directoryTreeModel
+      }
+
+    case EditDone(`signalPatternText`) =>
+      selectionModel.dataModelFilter = selectionModel.dataModelFilter.copy(
+        pattern = signalPatternText.text
+      )
+      selectionModel.updateTreeModel()
+      tree.model = selectionModel.directoryTreeModel
+
     case e: TreeNodesInserted[_] =>
-      if (dataModel.directoryTreeModel.size == e.childIndices.length) {
-        tree.peer.expandPath(new TreePath(dataModel.directoryTreeModel.peer.getRoot))
+      if (selectionModel.directoryTreeModel.size == e.childIndices.length) {
+        tree.peer.expandPath(new TreePath(selectionModel.directoryTreeModel.peer.getRoot))
       }
   }
+
+  focusable = true
+  requestFocus()
 }
