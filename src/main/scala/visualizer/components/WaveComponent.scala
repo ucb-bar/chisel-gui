@@ -29,6 +29,7 @@ class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree
 
     // Draw waveforms
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach {
+      case (node: DirectoryNode, row) =>
       case (node: SignalTreeNode, row) =>
         val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
         node.signal match {

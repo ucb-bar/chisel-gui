@@ -3,7 +3,7 @@ package visualizer
 import java.awt.Dimension
 import java.io.File
 
-import firrtl.FileUtils
+import firrtl.{FileUtils, InstanceKind}
 import firrtl.ir.ClockType
 import firrtl.stage.FirrtlSourceAnnotation
 import treadle.executable.{Symbol, SymbolTable}
@@ -41,7 +41,7 @@ object TreadleController extends SwingApplication with Publisher {
             dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
           case _ =>
         }
-        setupWaveforms(testerOpt.get)
+        populateWaveForms(testerOpt.get)
         selectionModel.updateTreeModel()
         loadSaveFileOnStartUp()
         mainWindow.signalSelector.updateModel()
@@ -49,14 +49,14 @@ object TreadleController extends SwingApplication with Publisher {
       case firrtlFileName :: Nil =>
         val firrtlString = FileUtils.getText(firrtlFileName)
         setupTreadle(firrtlString)
-        setupWaveforms(testerOpt.get)
+        populateWaveForms(testerOpt.get)
         selectionModel.updateTreeModel()
         loadSaveFileOnStartUp()
         mainWindow.signalSelector.updateModel()
 
       case Nil =>
         hackySetup()
-        setupWaveforms(testerOpt.get)
+        populateWaveForms(testerOpt.get)
         selectionModel.updateTreeModel()
         mainWindow.signalSelector.updateModel()
 
@@ -124,12 +124,12 @@ object TreadleController extends SwingApplication with Publisher {
                     WaveDisplaySetting(None, Some(Format.deserialize(formatName)))
                   }
                 case Some(combinedSignal: CombinedSignal) =>
+                case _ =>
               }
             case "marker" :: timeString :: Nil =>
               try {
                 displayModel.addMarker("ad", timeString.toLong)
-              }
-              catch {
+              } catch {
                 case _: Throwable =>
               }
             case _ =>
@@ -180,8 +180,9 @@ object TreadleController extends SwingApplication with Publisher {
 
   def setupSignals(tester: TreadleTester): Unit = {
     tester.engine.symbolTable.nameToSymbol.foreach {
-      case (name, symbol) =>
+      case (name, symbol) if symbol.dataKind != InstanceKind =>
         if (!name.contains("/")) {
+          println(s"Adding: $name")
           val sortGroup = Util.sortGroup(name, tester)
           val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
           arrayBuffer += Transition(0L, BigInt(0))
@@ -189,11 +190,13 @@ object TreadleController extends SwingApplication with Publisher {
 
           dataModel.addSignal(name, signal)
         }
+      case _ =>
     }
+    println("signals loaded")
     selectionModel.updateTreeModel()
   }
 
-  def setupWaveforms(t: TreadleTester): Unit = {
+  def populateWaveForms(t: TreadleTester): Unit = {
     t.engine.vcdOption match {
       case Some(vcd) =>
         Util.vcdToTransitions(vcd, initializing = true).foreach {
@@ -206,7 +209,8 @@ object TreadleController extends SwingApplication with Publisher {
               case _ =>
             }
         }
-        dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
+        val newMaxTimestamp = if (vcd.valuesAtTime.nonEmpty) vcd.valuesAtTime.keys.max else 0L
+        dataModel.setMaxTimestamp(newMaxTimestamp)
       case _ =>
     }
 
@@ -293,7 +297,7 @@ object TreadleController extends SwingApplication with Publisher {
     val treadleTester = loadFirrtl(firrtlString)
     setupClock(treadleTester)
     runSomeTreadle(treadleTester)
-    setupWaveforms(treadleTester)
+    populateWaveForms(treadleTester)
 
     val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
     val signalReady = new PureSignal("ready", None, Some(waveformReady), 0)

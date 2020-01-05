@@ -23,7 +23,14 @@ class SelectionModel extends Publisher {
   var dataModelFilter: SelectionModelFilter = SelectionModelFilter()
 
   def insertUnderSorted(parentPath: Path[GenericTreeNode], newValue: GenericTreeNode): Boolean = {
-    val children = directoryTreeModel.getChildrenOf(parentPath)
+    val children = try {
+      directoryTreeModel.getChildrenOf(parentPath)
+    } catch {
+      case t: Throwable =>
+        println(s"got a problem inserting $newValue into $parentPath")
+        throw t
+    }
+    var dup = false
 
     @tailrec def search(low: Int = 0, high: Int = children.length - 1): Int = {
       if (high <= low) {
@@ -34,13 +41,16 @@ class SelectionModel extends Publisher {
           case i if i > 0 => search(mid + 1, high)
           case i if i < 0 => search(low, mid - 1)
           case _ =>
-            throw new Exception("Duplicate node cannot be added to the directory tree model")
+            //            throw new Exception("Duplicate node cannot be added to the directory tree model")
+            dup = true
+            0
         }
       }
     }
 
     val index = if (children.isEmpty) 0 else search()
-    directoryTreeModel.insertUnder(parentPath, newValue, index)
+    if (!dup) directoryTreeModel.insertUnder(parentPath, newValue, index)
+    !dup
   }
 
   def addSignalToSelectionList(fullName: String, signal: Signal[_ <: Any]): Unit = {
@@ -49,21 +59,17 @@ class SelectionModel extends Publisher {
     val signalName = fullPath.last
     val modules = fullPath.init
 
-    if (dataModelFilter.patternRegex.findFirstIn(fullName).isDefined) {
-      if (!(signalName.endsWith("_T") || signalName.contains("_T_")) || dataModelFilter.showTempVariables) {
-        if (!(signalName.endsWith("_GEN") || signalName.contains("_GEN_")) || dataModelFilter.showGenVariables) {
-          val parentPath = modules.foldLeft(RootPath) { (parentPath, module) =>
-            val node = WaveFormNode(module, signal)
-            val children = directoryTreeModel.getChildrenOf(parentPath)
-            if (!children.contains(node)) {
-              insertUnderSorted(parentPath, node)
-            }
-            parentPath :+ node
-          }
-          val node = WaveFormNode(signalName, signal)
+    if (dataModelFilter.allow(fullPath)) {
+      val parentPath = modules.foldLeft(RootPath) { (parentPath, module) =>
+        val node = DirectoryNode(module)
+        val children = directoryTreeModel.getChildrenOf(parentPath)
+        if (!children.contains(node)) {
           insertUnderSorted(parentPath, node)
         }
+        parentPath :+ node
       }
+      val node = WaveFormNode(signalName, signal)
+      insertUnderSorted(parentPath, node)
     }
   }
 
@@ -94,6 +100,9 @@ object DirectoryNodeOrdering extends Ordering[GenericTreeNode] {
     //        }
     //      case _ => x.name.toLowerCase.compareTo(y.name.toLowerCase)
     //    }
+    if (x.name.toLowerCase.compareTo(y.name.toLowerCase) == 0) {
+      println(s"dup $x $y")
+    }
     x.name.toLowerCase.compareTo(y.name.toLowerCase)
   }
 }
@@ -112,4 +121,17 @@ case class SelectionModelFilter(
                                  pattern: String = ".*"
                                ) {
   val patternRegex: Regex = pattern.r
+
+  def allow(s: String): Boolean = {
+    val isAllowed = {
+      patternRegex.findFirstIn(s).isDefined &&
+        (!(s.endsWith("_T") || s.contains("_T_")) || showTempVariables) &&
+        (!(s.endsWith("_GEN") || s.contains("_GEN_")) || showGenVariables)
+    }
+    isAllowed
+  }
+
+  def allow(sList: Seq[String]): Boolean = {
+    sList.forall(allow)
+  }
 }

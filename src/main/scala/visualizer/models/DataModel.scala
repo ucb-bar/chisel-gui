@@ -57,7 +57,7 @@ class DataModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Timescale and Max Timestamp
   ///////////////////////////////////////////////////////////////////////////
-  var maxTimestamp: Long = 0
+  var maxTimestamp: Long = 0L
 
   def setMaxTimestamp(value: Long): Unit = {
     if (value > maxTimestamp) {
