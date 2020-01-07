@@ -20,7 +20,7 @@ import scala.util.matching.Regex
   * @param dataModel    underlying data model
   * @param displayModel model used by tree to describe selected signals
   */
-class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) extends BorderPanel {
+class SignalAndWavePanel(dataModel: DataModel, displayModel: DisplayModel) extends BorderPanel {
 
   val SourceInfoPattern: Regex = """([^ ]*) (\d*).*""".r
 
@@ -71,17 +71,62 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
   }
 
   val tree: Tree[GenericTreeNode] = new Tree[GenericTreeNode] {
+
     model = displayModel.treeModel
-    renderer = new SignalNameRenderer(dataModel, displayModel)
+    //TODO: Remove thie following commented line at some point
+    //      the old way was more awkward and relied on us to do more tree rendereing.
+    //    renderer = new SignalNameRenderer(dataModel, displayModel)  // THIS THE OLD WAY
+    renderer = Tree.Renderer(show)
     showsRootHandles = true
+
+    def show(a: GenericTreeNode): String = {
+      val s = a match {
+        case _: DirectoryNode =>
+          a.name
+        case signalTreeNode: SignalTreeNode =>
+          dataModel.nameToSignal.get(signalTreeNode.name) match {
+            case Some(signal) if signal.waveform.isDefined =>
+              val value = signal.waveform.get.findTransition(displayModel.cursorPosition).next().value
+              val txt = signal match {
+                case pureSignal: PureSignal if value.asInstanceOf[BigInt] != null =>
+                  displayModel.waveDisplaySettings.get(pureSignal.name) match {
+                    case Some(setting) =>
+                      setting.dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
+                    case _ =>
+                      value.asInstanceOf[BigInt]
+                  }
+                case _: CombinedSignal =>
+                  val pair = value.asInstanceOf[Array[BigInt]]
+                  if (pair != null) {
+                    (pair(0).toInt, pair(1).toInt) match {
+                      case (0, 0) => ":Not ready"
+                      case (1, 1) => ":Ready"
+                      case _ => ":Waiting"
+                    }
+                  } else {
+                    ""
+                  }
+                case _ => ""
+              }
+              s"${a.name} = $txt"
+            case _ =>
+              a.name
+          }
+        case _ =>
+          a.name
+      }
+      // The 50 is kind of ugly but it forces the underlying JLabel to be bigger so it doesn't go to ellipses
+      // There is, no doubt, a better way to do this
+      s + " " * 50
+    }
 
     protected val expansionListener: TreeExpansionListener = new TreeExpansionListener {
       override def treeExpanded(event: TreeExpansionEvent): Unit = {
-        publish(SignalsChanged(InspectionContainer.this.tree))
+        publish(SignalsChanged(SignalAndWavePanel.this.tree))
       }
 
       override def treeCollapsed(event: TreeExpansionEvent): Unit = {
-        publish(SignalsChanged(InspectionContainer.this.tree))
+        publish(SignalsChanged(SignalAndWavePanel.this.tree))
       }
     }
 
@@ -156,19 +201,22 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
   preferredSize = new Dimension(500, 700)
 
   val timelineComponent = new TimelineComponent(dataModel, displayModel)
-  val waveComponent = new WaveComponent(dataModel, displayModel, tree)
-  val signalComponent = new SignalComponent(dataModel, displayModel, tree)
+  val wavePanel = new WavePanel(dataModel, displayModel, tree)
+  val selectedSignalPanel = new SelectedSignalPanel(dataModel, displayModel, tree)
 
-  val signalScrollPane: ScrollPane = new ScrollPane(signalComponent) {
+  val signalScrollPane: ScrollPane = new ScrollPane(selectedSignalPanel) {
     minimumSize = new Dimension(150, 300)
+    preferredSize = new Dimension(150, 300)
+
     border = BorderFactory.createEmptyBorder()
 
     verticalScrollBar.unitIncrement = 16
+    horizontalScrollBar.unitIncrement = 16
 
     // prevents apple trackpad jittering
     horizontalScrollBarPolicy = ScrollPane.BarPolicy.Always
   }
-  val waveScrollPane: ScrollPane = new ScrollPane(waveComponent) {
+  val waveScrollPane: ScrollPane = new ScrollPane(wavePanel) {
     preferredSize = new Dimension(550, 700)
     horizontalScrollBar.unitIncrement = 16
     verticalScrollBar.unitIncrement = 16
@@ -196,15 +244,15 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
   // Controller
   ///////////////////////////////////////////////////////////////////////////
   def setScaleKeepCentered(newScale: Double, source: Component): Unit = {
-    val oldVisibleRect = waveComponent.peer.getVisibleRect
+    val oldVisibleRect = wavePanel.peer.getVisibleRect
     val centerTimestamp = ((oldVisibleRect.x + oldVisibleRect.width / 2) / displayModel.scale).toLong
 
     displayModel.setScale(newScale, source)
 
     val centerX = (centerTimestamp * newScale).toInt
-    val newVisibleRect = waveComponent.peer.getVisibleRect
+    val newVisibleRect = wavePanel.peer.getVisibleRect
     newVisibleRect.x = centerX - newVisibleRect.width / 2
-    waveComponent.peer.scrollRectToVisible(newVisibleRect)
+    wavePanel.peer.scrollRectToVisible(newVisibleRect)
   }
 
   def zoomIn(source: Component): Unit = {
@@ -220,7 +268,7 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
     * @param source component to scroll
     */
   def zoomToEnd(source: Component): Unit = {
-    val oldVisibleRect = waveComponent.peer.getVisibleRect
+    val oldVisibleRect = wavePanel.peer.getVisibleRect
     val maxTimestamp = dataModel.maxTimestamp
 
     val clockTickWidth = oldVisibleRect.width / displayModel.scale
@@ -231,9 +279,9 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
 
     val centerX = (centerTimestamp * displayModel.scale).toInt
 
-    val newVisibleRect = waveComponent.peer.getVisibleRect
+    val newVisibleRect = wavePanel.peer.getVisibleRect
     newVisibleRect.x = centerX - newVisibleRect.width / 2
-    waveComponent.peer.scrollRectToVisible(newVisibleRect)
+    wavePanel.peer.scrollRectToVisible(newVisibleRect)
   }
 
   def removeSignals(source: Component): Unit = {
@@ -241,11 +289,11 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
   }
 
   def goToEnd(source: Component, steps: Int): Unit = {
-    val oldVisibleRect = waveComponent.peer.getVisibleRect
+    val oldVisibleRect = wavePanel.peer.getVisibleRect
 
-    val newVisibleRect = waveComponent.peer.getVisibleRect
+    val newVisibleRect = wavePanel.peer.getVisibleRect
     newVisibleRect.x = (oldVisibleRect.x + steps / displayModel.scale).toInt
 
-    waveComponent.peer.scrollRectToVisible(newVisibleRect)
+    wavePanel.peer.scrollRectToVisible(newVisibleRect)
   }
 }

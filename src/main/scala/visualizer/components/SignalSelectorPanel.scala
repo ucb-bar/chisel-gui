@@ -13,16 +13,16 @@ import scala.swing.event._
 /**
   * Offers all signals in the design to be selected for viewing in
   * wave form viewer.
-  * Moves signals to the [[SignalComponent]]
+  * Moves signals to the [[SelectedSignalPanel]]
   *
   * @param dataModel    underlying data model
   * @param displayModel underlying displayModel
   */
-class SignalSelector(
-                      dataModel: DataModel,
-                      selectionModel: SelectionModel,
-                      displayModel: DisplayModel
-                    ) extends BoxPanel(Orientation.Vertical) {
+class SignalSelectorPanel(
+                           dataModel: DataModel,
+                           selectionModel: SelectionModel,
+                           displayModel: DisplayModel
+                         ) extends BoxPanel(Orientation.Vertical) {
 
   ///////////////////////////////////////////////////////////////////////////
   // View

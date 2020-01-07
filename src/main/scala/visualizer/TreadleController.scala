@@ -65,7 +65,7 @@ object TreadleController extends SwingApplication with Publisher {
     populateWaveForms()
     selectionModel.updateTreeModel()
     loadSaveFileOnStartUp()
-    mainWindow.signalSelector.updateModel()
+    mainWindow.signalSelectorPanel.updateModel()
   }
 
   def seedFromVcd(vcd: treadle.vcd.VCD, stopAtTime: Long = Long.MaxValue): Unit = {
@@ -121,7 +121,7 @@ object TreadleController extends SwingApplication with Publisher {
               dataModel.nameToSignal.get(signalName) match {
                 case Some(pureSignal: PureSignal) =>
                   val node = WaveFormNode(signalName, pureSignal)
-                  displayModel.addFromDirectoryToInspected(node, mainWindow.signalSelector)
+                  displayModel.addFromDirectoryToInspected(node, mainWindow.signalSelectorPanel)
                   displayModel.waveDisplaySettings(signalName) = {
                     WaveDisplaySetting(None, Some(Format.deserialize(formatName)))
                   }
@@ -295,7 +295,7 @@ object TreadleController extends SwingApplication with Publisher {
               added += 1
               symbolsSeen += signalName
               val otherNode = WaveFormNode(signalName, drivingSignal)
-              displayModel.addFromDirectoryToInspected(otherNode, mainWindow.signalSelector)
+              displayModel.addFromDirectoryToInspected(otherNode, mainWindow.signalSelectorPanel)
             }
           }
           if (added > 0) println()

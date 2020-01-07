@@ -11,7 +11,7 @@ import BorderPanel.Position._
   * @param dataModel    Source of data
   * @param displayModel Source of things selected for waveform view
   */
-class DependencyComponent(dataModel: DataModel, displayModel: DisplayModel) extends BorderPanel {
+class ShowDependenciesPanel(dataModel: DataModel, displayModel: DisplayModel) extends BorderPanel {
   preferredSize = new Dimension(1000, 100)
   val textComponent: TextArea = new TextArea {
     editable = false
