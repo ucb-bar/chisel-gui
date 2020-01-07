@@ -11,7 +11,7 @@ import treadle.vcd.VCD
 import treadle.{TreadleTester, WriteVcdAnnotation}
 import visualizer.components.MainWindow
 import visualizer.models._
-import visualizer.stage.{ChiselGuiCli, VcdFile}
+import visualizer.stage.{ChiselGuiCli, ChiselSourcePaths, VcdFile}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -27,18 +27,27 @@ object TreadleController extends SwingApplication with Publisher {
   val selectionModel = new SelectionModel
   val displayModel = new DisplayModel
 
+  val sourceInfoMap: mutable.HashMap[String, String] = new mutable.HashMap()
+
   lazy val mainWindow = new MainWindow(dataModel, selectionModel, displayModel)
 
   override def startup(args: Array[String]): Unit = {
     val startAnnotations = shell.parse(args)
 
-    println(startAnnotations)
     if (mainWindow.size == new Dimension(0, 0)) mainWindow.pack()
     mainWindow.visible = true
 
     val firrtlFileNameOpt = startAnnotations.collectFirst { case a: ProgramArgsAnnotation => a.arg }
 
     val vcdFileNameOpt = startAnnotations.collectFirst { case a: VcdFile => a.vcdFileName }
+
+    startAnnotations.collectFirst { case pathAnnotation: ChiselSourcePaths => pathAnnotation.paths }.foreach { paths =>
+      paths.foreach { path =>
+        SourceFinder.walk(path).foreach { scalaPath =>
+          sourceInfoMap(scalaPath.getName) = scalaPath.getAbsolutePath
+        }
+      }
+    }
 
     (firrtlFileNameOpt, vcdFileNameOpt) match {
       case (Some(firrtlFileName), Some(vcdFile)) =>
@@ -116,7 +125,7 @@ object TreadleController extends SwingApplication with Publisher {
                   displayModel.waveDisplaySettings(signalName) = {
                     WaveDisplaySetting(None, Some(Format.deserialize(formatName)))
                   }
-                case Some(combinedSignal: CombinedSignal) =>
+                case Some(_: CombinedSignal) =>
                 case _ =>
               }
             case "marker" :: timeString :: Nil =>
@@ -197,7 +206,6 @@ object TreadleController extends SwingApplication with Publisher {
       tester.engine.symbolTable.nameToSymbol.foreach {
         case (name, symbol) if symbol.dataKind != InstanceKind && symbol.dataKind != MemKind =>
           if (!name.contains("/")) {
-            println(s"Adding: $name")
             val sortGroup = Util.sortGroup(name, testerOpt)
             val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
             arrayBuffer += Transition(0L, BigInt(0))
@@ -215,7 +223,6 @@ object TreadleController extends SwingApplication with Publisher {
   def setupSignalsFromVcd(vcd: VCD): Unit = {
     vcd.wires.values.foreach { wire =>
       val name = wire.fullName
-      println(s"Adding: $name")
       val sortGroup = Util.sortGroup(name, testerOpt)
       val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
       arrayBuffer += Transition(0L, BigInt(0))
@@ -234,7 +241,7 @@ object TreadleController extends SwingApplication with Publisher {
             dataModel.nameToSignal.get(fullName) match {
               case Some(pureSignal: PureSignal) =>
                 pureSignal.addNewValues(transitions)
-              case Some(combinedSignal: CombinedSignal) =>
+              case Some(_: CombinedSignal) =>
               //TODO: figure out if anything needs to happen here
               case _ =>
             }

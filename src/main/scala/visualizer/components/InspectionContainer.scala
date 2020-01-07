@@ -1,15 +1,18 @@
 package visualizer.components
 
-import javax.swing.{BorderFactory, DropMode, SwingUtilities}
+import firrtl.ir.FileInfo
 import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
 import javax.swing.tree.{DefaultMutableTreeNode, TreePath}
+import javax.swing.{BorderFactory, DropMode, SwingUtilities}
 import scalaswingcontrib.tree.Tree
-import visualizer.{DrawMetrics, SignalsChanged, TreadleController}
 import visualizer.models._
+import visualizer.{DrawMetrics, SignalsChanged, TreadleController}
 
+import scala.swing.BorderPanel.Position._
 import scala.swing._
-import BorderPanel.Position._
 import scala.swing.event.MouseClicked
+import scala.sys.process._
+import scala.util.matching.Regex
 
 /** This manages the signals selected for the waveform display
   * signals can be added, moved, removed, and have their display formats changed
@@ -18,6 +21,8 @@ import scala.swing.event.MouseClicked
   * @param displayModel model used by tree to describe selected signals
   */
 class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) extends BorderPanel {
+
+  val SourceInfoPattern: Regex = """([^ ]*) (\d*).*""".r
 
   // Popup menu when a signal name is right-clicked
   private def popupMenu(signal: Option[Signal[_]]): PopupMenu = new PopupMenu {
@@ -34,11 +39,33 @@ class InspectionContainer(dataModel: DataModel, displayModel: DisplayModel) exte
     }
     signal match {
       case Some(pureSignal: PureSignal) =>
-        val pureSignalName = pureSignal.name
         contents += new MenuItem(Action("Add Driving Signals") {
           TreadleController.loadDrivingSignals(pureSignal)
-          //          displayModel.showDependency(pureSignalName, this)
         })
+
+        pureSignal.symbolOpt.foreach { symbol =>
+          symbol.info match {
+            case s: FileInfo =>
+              s.info.string match {
+                case SourceInfoPattern(file, line) =>
+                  TreadleController.sourceInfoMap.get(file).foreach { targetFile =>
+                    val command = Seq(
+                      "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea",
+                      "--line",
+                      s"$line",
+                      s"$targetFile"
+                    )
+
+                    println(command.mkString(" "))
+                    contents += new MenuItem(Action(s"Jump to source $file : $line") {
+                      command.!!
+                    })
+                  }
+                case _ =>
+              }
+            case _ =>
+          }
+        }
       case _ =>
     }
   }
