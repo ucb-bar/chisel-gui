@@ -10,8 +10,9 @@ import scala.swing._
 import scala.swing.event._
 import BorderPanel.Position.Center
 
-class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[GenericTreeNode])
-    extends BorderPanel {
+
+class SelectedSignalPanel(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[GenericTreeNode])
+  extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -20,7 +21,7 @@ class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tr
   focusable = true
 
   def computeBounds(): Unit = {
-    preferredSize = new Dimension(125,
+    preferredSize = new Dimension(600,
       TreeHelper.viewableDepthFirstIterator(tree).size *
         DrawMetrics.WaveformVerticalSpacing)
     revalidate()
@@ -45,6 +46,12 @@ class SignalComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tr
   }
 }
 
+/** Old way to render a selected signal
+  *
+  * @param dataModel    the data
+  * @param displayModel the model
+  */
+//TODO: Remove this after a bit of usage of the new way, see InspectionContainer#show
 class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) extends Tree.Renderer[GenericTreeNode] {
   private var labelBaseLine = -1
   private var valueBaseLine = 0

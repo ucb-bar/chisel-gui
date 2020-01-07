@@ -10,7 +10,7 @@ import visualizer.painters.{MultiBitPainter, ReadyValidPainter, SingleBitPainter
 import scala.swing._
 import scala.swing.event._
 
-class WaveComponent(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[GenericTreeNode]) extends BorderPanel {
+class WavePanel(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[GenericTreeNode]) extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View

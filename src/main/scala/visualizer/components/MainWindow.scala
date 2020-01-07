@@ -6,7 +6,7 @@ import javax.swing.BorderFactory
 import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 import treadle.executable.ClockInfo
 import visualizer.models._
-import visualizer.{DependencyComponentRequested, MaxTimestampChanged, TreadleController}
+import visualizer.{CursorSet, DependencyComponentRequested, MarkerChanged, MaxTimestampChanged, TreadleController}
 
 import scala.swing.Swing._
 import scala.swing._
@@ -21,27 +21,35 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  val signalSelector = new SignalSelector(dataModel, selectionModel, displayModel)
-  val inspectionContainer = new InspectionContainer(dataModel, displayModel)
-  val dependencyComponent = new DependencyComponent(dataModel, displayModel)
+  val signalSelectorPanel = new SignalSelectorPanel(dataModel, selectionModel, displayModel)
+  val signalAndWavePanel = new SignalAndWavePanel(dataModel, displayModel)
+  val showDependenciesPanel = new ShowDependenciesPanel(dataModel, displayModel)
   val inputControlPanel = new InputControlPanel(dataModel, displayModel)
 
   peer.setDefaultCloseOperation(DISPOSE_ON_CLOSE)
+
+  val markerTimeLabel: Label = new Label(s"Cursor: 0 ")
+
+  def setMarkerLabel(time: Long): Unit = {
+    markerTimeLabel.text = s"Cursor: $time "
+  }
 
   private val toolbar = new ToolBar() {
     peer.setFloatable(false)
 
     contents += Button("Zoom In") {
-      inspectionContainer.zoomIn(this)
+      signalAndWavePanel.zoomIn(this)
     }
     contents += Button("Zoom Out") {
-      inspectionContainer.zoomOut(this)
+      signalAndWavePanel.zoomOut(this)
     }
     contents += Button("Zoom To End") {
-      inspectionContainer.zoomToEnd(this)
+      signalAndWavePanel.zoomToEnd(this)
     }
 
     contents += HStrut(20)
+
+    contents += markerTimeLabel
 
     contents += Button("Add Marker") {
       displayModel.addMarker("ad", displayModel.cursorPosition)
@@ -53,7 +61,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
       displayModel.toggleClock()
     }
     contents += Button("Remove signal(s)") {
-      inspectionContainer.removeSignals(this)
+      signalAndWavePanel.removeSignals(this)
     }
     contents += Button("Add group") {
       displayModel.addGroup()
@@ -103,7 +111,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
     val writer = new PrintWriter(file)
 
     writer.println(s"windowsize,${size.width},${size.height}")
-    inspectionContainer.tree.cellValues.foreach {
+    signalAndWavePanel.tree.cellValues.foreach {
       case waveFormNode: WaveFormNode =>
         waveFormNode.signal match {
           case _: PureSignal =>
@@ -136,30 +144,32 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
 
     val splitPane: SplitPane = new SplitPane(
       Orientation.Vertical,
-      new ScrollPane(signalSelector) {
+      new ScrollPane(signalSelectorPanel) {
         preferredSize = new Dimension(150, 700)
         minimumSize = new Dimension(150, 300)
         border = BorderFactory.createEmptyBorder()
       },
-      inspectionContainer
+      signalAndWavePanel
     ) {
       border = BorderFactory.createEmptyBorder()
     }
 
     layout(splitPane) = Center
-    layout(dependencyComponent) = South
+    layout(showDependenciesPanel) = South
     layout(inputControlPanel) = East
 
     listenTo(displayModel)
     listenTo(dataModel)
     reactions += {
       case e: DependencyComponentRequested =>
-        dependencyComponent.textComponent.text = TreadleController.testerOpt match {
+        showDependenciesPanel.textComponent.text = TreadleController.testerOpt match {
           case Some(t) => t.dependencyInfo(e.pureSignalName)
           case None => ""
         }
+      case e: CursorSet =>
+        setMarkerLabel(displayModel.cursorPosition)
       case _: MaxTimestampChanged =>
-        inspectionContainer.zoomToEnd(this)
+        signalAndWavePanel.zoomToEnd(this)
     }
   }
 }
