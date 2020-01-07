@@ -93,8 +93,8 @@ object Util {
     transitions.map(t => s"(${t.timestamp}, ${t.value})").mkString(" ")
   }
 
-  def sortGroup(fullName: String, t: TreadleTester): Int = {
-    if (t.isRegister(fullName)) {
+  def sortGroup(fullName: String, testerOpt: Option[TreadleTester]): Int = {
+    if (testerOpt.isDefined && testerOpt.get.isRegister(fullName)) {
       1
     } else {
       val signalName = fullName.split("\\.").last

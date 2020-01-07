@@ -65,8 +65,10 @@ abstract class Signal[T] {
 
   def addNewValues(newValues: ArrayBuffer[Transition[T]]): Unit = {
     waveform match {
-      case Some(w) => w.addNewValues(newValues)
-      case None    => waveform = Some(new Waveform(newValues))
+      case Some(w) =>
+        w.addNewValues(newValues)
+      case None =>
+        waveform = Some(new Waveform(newValues))
     }
   }
 }
