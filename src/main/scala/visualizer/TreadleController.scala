@@ -1,69 +1,62 @@
 package visualizer
 
-import java.awt.Dimension
 import java.io.File
 
-import firrtl.{FileUtils, InstanceKind}
 import firrtl.ir.ClockType
+import firrtl.options.{ProgramArgsAnnotation, Shell}
 import firrtl.stage.FirrtlSourceAnnotation
+import firrtl.{AnnotationSeq, FileUtils, InstanceKind, MemKind}
 import treadle.executable.{Symbol, SymbolTable}
+import treadle.vcd.VCD
 import treadle.{TreadleTester, WriteVcdAnnotation}
 import visualizer.components.MainWindow
 import visualizer.models._
+import visualizer.stage.{ChiselGuiCli, VcdFile}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.swing.{Dimension, Publisher, SwingApplication}
 
 object TreadleController extends SwingApplication with Publisher {
+  val shell: Shell = new Shell("chisel-gui") with ChiselGuiCli
+
   var testerOpt: Option[TreadleTester] = None
-  private val clkSteps = 2
+  var vcdOpt: Option[treadle.vcd.VCD] = None
 
   val dataModel = new DataModel
   val selectionModel = new SelectionModel
   val displayModel = new DisplayModel
+
   lazy val mainWindow = new MainWindow(dataModel, selectionModel, displayModel)
 
   override def startup(args: Array[String]): Unit = {
+    val startAnnotations = shell.parse(args)
+
+    println(startAnnotations)
     if (mainWindow.size == new Dimension(0, 0)) mainWindow.pack()
     mainWindow.visible = true
 
-    // TODO: determine if args is info from treadle or vcd
-    args.toList match {
+    val firrtlFileNameOpt = startAnnotations.collectFirst { case a: ProgramArgsAnnotation => a.arg }
 
-      case firrtlFileName :: vcdFileName :: Nil =>
-        val vcd = treadle.vcd.VCD.read(vcdFileName)
-        val firrtlString = FileUtils.getText(firrtlFileName)
-        setupTreadle(firrtlString)
-        testerOpt match {
-          case Some(tester) =>
-            seedFromVcd(vcd, stopAtTime = Long.MaxValue)
-            dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
-          case _ =>
-        }
-        populateWaveForms(testerOpt.get)
-        selectionModel.updateTreeModel()
-        loadSaveFileOnStartUp()
-        mainWindow.signalSelector.updateModel()
+    val vcdFileNameOpt = startAnnotations.collectFirst { case a: VcdFile => a.vcdFileName }
 
-      case firrtlFileName :: Nil =>
-        val firrtlString = FileUtils.getText(firrtlFileName)
-        setupTreadle(firrtlString)
-        populateWaveForms(testerOpt.get)
-        selectionModel.updateTreeModel()
-        loadSaveFileOnStartUp()
-        mainWindow.signalSelector.updateModel()
-
-      case Nil =>
-        hackySetup()
-        populateWaveForms(testerOpt.get)
-        selectionModel.updateTreeModel()
-        mainWindow.signalSelector.updateModel()
-
+    (firrtlFileNameOpt, vcdFileNameOpt) match {
+      case (Some(firrtlFileName), Some(vcdFile)) =>
+        setupTreadle(firrtlFileName, startAnnotations)
+        setupVcdInput(vcdFile)
+      case (Some(firrtlFileName), None) =>
+        setupTreadle(firrtlFileName, startAnnotations)
+      case (None, Some(vcdFile)) =>
+        setupVcdInput(vcdFile)
       case _ =>
-        println("Usage: chisel-gui firrtlFile [vcdFile]")
-        System.exit(1)
+      // Cannot get here. Should be trapped by shell.parse
+
     }
+    selectionModel.updateTreeModel()
+    populateWaveForms()
+    selectionModel.updateTreeModel()
+    loadSaveFileOnStartUp()
+    mainWindow.signalSelector.updateModel()
   }
 
   def seedFromVcd(vcd: treadle.vcd.VCD, stopAtTime: Long = Long.MaxValue): Unit = {
@@ -152,24 +145,45 @@ object TreadleController extends SwingApplication with Publisher {
     FileUtils.getText(file)
   }
 
-  ///////////////////////////////////////////////////////////////////////////
-  // Treadle specific methods
-  ///////////////////////////////////////////////////////////////////////////
-  def setupTreadle(firrtlString: String): Unit = {
-    val treadleTester = loadFirrtl(firrtlString)
-    setupClock(treadleTester)
-    setupSignals(treadleTester)
-  }
-
-  def loadFirrtl(firrtlString: String): TreadleTester = {
-    val t = treadle.TreadleTester(
+  /** Spin-up a treadle instance and load the dataModel from the treadle
+    * symbolTable.
+    *
+    * @param firrtlFileName Name of a file containing firrtl text
+    * @param annotations    Annotation that have been provided from command line
+    */
+  def setupTreadle(firrtlFileName: String, annotations: AnnotationSeq): Unit = {
+    val firrtlString = FileUtils.getText(firrtlFileName)
+    val treadleTester = treadle.TreadleTester(
       Seq(
         FirrtlSourceAnnotation(firrtlString),
         WriteVcdAnnotation
-      )
+      ) ++
+        annotations
     )
-    testerOpt = Some(t)
-    t
+    testerOpt = Some(treadleTester)
+    setupSignalsFromTreadle()
+    setupClock(treadleTester)
+  }
+
+  /** Get any initializing VCD data,
+    * If there is a treadle tester then seed it's values from this vcd
+    * possibly load vcd signals into dataModel
+    * otherwise setup dataModels signals from the vcd signal names
+    *
+    * @param vcdFileName name of a file containing VCD text
+    */
+  def setupVcdInput(vcdFileName: String): Unit = {
+    val vcd = treadle.vcd.VCD.read(vcdFileName)
+
+    testerOpt match {
+      case Some(tester) =>
+        seedFromVcd(vcd, stopAtTime = Long.MaxValue)
+        dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
+        vcdOpt = tester.engine.vcdOption
+      case _ =>
+        setupSignalsFromVcd(vcd)
+        vcdOpt = Some(vcd)
+    }
   }
 
   def setupClock(t: TreadleTester): Unit = {
@@ -178,26 +192,42 @@ object TreadleController extends SwingApplication with Publisher {
     }
   }
 
-  def setupSignals(tester: TreadleTester): Unit = {
-    tester.engine.symbolTable.nameToSymbol.foreach {
-      case (name, symbol) if symbol.dataKind != InstanceKind =>
-        if (!name.contains("/")) {
-          println(s"Adding: $name")
-          val sortGroup = Util.sortGroup(name, tester)
-          val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
-          arrayBuffer += Transition(0L, BigInt(0))
-          val signal = new PureSignal(name, Some(symbol), Some(new Waveform(arrayBuffer)), sortGroup)
+  def setupSignalsFromTreadle(): Unit = {
+    testerOpt.foreach { tester =>
+      tester.engine.symbolTable.nameToSymbol.foreach {
+        case (name, symbol) if symbol.dataKind != InstanceKind && symbol.dataKind != MemKind =>
+          if (!name.contains("/")) {
+            println(s"Adding: $name")
+            val sortGroup = Util.sortGroup(name, testerOpt)
+            val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
+            arrayBuffer += Transition(0L, BigInt(0))
+            val signal = new PureSignal(name, Some(symbol), Some(new Waveform(arrayBuffer)), sortGroup)
 
-          dataModel.addSignal(name, signal)
-        }
-      case _ =>
+            dataModel.addSignal(name, signal)
+          }
+        case _ =>
+      }
     }
-    println("signals loaded")
-    selectionModel.updateTreeModel()
+
+    println("signals loaded from tester")
   }
 
-  def populateWaveForms(t: TreadleTester): Unit = {
-    t.engine.vcdOption match {
+  def setupSignalsFromVcd(vcd: VCD): Unit = {
+    vcd.wires.values.foreach { wire =>
+      val name = wire.fullName
+      println(s"Adding: $name")
+      val sortGroup = Util.sortGroup(name, testerOpt)
+      val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
+      arrayBuffer += Transition(0L, BigInt(0))
+      val signal = new PureSignal(name, None, Some(new Waveform(arrayBuffer)), sortGroup)
+
+      dataModel.addSignal(name, signal)
+    }
+    println("signals loaded")
+  }
+
+  def populateWaveForms(): Unit = {
+    vcdOpt match {
       case Some(vcd) =>
         Util.vcdToTransitions(vcd, initializing = true).foreach {
           case (fullName, transitions) =>
@@ -267,51 +297,51 @@ object TreadleController extends SwingApplication with Publisher {
     }
   }
 
-  ///////////////////////////////////////////////////////////////////////////
-  // Hard coded things
-  ///////////////////////////////////////////////////////////////////////////
-  def runSomeTreadle(t: TreadleTester): Unit = {
-    for {
-      a <- 10 to 20
-      b <- 20 to 22
-    } {
-      t.poke("io_e", 1)
-      t.poke("io_a", a)
-      t.poke("io_b", b)
-      t.step()
-      t.poke("io_e", 0)
-      t.step(clkSteps)
-    }
-  }
-
-  def makeBinaryTransitions(times: ArrayBuffer[Int]): Waveform[BigInt] = {
-    val transitions = times.zipWithIndex.map {
-      case (time, index) =>
-        Transition[BigInt](time, index % 2)
-    }
-    new Waveform(transitions)
-  }
-
-  def hackySetup(): Unit = {
-    val firrtlString = loadFile("samples/gcd.fir")
-    val treadleTester = loadFirrtl(firrtlString)
-    setupClock(treadleTester)
-    runSomeTreadle(treadleTester)
-    populateWaveForms(treadleTester)
-
-    val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
-    val signalReady = new PureSignal("ready", None, Some(waveformReady), 0)
-    val fakeReady = "module.io_fake_ready"
-    dataModel.addSignal(fakeReady, signalReady)
-    selectionModel.addSignalToSelectionList(fakeReady, signalReady)
-
-    val waveformValid = makeBinaryTransitions(ArrayBuffer[Int](0, 36, 66, 96, 116, 146, 206, 286, 396, 406, 506))
-    val signalValid = new PureSignal("valid", None, Some(waveformValid), 0)
-    dataModel.addSignal("module.io_fake_valid", signalValid)
-
-    val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))
-    dataModel.addSignal("module.io_rv", signalRV)
-
-    publish(new PureSignalsChanged)
-  }
+  //  ///////////////////////////////////////////////////////////////////////////
+  //  // Hard coded things
+  //  ///////////////////////////////////////////////////////////////////////////
+  //  def runSomeTreadle(t: TreadleTester): Unit = {
+  //    for {
+  //      a <- 10 to 20
+  //      b <- 20 to 22
+  //    } {
+  //      t.poke("io_e", 1)
+  //      t.poke("io_a", a)
+  //      t.poke("io_b", b)
+  //      t.step()
+  //      t.poke("io_e", 0)
+  //      t.step(clkSteps)
+  //    }
+  //  }
+  //
+  //  def makeBinaryTransitions(times: ArrayBuffer[Int]): Waveform[BigInt] = {
+  //    val transitions = times.zipWithIndex.map {
+  //      case (time, index) =>
+  //        Transition[BigInt](time, index % 2)
+  //    }
+  //    new Waveform(transitions)
+  //  }
+  //
+  ////  def hackySetup(): Unit = {
+  ////    val firrtlString = loadFile("samples/gcd.fir")
+  ////    val treadleTester = loadFirrtl(firrtlString)
+  ////    setupClock(treadleTester)
+  ////    runSomeTreadle(treadleTester)
+  ////    populateWaveForms(treadleTester)
+  ////
+  ////    val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
+  ////    val signalReady = new PureSignal("ready", None, Some(waveformReady), 0)
+  ////    val fakeReady = "module.io_fake_ready"
+  ////    dataModel.addSignal(fakeReady, signalReady)
+  ////    selectionModel.addSignalToSelectionList(fakeReady, signalReady)
+  ////
+  ////    val waveformValid = makeBinaryTransitions(ArrayBuffer[Int](0, 36, 66, 96, 116, 146, 206, 286, 396, 406, 506))
+  ////    val signalValid = new PureSignal("valid", None, Some(waveformValid), 0)
+  ////    dataModel.addSignal("module.io_fake_valid", signalValid)
+  ////
+  ////    val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))
+  ////    dataModel.addSignal("module.io_rv", signalRV)
+  ////
+  ////    publish(new PureSignalsChanged)
+  ////  }
 }
