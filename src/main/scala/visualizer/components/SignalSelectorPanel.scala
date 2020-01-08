@@ -38,7 +38,7 @@ class SignalSelectorPanel(
     reactions += {
       case KeyReleased(_, key, _, _) =>
         if (key == Key.Enter) {
-          addSelectedToInspection()
+          addSelectedToInspection(append = false)
         }
       case m: MouseClicked =>
         if (m.clicks == 1) {
@@ -60,7 +60,7 @@ class SignalSelectorPanel(
     tree.model = selectionModel.directoryTreeModel
   }
 
-  def addSelectedToInspection(): Unit = {
+  def addSelectedToInspection(append: Boolean): Unit = {
     tree.selection.cellValues.foreach {
       case directoryNode: DirectoryNode =>
         displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
@@ -102,17 +102,23 @@ class SignalSelectorPanel(
 
   contents += toolBar
 
-  val addSymbolsButton = new Button("Add")
+  val insertSymbolsButton = new Button("Insert")
+  val appendSymbolsButton = new Button("Append")
+
   val symbolList: ScrollPane = new ScrollPane(tree) {
     border = BorderFactory.createEmptyBorder()
   }
+
   contents += symbolList
+
+  contents += Swing.Glue
 
   private val lowerToolbar = new ToolBar {
     peer.setFloatable(false)
 
-    contents += addSymbolsButton
-    contents += Swing.Glue
+    contents += insertSymbolsButton
+    contents += appendSymbolsButton
+    // contents += Swing.Glue
   }
 
   contents += lowerToolbar
@@ -120,10 +126,10 @@ class SignalSelectorPanel(
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-  listenTo(addSymbolsButton)
+  listenTo(appendSymbolsButton)
   listenTo(showTempSignalsButton)
   listenTo(showGenSignalsButton)
-  listenTo(addSymbolsButton)
+  listenTo(appendSymbolsButton)
   listenTo(signalPatternText)
   listenTo(tree)
   listenTo(mouse.clicks)
@@ -140,8 +146,11 @@ class SignalSelectorPanel(
     //        }
     //      }
 
-    case ButtonClicked(`addSymbolsButton`) =>
-      addSelectedToInspection()
+    case ButtonClicked(`appendSymbolsButton`) =>
+      addSelectedToInspection(append = true)
+
+    case ButtonClicked(`insertSymbolsButton`) =>
+      addSelectedToInspection(append = false)
 
     case ButtonClicked(`showTempSignalsButton`) =>
       showTempSignalsButton.pushAction {
