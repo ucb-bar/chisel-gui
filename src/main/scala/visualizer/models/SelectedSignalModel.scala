@@ -12,7 +12,7 @@ import scala.collection.mutable
   * have been selected to have their waveforms displayed
   *
   */
-class DisplayModel extends Publisher {
+class SelectedSignalModel extends Publisher {
   // Maps nodeId to WaveDisplaySetting
   val waveDisplaySettings: mutable.HashMap[String, WaveDisplaySetting] =
     new mutable.HashMap[String, WaveDisplaySetting]()
@@ -53,7 +53,7 @@ class DisplayModel extends Publisher {
   }
 
   def addGroup(): Unit = {
-    val node = DirectoryNode("New Group")
+    val node = DirectoryNode("New Group", Tree.Path.empty[GenericTreeNode])
     treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
   }
 

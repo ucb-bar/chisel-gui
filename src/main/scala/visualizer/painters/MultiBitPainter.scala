@@ -9,9 +9,9 @@ import scala.swing.Graphics2D
 
 /** This displays signals data that takes on integer values other than one and zero
   *
-  * @param displayModel data to construct this kind of bar
+  * @param selectedSignalModel data to construct this kind of bar
   */
-class MultiBitPainter(displayModel: DisplayModel) extends Painter(displayModel) {
+class MultiBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter(selectedSignalModel) {
   def paintWaveform(g: Graphics2D,
                     visibleRect: Rectangle,
                     top: Int,
@@ -22,11 +22,11 @@ class MultiBitPainter(displayModel: DisplayModel) extends Painter(displayModel) 
       case waveFormNode: WaveFormNode =>
         waveFormNode.signal match {
           case pureSignal: PureSignal =>
-            val formatter = displayModel.waveDisplaySettings(waveFormNode.name).dataFormat match {
+            val formatter = selectedSignalModel.waveDisplaySettings(waveFormNode.name).dataFormat match {
               case Some(format) => format
               case None => DecFormat
             }
-            val startTimestamp = displayModel.xCoordinateToTimestamp(visibleRect.x)
+            val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
             g.setColor(Color.black)
 
             // Only paint from first transition at or before the start timestamp
@@ -36,12 +36,12 @@ class MultiBitPainter(displayModel: DisplayModel) extends Painter(displayModel) 
                 .findTransition(startTimestamp)
                 .sliding(2)
                 .takeWhile { transitionPair =>
-                  displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
+                  selectedSignalModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
                 }
                 .foreach {
                   case transition1 :: transition2 :: Nil =>
-                    val left: Int = displayModel.timestampToXCoordinate(transition1.timestamp)
-                    val right: Int = displayModel.timestampToXCoordinate(transition2.timestamp)
+                    val left: Int = selectedSignalModel.timestampToXCoordinate(transition1.timestamp)
+                    val right: Int = selectedSignalModel.timestampToXCoordinate(transition2.timestamp)
 
                     g.drawPolygon(Painter.hexagon(left, right, top))
 
@@ -49,8 +49,8 @@ class MultiBitPainter(displayModel: DisplayModel) extends Painter(displayModel) 
                     val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
                     drawLabel(g, labelLeft, labelRight, top, formatter(transition1.value))
                   case transition :: Nil =>
-                    val left: Int = displayModel.timestampToXCoordinate(0L)
-                    val right: Int = displayModel.timestampToXCoordinate(transition.timestamp)
+                    val left: Int = selectedSignalModel.timestampToXCoordinate(0L)
+                    val right: Int = selectedSignalModel.timestampToXCoordinate(transition.timestamp)
 
                     g.drawPolygon(Painter.hexagon(left, right, top))
 
@@ -62,8 +62,8 @@ class MultiBitPainter(displayModel: DisplayModel) extends Painter(displayModel) 
               pureSignal.waveform.get.transitions.lastOption match {
                 case Some(lastTransition) =>
                   if (lastTransition.timestamp < maxTimestamp) {
-                    val left: Int = displayModel.timestampToXCoordinate(lastTransition.timestamp)
-                    val right: Int = displayModel.timestampToXCoordinate(maxTimestamp)
+                    val left: Int = selectedSignalModel.timestampToXCoordinate(lastTransition.timestamp)
+                    val right: Int = selectedSignalModel.timestampToXCoordinate(maxTimestamp)
                     val z = if (lastTransition.value == 0L) DrawMetrics.WaveformHeight else 0
 
                     Painter.drawHalfHexagon(g, left, right, top)

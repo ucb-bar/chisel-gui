@@ -10,14 +10,14 @@ import visualizer.painters.{MultiBitPainter, ReadyValidPainter, SingleBitPainter
 import scala.swing._
 import scala.swing.event._
 
-class WavePanel(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[GenericTreeNode]) extends BorderPanel {
+class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, tree: Tree[GenericTreeNode]) extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  private val multiBitPainter = new MultiBitPainter(displayModel)
-  private val singleBitPainter = new SingleBitPainter(displayModel)
-  private val readyValidPainter = new ReadyValidPainter(displayModel)
+  private val multiBitPainter = new MultiBitPainter(selectedSignalModel)
+  private val singleBitPainter = new SingleBitPainter(selectedSignalModel)
+  private val readyValidPainter = new ReadyValidPainter(selectedSignalModel)
 
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)
@@ -40,7 +40,7 @@ class WavePanel(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[Gen
               case None =>
                 signal.waveform.get.isBinary
             }
-            displayModel.waveDisplaySettings(node.name).painter match {
+            selectedSignalModel.waveDisplaySettings(node.name).painter match {
               case _ =>
                 if (isBinary)
                   singleBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
@@ -57,19 +57,19 @@ class WavePanel(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[Gen
 
     // Draw cursor
     g.setColor(new Color(39, 223, 85))
-    val cursorX = displayModel.timestampToXCoordinate(displayModel.cursorPosition)
+    val cursorX = selectedSignalModel.timestampToXCoordinate(selectedSignalModel.cursorPosition)
     g.drawLine(cursorX, visibleRect.y, cursorX, visibleRect.y + visibleRect.height)
   }
 
   def drawMarkers(g: Graphics2D, visibleRect: Rectangle): Unit = {
-    val startTime = displayModel.xCoordinateToTimestamp(visibleRect.x)
-    val endTime = displayModel.xCoordinateToTimestamp(visibleRect.x + visibleRect.width)
-    val startIndex = displayModel.getMarkerAtTime(startTime)
-    val endIndex = displayModel.getMarkerAtTime(endTime)
+    val startTime = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
+    val endTime = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x + visibleRect.width)
+    val startIndex = selectedSignalModel.getMarkerAtTime(startTime)
+    val endIndex = selectedSignalModel.getMarkerAtTime(endTime)
 
     g.setColor(Color.black)
-    displayModel.markers.slice(startIndex, endIndex + 1).foreach { marker =>
-      val x = displayModel.timestampToXCoordinate(marker.timestamp)
+    selectedSignalModel.markers.slice(startIndex, endIndex + 1).foreach { marker =>
+      val x = selectedSignalModel.timestampToXCoordinate(marker.timestamp)
       g.drawLine(x, 0, x, visibleRect.y + visibleRect.height)
     }
   }
@@ -78,16 +78,16 @@ class WavePanel(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[Gen
   // Helper functions
   //
   def computeBounds(): Unit = {
-    preferredSize = new Dimension(displayModel.timestampToXCoordinate(dataModel.maxTimestamp),
-                                  TreeHelper.viewableDepthFirstIterator(tree).size
-                                    * DrawMetrics.WaveformVerticalSpacing)
+    preferredSize = new Dimension(selectedSignalModel.timestampToXCoordinate(dataModel.maxTimestamp),
+      TreeHelper.viewableDepthFirstIterator(tree).size
+        * DrawMetrics.WaveformVerticalSpacing)
     revalidate()
   }
 
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-  listenTo(dataModel, displayModel, tree)
+  listenTo(dataModel, selectedSignalModel, tree)
   listenTo(mouse.clicks, mouse.moves)
   reactions += {
     case _: SignalsChanged | _: ScaleChanged | _: CursorSet | _: MaxTimestampChanged =>
@@ -99,19 +99,19 @@ class WavePanel(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[Gen
       if (e.timestamp < 0)
         repaint()
       else
-        repaint(new Rectangle(displayModel.timestampToXCoordinate(e.timestamp) - 1, 0, 2, peer.getVisibleRect.height))
+        repaint(new Rectangle(selectedSignalModel.timestampToXCoordinate(e.timestamp) - 1, 0, 2, peer.getVisibleRect.height))
     case e: MousePressed =>
-      val timestamp = displayModel.xCoordinateToTimestamp(e.peer.getX)
-      if (displayModel.cursorPosition != displayModel.selectionStart)
+      val timestamp = selectedSignalModel.xCoordinateToTimestamp(e.peer.getX)
+      if (selectedSignalModel.cursorPosition != selectedSignalModel.selectionStart)
         repaint()
       if (!e.peer.isShiftDown)
-        displayModel.selectionStart = timestamp
-      displayModel.setCursorPosition(timestamp)
-    // displayModel.adjustingCursor = true
-    case _: MouseReleased => // displayModel.adjustingCursor = false
+        selectedSignalModel.selectionStart = timestamp
+      selectedSignalModel.setCursorPosition(timestamp)
+    // selectedSignalModel.adjustingCursor = true
+    case _: MouseReleased => // selectedSignalModel.adjustingCursor = false
     case e: MouseDragged =>
-      val timestamp = displayModel.xCoordinateToTimestamp(e.peer.getX)
-      displayModel.setCursorPosition(timestamp)
+      val timestamp = selectedSignalModel.xCoordinateToTimestamp(e.peer.getX)
+      selectedSignalModel.setCursorPosition(timestamp)
       peer.scrollRectToVisible(new Rectangle(e.peer.getX, e.peer.getY, 1, 1))
   }
 }

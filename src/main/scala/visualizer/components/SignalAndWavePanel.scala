@@ -17,10 +17,10 @@ import scala.util.matching.Regex
 /** This manages the signals selected for the waveform display
   * signals can be added, moved, removed, and have their display formats changed
   *
-  * @param dataModel    underlying data model
-  * @param displayModel model used by tree to describe selected signals
+  * @param dataModel           underlying data model
+  * @param selectedSignalModel model used by tree to describe selected signals
   */
-class SignalAndWavePanel(dataModel: DataModel, displayModel: DisplayModel) extends BorderPanel {
+class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel) extends BorderPanel {
 
   val SourceInfoPattern: Regex = """([^ ]*) (\d*).*""".r
 
@@ -28,13 +28,13 @@ class SignalAndWavePanel(dataModel: DataModel, displayModel: DisplayModel) exten
   private def popupMenu(signal: Option[Signal[_]]): PopupMenu = new PopupMenu {
     contents += new Menu("Data Format") {
       contents += new MenuItem(Action("Binary") {
-        displayModel.setWaveFormat(this, tree.selection.cellValues, BinFormat)
+        selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, BinFormat)
       })
       contents += new MenuItem(Action("Decimal") {
-        displayModel.setWaveFormat(this, tree.selection.cellValues, DecFormat)
+        selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, DecFormat)
       })
       contents += new MenuItem(Action("Hexadecimal") {
-        displayModel.setWaveFormat(this, tree.selection.cellValues, HexFormat)
+        selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, HexFormat)
       })
     }
     signal match {
@@ -72,10 +72,10 @@ class SignalAndWavePanel(dataModel: DataModel, displayModel: DisplayModel) exten
 
   val tree: Tree[GenericTreeNode] = new Tree[GenericTreeNode] {
 
-    model = displayModel.treeModel
+    model = selectedSignalModel.treeModel
     //TODO: Remove thie following commented line at some point
     //      the old way was more awkward and relied on us to do more tree rendereing.
-    //    renderer = new SignalNameRenderer(dataModel, displayModel)  // THIS THE OLD WAY
+    //    renderer = new SignalNameRenderer(dataModel, selectedSignalModel)  // THIS THE OLD WAY
     renderer = Tree.Renderer(show)
     showsRootHandles = true
 
@@ -86,10 +86,10 @@ class SignalAndWavePanel(dataModel: DataModel, displayModel: DisplayModel) exten
         case signalTreeNode: SignalTreeNode =>
           dataModel.nameToSignal.get(signalTreeNode.name) match {
             case Some(signal) if signal.waveform.isDefined =>
-              val value = signal.waveform.get.findTransition(displayModel.cursorPosition).next().value
+              val value = signal.waveform.get.findTransition(selectedSignalModel.cursorPosition).next().value
               val txt = signal match {
                 case pureSignal: PureSignal if value.asInstanceOf[BigInt] != null =>
-                  displayModel.waveDisplaySettings.get(pureSignal.name) match {
+                  selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
                     case Some(setting) =>
                       setting.dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
                     case _ =>
@@ -137,7 +137,7 @@ class SignalAndWavePanel(dataModel: DataModel, displayModel: DisplayModel) exten
     // Make it re-arrangeable
     peer.setDragEnabled(true)
     peer.setDropMode(DropMode.ON_OR_INSERT)
-    peer.setTransferHandler(new TreeTransferHandler(displayModel))
+    peer.setTransferHandler(new TreeTransferHandler(selectedSignalModel))
 
     def isPointInNode(point: Point): Boolean = {
       val row = getClosestRowForLocation(point.x, point.y)
@@ -179,14 +179,14 @@ class SignalAndWavePanel(dataModel: DataModel, displayModel: DisplayModel) exten
         } else if (e.clicks == 2) {
           println(s"mouse clicked in inspectionContainer ${e.clicks}")
           tree.selection.cellValues.foreach { node =>
-            displayModel.addFromDirectoryToInspected(node, this)
+            selectedSignalModel.addFromDirectoryToInspected(node, this)
           }
         }
       }
     }
 
     listenTo(mouse.clicks)
-    listenTo(displayModel)
+    listenTo(selectedSignalModel)
     reactions += {
       case _: SignalsChanged =>
         tree.peer.expandPath(new TreePath(model.peer.getRoot))
@@ -200,9 +200,9 @@ class SignalAndWavePanel(dataModel: DataModel, displayModel: DisplayModel) exten
   ///////////////////////////////////////////////////////////////////////////
   preferredSize = new Dimension(500, 700)
 
-  val timelineComponent = new TimelineComponent(dataModel, displayModel)
-  val wavePanel = new WavePanel(dataModel, displayModel, tree)
-  val selectedSignalPanel = new SelectedSignalPanel(dataModel, displayModel, tree)
+  val timelineComponent = new TimelineComponent(dataModel, selectedSignalModel)
+  val wavePanel = new WavePanel(dataModel, selectedSignalModel, tree)
+  val selectedSignalPanel = new SelectedSignalPanel(dataModel, selectedSignalModel, tree)
 
   val signalScrollPane: ScrollPane = new ScrollPane(selectedSignalPanel) {
     minimumSize = new Dimension(150, 300)
@@ -245,9 +245,9 @@ class SignalAndWavePanel(dataModel: DataModel, displayModel: DisplayModel) exten
   ///////////////////////////////////////////////////////////////////////////
   def setScaleKeepCentered(newScale: Double, source: Component): Unit = {
     val oldVisibleRect = wavePanel.peer.getVisibleRect
-    val centerTimestamp = ((oldVisibleRect.x + oldVisibleRect.width / 2) / displayModel.scale).toLong
+    val centerTimestamp = ((oldVisibleRect.x + oldVisibleRect.width / 2) / selectedSignalModel.scale).toLong
 
-    displayModel.setScale(newScale, source)
+    selectedSignalModel.setScale(newScale, source)
 
     val centerX = (centerTimestamp * newScale).toInt
     val newVisibleRect = wavePanel.peer.getVisibleRect
@@ -256,11 +256,11 @@ class SignalAndWavePanel(dataModel: DataModel, displayModel: DisplayModel) exten
   }
 
   def zoomIn(source: Component): Unit = {
-    setScaleKeepCentered(displayModel.scale * 1.25, source)
+    setScaleKeepCentered(selectedSignalModel.scale * 1.25, source)
   }
 
   def zoomOut(source: Component): Unit = {
-    setScaleKeepCentered(displayModel.scale * 0.8, source)
+    setScaleKeepCentered(selectedSignalModel.scale * 0.8, source)
   }
 
   /**
@@ -271,13 +271,13 @@ class SignalAndWavePanel(dataModel: DataModel, displayModel: DisplayModel) exten
     val oldVisibleRect = wavePanel.peer.getVisibleRect
     val maxTimestamp = dataModel.maxTimestamp
 
-    val clockTickWidth = oldVisibleRect.width / displayModel.scale
+    val clockTickWidth = oldVisibleRect.width / selectedSignalModel.scale
 
     val minTimestamp = (maxTimestamp - clockTickWidth).max(0)
 
     val centerTimestamp = (maxTimestamp - minTimestamp) / 2 + minTimestamp
 
-    val centerX = (centerTimestamp * displayModel.scale).toInt
+    val centerX = (centerTimestamp * selectedSignalModel.scale).toInt
 
     val newVisibleRect = wavePanel.peer.getVisibleRect
     newVisibleRect.x = centerX - newVisibleRect.width / 2
@@ -285,14 +285,14 @@ class SignalAndWavePanel(dataModel: DataModel, displayModel: DisplayModel) exten
   }
 
   def removeSignals(source: Component): Unit = {
-    displayModel.removeSelectedSignals(source, tree.selection.paths.iterator)
+    selectedSignalModel.removeSelectedSignals(source, tree.selection.paths.iterator)
   }
 
   def goToEnd(source: Component, steps: Int): Unit = {
     val oldVisibleRect = wavePanel.peer.getVisibleRect
 
     val newVisibleRect = wavePanel.peer.getVisibleRect
-    newVisibleRect.x = (oldVisibleRect.x + steps / displayModel.scale).toInt
+    newVisibleRect.x = (oldVisibleRect.x + steps / selectedSignalModel.scale).toInt
 
     wavePanel.peer.scrollRectToVisible(newVisibleRect)
   }

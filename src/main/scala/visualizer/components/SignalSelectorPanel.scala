@@ -15,22 +15,23 @@ import scala.swing.event._
   * wave form viewer.
   * Moves signals to the [[SelectedSignalPanel]]
   *
-  * @param dataModel    underlying data model
-  * @param displayModel underlying displayModel
+  * @param dataModel           underlying data model
+  * @param selectedSignalModel underlying model for signals that have been selected for viewing
   */
 class SignalSelectorPanel(
                            dataModel: DataModel,
-                           selectionModel: SelectionModel,
-                           displayModel: DisplayModel
+                           signalSelectorModel: SignalSelectorModel,
+                           selectedSignalModel: SelectedSignalModel
                          ) extends BoxPanel(Orientation.Vertical) {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
   val tree: Tree[GenericTreeNode] = new Tree[GenericTreeNode] {
-    model = selectionModel.directoryTreeModel
+    model = signalSelectorModel.directoryTreeModel
     renderer = Tree.Renderer(_.name)
     showsRootHandles = true
+    dragEnabled = true
 
     listenTo(mouse.clicks)
     listenTo(keys)
@@ -48,24 +49,24 @@ class SignalSelectorPanel(
           selection.cellValues.foreach {
             case directoryNode: DirectoryNode =>
               //TODO: This will not bring along the children, should it?
-              displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
+              selectedSignalModel.addFromDirectoryToInspected(directoryNode.copy(), this)
             case otherNode =>
-              displayModel.addFromDirectoryToInspected(otherNode, this)
+              selectedSignalModel.addFromDirectoryToInspected(otherNode, this)
           }
         }
     }
   }
 
   def updateModel(): Unit = {
-    tree.model = selectionModel.directoryTreeModel
+    tree.model = signalSelectorModel.directoryTreeModel
   }
 
   def addSelectedToInspection(append: Boolean): Unit = {
     tree.selection.cellValues.foreach {
       case directoryNode: DirectoryNode =>
-        displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
+        selectedSignalModel.addFromDirectoryToInspected(directoryNode.copy(), this)
       case otherNode =>
-        displayModel.addFromDirectoryToInspected(otherNode, this)
+        selectedSignalModel.addFromDirectoryToInspected(otherNode, this)
     }
   }
 
@@ -142,7 +143,7 @@ class SignalSelectorPanel(
     //      } else if (m.clicks == 2) {
     //        println(s"mouse double clicked in DirectoryComponent ${m.clicks}")
     //        tree.selection.cellValues.foreach { node =>
-    //          displayModel.addFromDirectoryToInspected(node.toInspected, this)
+    //          selectedSignalModel.addFromDirectoryToInspected(node.toInspected, this)
     //        }
     //      }
 
@@ -154,32 +155,32 @@ class SignalSelectorPanel(
 
     case ButtonClicked(`showTempSignalsButton`) =>
       showTempSignalsButton.pushAction {
-        selectionModel.dataModelFilter = selectionModel.dataModelFilter.copy(
+        signalSelectorModel.dataModelFilter = signalSelectorModel.dataModelFilter.copy(
           showTempVariables = showTempSignalsButton.pushed
         )
-        selectionModel.updateTreeModel()
-        tree.model = selectionModel.directoryTreeModel
+        signalSelectorModel.updateTreeModel()
+        tree.model = signalSelectorModel.directoryTreeModel
       }
 
     case ButtonClicked(`showGenSignalsButton`) =>
       showGenSignalsButton.pushAction {
-        selectionModel.dataModelFilter = selectionModel.dataModelFilter.copy(
+        signalSelectorModel.dataModelFilter = signalSelectorModel.dataModelFilter.copy(
           showGenVariables = showGenSignalsButton.pushed
         )
-        selectionModel.updateTreeModel()
-        tree.model = selectionModel.directoryTreeModel
+        signalSelectorModel.updateTreeModel()
+        tree.model = signalSelectorModel.directoryTreeModel
       }
 
     case EditDone(`signalPatternText`) =>
-      selectionModel.dataModelFilter = selectionModel.dataModelFilter.copy(
+      signalSelectorModel.dataModelFilter = signalSelectorModel.dataModelFilter.copy(
         pattern = signalPatternText.text
       )
-      selectionModel.updateTreeModel()
-      tree.model = selectionModel.directoryTreeModel
+      signalSelectorModel.updateTreeModel()
+      tree.model = signalSelectorModel.directoryTreeModel
 
     case e: TreeNodesInserted[_] =>
-      if (selectionModel.directoryTreeModel.size == e.childIndices.length) {
-        tree.peer.expandPath(new TreePath(selectionModel.directoryTreeModel.peer.getRoot))
+      if (signalSelectorModel.directoryTreeModel.size == e.childIndices.length) {
+        tree.peer.expandPath(new TreePath(signalSelectorModel.directoryTreeModel.peer.getRoot))
       }
   }
 

@@ -23,13 +23,13 @@ object TreadleController extends SwingApplication with Publisher {
   var testerOpt: Option[TreadleTester] = None
   var vcdOpt: Option[treadle.vcd.VCD] = None
 
-  val dataModel = new DataModel
-  val selectionModel = new SelectionModel
-  val displayModel = new DisplayModel
+  val dataModel: DataModel = new DataModel
+  val signalSelectorModel: SignalSelectorModel = new SignalSelectorModel
+  val selectedSignalModel: SelectedSignalModel = new SelectedSignalModel
 
   val sourceInfoMap: mutable.HashMap[String, String] = new mutable.HashMap()
 
-  lazy val mainWindow = new MainWindow(dataModel, selectionModel, displayModel)
+  lazy val mainWindow = new MainWindow(dataModel, signalSelectorModel, selectedSignalModel)
 
   override def startup(args: Array[String]): Unit = {
     val startAnnotations = shell.parse(args)
@@ -61,9 +61,9 @@ object TreadleController extends SwingApplication with Publisher {
       // Cannot get here. Should be trapped by shell.parse
 
     }
-    selectionModel.updateTreeModel()
+    signalSelectorModel.updateTreeModel()
     populateWaveForms()
-    selectionModel.updateTreeModel()
+    signalSelectorModel.updateTreeModel()
     loadSaveFileOnStartUp()
     mainWindow.signalSelectorPanel.updateModel()
   }
@@ -121,8 +121,8 @@ object TreadleController extends SwingApplication with Publisher {
               dataModel.nameToSignal.get(signalName) match {
                 case Some(pureSignal: PureSignal) =>
                   val node = WaveFormNode(signalName, pureSignal)
-                  displayModel.addFromDirectoryToInspected(node, mainWindow.signalSelectorPanel)
-                  displayModel.waveDisplaySettings(signalName) = {
+                  selectedSignalModel.addFromDirectoryToInspected(node, mainWindow.signalSelectorPanel)
+                  selectedSignalModel.waveDisplaySettings(signalName) = {
                     WaveDisplaySetting(None, Some(Format.deserialize(formatName)))
                   }
                 case Some(_: CombinedSignal) =>
@@ -130,7 +130,7 @@ object TreadleController extends SwingApplication with Publisher {
               }
             case "marker" :: timeString :: Nil =>
               try {
-                displayModel.addMarker("ad", timeString.toLong)
+                selectedSignalModel.addMarker("ad", timeString.toLong)
               } catch {
                 case _: Throwable =>
               }
@@ -197,7 +197,7 @@ object TreadleController extends SwingApplication with Publisher {
 
   def setupClock(t: TreadleTester): Unit = {
     if (t.clockInfoList.nonEmpty) {
-      displayModel.setClock(t.clockInfoList.head)
+      selectedSignalModel.setClock(t.clockInfoList.head)
     }
   }
 
@@ -295,7 +295,7 @@ object TreadleController extends SwingApplication with Publisher {
               added += 1
               symbolsSeen += signalName
               val otherNode = WaveFormNode(signalName, drivingSignal)
-              displayModel.addFromDirectoryToInspected(otherNode, mainWindow.signalSelectorPanel)
+              selectedSignalModel.addFromDirectoryToInspected(otherNode, mainWindow.signalSelectorPanel)
             }
           }
           if (added > 0) println()

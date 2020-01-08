@@ -5,7 +5,7 @@ import visualizer.models._
 
 import scala.swing._
 
-class TimelineComponent(dataModel: DataModel, displayModel: DisplayModel) extends Component {
+class TimelineComponent(dataModel: DataModel, selectedSignalModel: SelectedSignalModel) extends Component {
 
   var unitMagnitude: Long = 1
   var unit = "s"
@@ -23,19 +23,19 @@ class TimelineComponent(dataModel: DataModel, displayModel: DisplayModel) extend
     val visibleRect = peer.getVisibleRect
     val metrics = g.getFontMetrics
 
-    displayModel.clock match {
-      case Some(clk) if displayModel.useClock =>
-        val startTime
-          : Long = math.max(((visibleRect.x - 100) / displayModel.scale).toLong - clk.initialOffset, 0) / clk.period * clk.period + clk.initialOffset
-        val endTime: Long = ((visibleRect.x + visibleRect.width) / displayModel.scale).toLong
+    selectedSignalModel.clock match {
+      case Some(clk) if selectedSignalModel.useClock =>
+        val startTime: Long = math.max(((visibleRect.x - 100) / selectedSignalModel.scale).toLong - clk.initialOffset,
+          0) / clk.period * clk.period + clk.initialOffset
+        val endTime: Long = ((visibleRect.x + visibleRect.width) / selectedSignalModel.scale).toLong
 
         for (ts: Long <- startTime until endTime by clk.period) {
-          val x: Int = (ts * displayModel.scale).toInt
-          if ((((ts - clk.initialOffset) / clk.period) / displayModel.clkMinorTickInterval) % 5 == 0) {
+          val x: Int = (ts * selectedSignalModel.scale).toInt
+          if ((((ts - clk.initialOffset) / clk.period) / selectedSignalModel.clkMinorTickInterval) % 5 == 0) {
             g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
             g.drawString(((ts - clk.initialOffset) / clk.period).toString,
-                         x + 3,
-                         DrawMetrics.MinorTickTop - metrics.getDescent - 2)
+              x + 3,
+              DrawMetrics.MinorTickTop - metrics.getDescent - 2)
           } else {
             g.drawLine(x, DrawMetrics.MinorTickTop, x, DrawMetrics.TimescaleHeight)
           }
@@ -44,16 +44,16 @@ class TimelineComponent(dataModel: DataModel, displayModel: DisplayModel) extend
         // The -100 in start time keeps labels that are to the left of the window from not being drawn
         // (which causes artifacts when scrolling).  It needs to be bigger than the largest label.
         val startTime
-          : Long = math.max(((visibleRect.x - 100) / displayModel.scale).toLong, 0) / displayModel.minorTickInterval * displayModel.minorTickInterval
-        val endTime: Long = ((visibleRect.x + visibleRect.width) / displayModel.scale).toLong
+        : Long = math.max(((visibleRect.x - 100) / selectedSignalModel.scale).toLong, 0) / selectedSignalModel.minorTickInterval * selectedSignalModel.minorTickInterval
+        val endTime: Long = ((visibleRect.x + visibleRect.width) / selectedSignalModel.scale).toLong
 
-        for (ts: Long <- startTime until endTime by displayModel.minorTickInterval) {
-          val x: Int = (ts * displayModel.scale).toInt
-          if ((ts / displayModel.minorTickInterval) % 10 == 0) {
+        for (ts: Long <- startTime until endTime by selectedSignalModel.minorTickInterval) {
+          val x: Int = (ts * selectedSignalModel.scale).toInt
+          if ((ts / selectedSignalModel.minorTickInterval) % 10 == 0) {
             g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
             g.drawString((ts / unitMagnitude).toString + " " + unit,
-                         x + 3,
-                         DrawMetrics.MinorTickTop - metrics.getDescent - 2)
+              x + 3,
+              DrawMetrics.MinorTickTop - metrics.getDescent - 2)
           } else {
             g.drawLine(x, DrawMetrics.MinorTickTop, x, DrawMetrics.TimescaleHeight)
           }
@@ -72,7 +72,7 @@ class TimelineComponent(dataModel: DataModel, displayModel: DisplayModel) extend
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-  listenTo(dataModel, displayModel)
+  listenTo(dataModel, selectedSignalModel)
   reactions += {
     case _: SignalsChanged | _: MaxTimestampChanged =>
       computeBounds()
@@ -83,13 +83,13 @@ class TimelineComponent(dataModel: DataModel, displayModel: DisplayModel) extend
   }
 
   def computeBounds(): Unit = {
-    preferredSize = new Dimension((dataModel.maxTimestamp * displayModel.scale).toInt, preferredSize.height)
+    preferredSize = new Dimension((dataModel.maxTimestamp * selectedSignalModel.scale).toInt, preferredSize.height)
     revalidate()
   }
 
   private def scaleChanged(): Unit = {
     val femtoSecondsPerTimeUnit = math.pow(10, dataModel.timescale + 15).toLong
-    val minorTickIntervalFs = displayModel.minorTickInterval * femtoSecondsPerTimeUnit
+    val minorTickIntervalFs = selectedSignalModel.minorTickInterval * femtoSecondsPerTimeUnit
     val unitMagnitudeFs = if (minorTickIntervalFs < 100L) {
       unit = "fs"
       1L

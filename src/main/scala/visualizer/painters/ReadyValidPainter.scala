@@ -7,7 +7,7 @@ import visualizer.models._
 
 import scala.swing.Graphics2D
 
-class ReadyValidPainter(displayModel: DisplayModel) extends Painter(displayModel) {
+class ReadyValidPainter(selectedSignalModel: SelectedSignalModel) extends Painter(selectedSignalModel) {
   val FireColor = new Color(152, 251, 152)
   val ReadySetColor = new Color(255, 240, 106)
   val ValidSetColor = new Color(255, 208, 98)
@@ -21,20 +21,20 @@ class ReadyValidPainter(displayModel: DisplayModel) extends Painter(displayModel
       case waveFormNode: WaveFormNode =>
         waveFormNode.signal match {
           case combinedSignal: CombinedSignal =>
-            val startTimestamp = displayModel.xCoordinateToTimestamp(visibleRect.x)
+            val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
 
             try {
               combinedSignal.waveform.get
                 .findTransition(startTimestamp)
                 .sliding(2)
                 .takeWhile { transitionPair =>
-                  displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
+                  selectedSignalModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
                 }
                 .foreach { transitionPair =>
                   // length could be 1 if findTransition(startTimestamp) has length 1
                   if (transitionPair.length == 2) {
-                    val left: Int = displayModel.timestampToXCoordinate(transitionPair.head.timestamp)
-                    val right: Int = displayModel.timestampToXCoordinate(transitionPair.last.timestamp)
+                    val left: Int = selectedSignalModel.timestampToXCoordinate(transitionPair.head.timestamp)
+                    val right: Int = selectedSignalModel.timestampToXCoordinate(transitionPair.last.timestamp)
 
                     assert(transitionPair.head.value.length == 2)
                     drawSegment(g,

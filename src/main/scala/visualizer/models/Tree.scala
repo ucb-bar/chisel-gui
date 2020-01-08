@@ -21,7 +21,8 @@ trait SignalTreeNode extends GenericTreeNode {
 
 case class WaveFormNode(name: String, signal: Signal[_]) extends SignalTreeNode
 
-case class DirectoryNode(name: String) extends GenericTreeNode {
+case class DirectoryNode(name: String, path: Tree.Path[GenericTreeNode]) extends GenericTreeNode {
+  val myPath: Tree.Path[GenericTreeNode] = path :+ this
   val children: mutable.ArrayBuffer[GenericTreeNode] = new mutable.ArrayBuffer()
 }
 

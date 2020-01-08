@@ -10,8 +10,7 @@ import scala.swing._
 import scala.swing.event._
 import BorderPanel.Position.Center
 
-
-class SelectedSignalPanel(dataModel: DataModel, displayModel: DisplayModel, tree: Tree[GenericTreeNode])
+class SelectedSignalPanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, tree: Tree[GenericTreeNode])
   extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
@@ -30,7 +29,7 @@ class SelectedSignalPanel(dataModel: DataModel, displayModel: DisplayModel, tree
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-  listenTo(displayModel)
+  listenTo(selectedSignalModel)
   listenTo(keys, tree.keys)
   listenTo(mouse.clicks)
   reactions += {
@@ -42,17 +41,18 @@ class SelectedSignalPanel(dataModel: DataModel, displayModel: DisplayModel, tree
     case m: MouseButtonEvent =>
       println(s"Mouse clicked ${m.clicks}")
     case KeyReleased(_, Key.BackSpace, _, _) =>
-      displayModel.removeSelectedSignals(this, tree.selection.paths.iterator)
+      selectedSignalModel.removeSelectedSignals(this, tree.selection.paths.iterator)
   }
 }
 
 /** Old way to render a selected signal
   *
-  * @param dataModel    the data
-  * @param displayModel the model
+  * @param dataModel           the data
+  * @param selectedSignalModel the model
   */
 //TODO: Remove this after a bit of usage of the new way, see InspectionContainer#show
-class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) extends Tree.Renderer[GenericTreeNode] {
+class SignalNameRenderer(dataModel: DataModel, selectedSignalModel: SelectedSignalModel)
+  extends Tree.Renderer[GenericTreeNode] {
   private var labelBaseLine = -1
   private var valueBaseLine = 0
   val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)
@@ -113,10 +113,10 @@ class SignalNameRenderer(dataModel: DataModel, displayModel: DisplayModel) exten
               // Value
               g.setFont(ValueFont)
               if (isSelected) g.setColor(Color.white) else g.setColor(Color.blue)
-              val value = signal.waveform.get.findTransition(displayModel.cursorPosition).next().value
+              val value = signal.waveform.get.findTransition(selectedSignalModel.cursorPosition).next().value
               val txt = signal match {
                 case pureSignal: PureSignal if value.asInstanceOf[BigInt] != null =>
-                  val setting = displayModel.waveDisplaySettings(pureSignal.name)
+                  val setting = selectedSignalModel.waveDisplaySettings(pureSignal.name)
                   setting.dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
                 case _: CombinedSignal =>
                   val pair = value.asInstanceOf[Array[BigInt]]
