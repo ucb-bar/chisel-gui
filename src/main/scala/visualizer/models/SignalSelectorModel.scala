@@ -59,22 +59,16 @@ class SignalSelectorModel extends Publisher {
     val signalName = fullPath.last
     val modules = fullPath.init
 
-    var lastNodeOpt: Option[DirectoryNode] = None
     if (dataModelFilter.allow(fullPath)) {
       val parentPath = modules.foldLeft(RootPath) { (pathAccumulator, module) =>
-        val node = DirectoryNode(module, pathAccumulator)
+        val node = DirectoryNode(module)
         val children = directoryTreeModel.getChildrenOf(pathAccumulator)
         if (!children.contains(node)) {
-          lastNodeOpt.foreach { lastNode => lastNode.children += node }
           insertUnderSorted(pathAccumulator, node)
         }
-        lastNodeOpt = Some(node)
         pathAccumulator :+ node
       }
       val node = WaveFormNode(signalName, signal)
-      lastNodeOpt.foreach { lastNode: DirectoryNode =>
-        lastNode.children += node
-      }
       insertUnderSorted(parentPath, node)
     }
   }

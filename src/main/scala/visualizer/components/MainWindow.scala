@@ -4,6 +4,7 @@ import java.io.{File, PrintWriter}
 
 import javax.swing.BorderFactory
 import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
+import scalaswingcontrib.tree.Tree
 import treadle.executable.ClockInfo
 import visualizer.models._
 import visualizer.{CursorSet, DependencyComponentRequested, MarkerChanged, MaxTimestampChanged, TreadleController}
@@ -16,7 +17,8 @@ import scala.swing._
   * @param dataModel           Source of data
   * @param selectedSignalModel Source of things selected for waveform view
   */
-class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, selectedSignalModel: SelectedSignalModel) extends MainFrame {
+class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, selectedSignalModel: SelectedSignalModel)
+  extends MainFrame {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -111,19 +113,33 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     val writer = new PrintWriter(file)
 
     writer.println(s"windowsize,${size.width},${size.height}")
-    signalAndWavePanel.tree.cellValues.foreach {
-      case waveFormNode: WaveFormNode =>
-        waveFormNode.signal match {
-          case _: PureSignal =>
-            selectedSignalModel.waveDisplaySettings.get(waveFormNode.name) match {
-              case Some(waveDisplaySetting: WaveDisplaySetting) =>
-                val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
-                writer.println(s"node,${waveFormNode.name},$dataFormat")
+
+    def walkNodes(path: Tree.Path[GenericTreeNode]): Unit = {
+      selectedSignalModel.treeModel.getChildPathsOf(path).toArray.foreach { path =>
+        val pathString = path.map { node =>
+          node.name
+        }.mkString(",")
+        val node = path.last
+        node match {
+          case _: DirectoryNode =>
+            writer.println(s"node,$pathString")
+          case waveFormNode: WaveFormNode =>
+            waveFormNode.signal match {
+              case _: PureSignal =>
+                selectedSignalModel.waveDisplaySettings.get(waveFormNode.name) match {
+                  case Some(waveDisplaySetting: WaveDisplaySetting) =>
+                    val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
+                    writer.println(s"wave-node,$pathString,$dataFormat")
+                  case _ =>
+                }
               case _ =>
             }
-          case _ =>
         }
+        walkNodes(path)
+      }
     }
+
+    walkNodes(selectedSignalModel.RootPath)
 
     selectedSignalModel.markers.foreach { marker =>
       writer.println(s"marker,${marker.timestamp}")

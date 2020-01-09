@@ -66,9 +66,7 @@ class SelectedSignalModel extends Publisher {
         case InsertInto => tree.selection.paths.headOption
         case InsertAfter => tree.selection.paths.lastOption
         case _ => Some(RootPath)
-
       }
-
     }
 
     /** Complicated code to figure out where to insert
@@ -133,7 +131,7 @@ class SelectedSignalModel extends Publisher {
   }
 
   def addGroup(): Unit = {
-    val node = DirectoryNode("New Group", Tree.Path.empty[GenericTreeNode])
+    val node = DirectoryNode("New Group")
     treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
   }
 
