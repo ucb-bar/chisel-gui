@@ -26,6 +26,16 @@ case class DirectoryNode(name: String, path: Tree.Path[GenericTreeNode]) extends
   val children: mutable.ArrayBuffer[GenericTreeNode] = new mutable.ArrayBuffer()
 }
 
+trait AddDirection
+
+case object InsertBefore extends AddDirection
+
+case object InsertInto extends AddDirection
+
+case object InsertAfter extends AddDirection
+
+case object AppendToEnd extends AddDirection
+
 object TreeHelper {
   def viewableDepthFirstIterator(tree: Tree[GenericTreeNode]): Iterator[GenericTreeNode] =
     new Iterator[GenericTreeNode] {

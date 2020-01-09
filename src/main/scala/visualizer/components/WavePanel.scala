@@ -40,7 +40,7 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
               case None =>
                 signal.waveform.get.isBinary
             }
-            selectedSignalModel.waveDisplaySettings(node.name).painter match {
+            selectedSignalModel.waveDisplaySettings(signal.name).painter match {
               case _ =>
                 if (isBinary)
                   singleBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)

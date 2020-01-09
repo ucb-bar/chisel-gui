@@ -1,5 +1,7 @@
 package visualizer.models
 
+import scalaswingcontrib.tree.Tree.Path
+
 import scala.collection.mutable.ArrayBuffer
 import scala.swing._
 import scalaswingcontrib.tree._
@@ -52,6 +54,84 @@ class SelectedSignalModel extends Publisher {
     publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
   }
 
+  def addNodes(addDirection: AddDirection, genericTreeNode: GenericTreeNode, source: Component, targetPathOpt: Option[Path[GenericTreeNode]] = None): Path[GenericTreeNode] = {
+
+    val tree = TreadleController.mainWindow.signalAndWavePanel.tree
+
+    def targetPath = if (targetPathOpt.isDefined) {
+      targetPathOpt
+    } else {
+      addDirection match {
+        case InsertBefore => tree.selection.paths.headOption
+        case InsertInto => tree.selection.paths.headOption
+        case InsertAfter => tree.selection.paths.lastOption
+        case _ => Some(RootPath)
+
+      }
+
+    }
+
+    /** Complicated code to figure out where to insert
+      *
+      * @return
+      */
+    def putTheNodeIn(genericTreeNode: GenericTreeNode, addDirection: AddDirection): Path[GenericTreeNode] = {
+      val pathToNewNode = addDirection match {
+        case InsertBefore =>
+          targetPath match {
+            case Some(path) =>
+              treeModel.insertBefore(path, genericTreeNode)
+              path.tail ++ Seq(genericTreeNode)
+            case _ =>
+              treeModel.insertUnder(RootPath, genericTreeNode, treeModel.getChildrenOf(RootPath).size)
+              RootPath ++ Seq(genericTreeNode)
+          }
+
+        case InsertInto =>
+          targetPath match {
+            case Some(path) =>
+              treeModel.insertUnder(path, genericTreeNode, treeModel.getChildrenOf(path).size)
+              path ++ Seq(genericTreeNode)
+            case _ =>
+              treeModel.insertUnder(RootPath, genericTreeNode, treeModel.getChildrenOf(RootPath).size)
+              RootPath ++ Seq(genericTreeNode)
+          }
+
+        case InsertAfter =>
+          targetPath match {
+            case Some(path) =>
+              treeModel.insertAfter(path, genericTreeNode)
+              path.tail ++ Seq(genericTreeNode)
+            case _ =>
+              treeModel.insertUnder(RootPath, genericTreeNode, treeModel.getChildrenOf(RootPath).size)
+              RootPath ++ Seq(genericTreeNode)
+          }
+
+        case AppendToEnd =>
+          treeModel.insertUnder(RootPath, genericTreeNode, treeModel.getChildrenOf(RootPath).size)
+          RootPath ++ Seq(genericTreeNode)
+
+      }
+
+      genericTreeNode match {
+        case waveFormNode: WaveFormNode =>
+          waveFormNode.signal match {
+            case p: PureSignal =>
+              waveDisplaySettings.getOrElseUpdate(p.name, WaveDisplaySetting())
+            case _ =>
+          }
+        case _ =>
+      }
+
+      pathToNewNode
+    }
+
+    val lastNodeAdded = putTheNodeIn(genericTreeNode, addDirection)
+
+    publish(SignalsChanged(source))
+    lastNodeAdded
+  }
+
   def addGroup(): Unit = {
     val node = DirectoryNode("New Group", Tree.Path.empty[GenericTreeNode])
     treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
@@ -77,8 +157,8 @@ class SelectedSignalModel extends Publisher {
     nodes.foreach {
       case node: WaveFormNode =>
         node.signal match {
-          case _: PureSignal =>
-            waveDisplaySettings(node.name).dataFormat = Some(format)
+          case signal: PureSignal =>
+            waveDisplaySettings(signal.name).dataFormat = Some(format)
           case _ =>
         }
       case _ =>

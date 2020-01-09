@@ -4,6 +4,7 @@ import javax.swing.BorderFactory
 import javax.swing.tree.TreePath
 import scalaswingcontrib.event.TreeNodesInserted
 import scalaswingcontrib.tree.Tree
+import scalaswingcontrib.tree.Tree.Path
 import visualizer.DrawMetrics
 import visualizer.models._
 
@@ -39,7 +40,7 @@ class SignalSelectorPanel(
     reactions += {
       case KeyReleased(_, key, _, _) =>
         if (key == Key.Enter) {
-          addSelectedToInspection(append = false)
+          addToSelectedSignalsModel(InsertAfter)
         }
       case m: MouseClicked =>
         if (m.clicks == 1) {
@@ -61,12 +62,34 @@ class SignalSelectorPanel(
     tree.model = signalSelectorModel.directoryTreeModel
   }
 
-  def addSelectedToInspection(append: Boolean): Unit = {
-    tree.selection.cellValues.foreach {
-      case directoryNode: DirectoryNode =>
-        selectedSignalModel.addFromDirectoryToInspected(directoryNode.copy(), this)
-      case otherNode =>
-        selectedSignalModel.addFromDirectoryToInspected(otherNode, this)
+  /** Add the selected fields to the SelectedSignalsPanel
+    * Use the first selected value of the SelectedSignalsPanel as the insert point
+    *
+    * @param addDirection Where to put
+    */
+  def addToSelectedSignalsModel(addDirection: AddDirection): Unit = {
+
+    def addPath(path: Path[GenericTreeNode], addDirection: AddDirection, targetPathOpt: Option[Path[GenericTreeNode]] = None) {
+      path.last match {
+        case directoryNode: DirectoryNode =>
+          if (tree.isExpanded(path)) {
+            selectedSignalModel.addNodes(addDirection, directoryNode, source = this, targetPathOpt)
+          } else {
+            val lastTarget = selectedSignalModel.addNodes(addDirection, directoryNode, source = this, targetPathOpt)
+            val childPaths = tree.model.getChildPathsOf(path).toArray
+            childPaths.foreach { child_path =>
+              addPath(child_path, InsertInto, Some(lastTarget))
+            }
+          }
+        //          selectedSignalModel.addNodes(addDirection, directoryNode, source = this, targetPathOpt)
+        case otherNode =>
+          selectedSignalModel.addNodes(addDirection, otherNode, source = this, targetPathOpt)
+      }
+    }
+
+    val paths = tree.selection.paths.toArray
+    paths.foreach { path =>
+      addPath(path, addDirection)
     }
   }
 
@@ -103,8 +126,10 @@ class SignalSelectorPanel(
 
   contents += toolBar
 
-  val insertSymbolsButton = new Button("Insert")
-  val appendSymbolsButton = new Button("Append")
+  val insertSignalBeforeButton = new Button("↑")
+  val insertSignalAfterButton = new Button("↓")
+  val insertSignalIntoButton = new Button("→")
+  val appendSignalButton = new Button("⤓")
 
   val symbolList: ScrollPane = new ScrollPane(tree) {
     border = BorderFactory.createEmptyBorder()
@@ -117,8 +142,11 @@ class SignalSelectorPanel(
   private val lowerToolbar = new ToolBar {
     peer.setFloatable(false)
 
-    contents += insertSymbolsButton
-    contents += appendSymbolsButton
+    contents += new Label("Insert:")
+    contents += insertSignalBeforeButton
+    contents += insertSignalAfterButton
+    contents += insertSignalIntoButton
+    contents += appendSignalButton
     // contents += Swing.Glue
   }
 
@@ -127,10 +155,14 @@ class SignalSelectorPanel(
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-  listenTo(appendSymbolsButton)
+  listenTo(insertSignalBeforeButton)
+  listenTo(insertSignalIntoButton)
+  listenTo(insertSignalAfterButton)
+  listenTo(appendSignalButton)
+
   listenTo(showTempSignalsButton)
   listenTo(showGenSignalsButton)
-  listenTo(appendSymbolsButton)
+  listenTo(appendSignalButton)
   listenTo(signalPatternText)
   listenTo(tree)
   listenTo(mouse.clicks)
@@ -147,11 +179,17 @@ class SignalSelectorPanel(
     //        }
     //      }
 
-    case ButtonClicked(`appendSymbolsButton`) =>
-      addSelectedToInspection(append = true)
+    case ButtonClicked(`insertSignalBeforeButton`) =>
+      addToSelectedSignalsModel(InsertBefore)
 
-    case ButtonClicked(`insertSymbolsButton`) =>
-      addSelectedToInspection(append = false)
+    case ButtonClicked(`insertSignalIntoButton`) =>
+      addToSelectedSignalsModel(InsertInto)
+
+    case ButtonClicked(`insertSignalAfterButton`) =>
+      addToSelectedSignalsModel(InsertAfter)
+
+    case ButtonClicked(`appendSignalButton`) =>
+      addToSelectedSignalsModel(AppendToEnd)
 
     case ButtonClicked(`showTempSignalsButton`) =>
       showTempSignalsButton.pushAction {

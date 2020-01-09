@@ -22,7 +22,7 @@ class MultiBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter(
       case waveFormNode: WaveFormNode =>
         waveFormNode.signal match {
           case pureSignal: PureSignal =>
-            val formatter = selectedSignalModel.waveDisplaySettings(waveFormNode.name).dataFormat match {
+            val formatter = selectedSignalModel.waveDisplaySettings(pureSignal.name).dataFormat match {
               case Some(format) => format
               case None => DecFormat
             }
