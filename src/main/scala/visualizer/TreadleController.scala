@@ -104,30 +104,66 @@ object TreadleController extends SwingApplication with Publisher {
   }
 
   /**
-    * looks through the save file and populates the inspection container
+    * looks through the save file and populates the selected signal container
     */
   def loadSaveFileOnStartUp(): Unit = {
+    // This list is root -> leaf
+    var currentPath = selectedSignalModel.RootPath
+    var lastNode: GenericTreeNode = new GenericTreeNode {
+      override def name: String = ""
+    }
+    var currentDepth = 1
+
+    def addNode(depthString: String, indexString: String, node: GenericTreeNode): Unit = {
+      val depth = depthString.toInt
+      var index = indexString.toInt
+
+      if (depth > currentDepth) {
+        currentPath = currentPath ++ Seq(lastNode)
+        currentDepth = depth
+      } else if (depth < currentDepth) {
+        currentPath = currentPath.take(depth - 1)
+        currentDepth = depth
+      }
+
+      try {
+        selectedSignalModel.treeModel.insertUnder(currentPath, node, index)
+      }
+      catch {
+        case t: Throwable =>
+          println(t.getMessage)
+          println(s"depthString $depthString indexString $indexString $node")
+      }
+      lastNode = node
+    }
+
     testerOpt.foreach { tester =>
       val fileNameGuess = new File(tester.topName + ".save")
       if (fileNameGuess.exists()) {
         FileUtils.getLines(fileNameGuess).foreach { line =>
           val fields = line.split(",").map(_.trim).toList
           fields match {
-            case "windowsize" :: widthString :: heightString :: Nil =>
+            case "window_size" :: widthString :: heightString :: Nil =>
               val size = new Dimension(widthString.toInt, heightString.toInt)
               mainWindow.size = size
               mainWindow.preferredSize = size
-            case "node" :: signalName :: formatName :: Nil =>
+
+            case "signal_node" :: depthString :: indexString :: nodeName :: signalName :: formatString :: Nil =>
               dataModel.nameToSignal.get(signalName) match {
                 case Some(pureSignal: PureSignal) =>
-                  val node = WaveFormNode(signalName, pureSignal)
-                  selectedSignalModel.addFromDirectoryToInspected(node, mainWindow.signalSelectorPanel)
+                  val node = WaveFormNode(nodeName, pureSignal)
                   selectedSignalModel.waveDisplaySettings(signalName) = {
-                    WaveDisplaySetting(None, Some(Format.deserialize(formatName)))
+                    WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
                   }
+                  addNode(depthString, indexString, node)
                 case Some(_: CombinedSignal) =>
                 case _ =>
               }
+
+            case "node" :: depthString :: indexString :: nodeName :: Nil =>
+              val node = DirectoryNode(nodeName)
+              addNode(depthString, indexString, node)
+
             case "marker" :: timeString :: Nil =>
               try {
                 selectedSignalModel.addMarker("ad", timeString.toLong)

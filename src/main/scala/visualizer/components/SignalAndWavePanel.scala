@@ -150,7 +150,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     }
 
     def handleMouseClick(e: MouseClicked): Unit = {
-      println(s"mouse clicked in inspectionContainer ${e.clicks}")
+      println(s"mouse clicked in signalAndWave ${e.clicks}")
       if (SwingUtilities.isRightMouseButton(e.peer)) {
         if (isPointInNode(e.point)) {
           val row = getClosestRowForLocation(e.point.x, e.point.y)
@@ -177,7 +177,6 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
             selection.clear()
           }
         } else if (e.clicks == 2) {
-          println(s"mouse clicked in inspectionContainer ${e.clicks}")
           tree.selection.cellValues.foreach { node =>
             selectedSignalModel.addFromDirectoryToInspected(node, this)
           }

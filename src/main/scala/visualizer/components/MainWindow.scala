@@ -112,30 +112,31 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
   def saveSettings(file: File): Unit = {
     val writer = new PrintWriter(file)
 
-    writer.println(s"windowsize,${size.width},${size.height}")
+    writer.println(s"window_size,${size.width},${size.height}")
 
-    def walkNodes(path: Tree.Path[GenericTreeNode]): Unit = {
-      selectedSignalModel.treeModel.getChildPathsOf(path).toArray.foreach { path =>
+    def walkNodes(path: Tree.Path[GenericTreeNode], depth: Int = 1): Unit = {
+      selectedSignalModel.treeModel.getChildPathsOf(path).toArray.zipWithIndex.foreach { case (path, index) =>
         val pathString = path.map { node =>
           node.name
         }.mkString(",")
         val node = path.last
         node match {
-          case _: DirectoryNode =>
-            writer.println(s"node,$pathString")
+          case directoryNode: DirectoryNode =>
+            writer.println(s"node,$depth,$index,${directoryNode.name}")
           case waveFormNode: WaveFormNode =>
             waveFormNode.signal match {
-              case _: PureSignal =>
-                selectedSignalModel.waveDisplaySettings.get(waveFormNode.name) match {
+              case pureSignal: PureSignal =>
+                selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
                   case Some(waveDisplaySetting: WaveDisplaySetting) =>
                     val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
-                    writer.println(s"wave-node,$pathString,$dataFormat")
+                    writer.println(s"signal_node,$depth,$index,${waveFormNode.name},${pureSignal.name},$dataFormat")
                   case _ =>
                 }
               case _ =>
             }
+          case _ =>
         }
-        walkNodes(path)
+        walkNodes(path, depth = depth + 1)
       }
     }
 

@@ -66,7 +66,7 @@ class TreeTransferHandler(selectedSignalModel: SelectedSignalModel) extends Tran
 
   /**
     * directory nodes must be copied because their contents can change from selection panel to
-    * inspection panel
+    * siganls selected panel
     *
     * @param node node to copy
     * @return
