@@ -4,6 +4,7 @@ import java.io.{File, PrintWriter}
 
 import javax.swing.BorderFactory
 import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
+import scalaswingcontrib.tree.Tree
 import treadle.executable.ClockInfo
 import visualizer.models._
 import visualizer.{CursorSet, DependencyComponentRequested, MarkerChanged, MaxTimestampChanged, TreadleController}
@@ -13,18 +14,19 @@ import scala.swing._
 
 /** They main window of the application
   *
-  * @param dataModel    Source of data
-  * @param displayModel Source of things selected for waveform view
+  * @param dataModel           Source of data
+  * @param selectedSignalModel Source of things selected for waveform view
   */
-class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayModel: DisplayModel) extends MainFrame {
+class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, selectedSignalModel: SelectedSignalModel)
+  extends MainFrame {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
-  val signalSelectorPanel = new SignalSelectorPanel(dataModel, selectionModel, displayModel)
-  val signalAndWavePanel = new SignalAndWavePanel(dataModel, displayModel)
-  val showDependenciesPanel = new ShowDependenciesPanel(dataModel, displayModel)
-  val inputControlPanel = new InputControlPanel(dataModel, displayModel)
+  val signalSelectorPanel = new SignalSelectorPanel(dataModel, selectionModel, selectedSignalModel)
+  val signalAndWavePanel = new SignalAndWavePanel(dataModel, selectedSignalModel)
+  val showDependenciesPanel = new ShowDependenciesPanel(dataModel, selectedSignalModel)
+  val inputControlPanel = new InputControlPanel(dataModel, selectedSignalModel)
 
   peer.setDefaultCloseOperation(DISPOSE_ON_CLOSE)
 
@@ -52,19 +54,19 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
     contents += markerTimeLabel
 
     contents += Button("Add Marker") {
-      displayModel.addMarker("ad", displayModel.cursorPosition)
+      selectedSignalModel.addMarker("ad", selectedSignalModel.cursorPosition)
     }
     contents += Button("Setup mock clock") {
-      displayModel.setClock(ClockInfo("mock clock", 10, 1))
+      selectedSignalModel.setClock(ClockInfo("mock clock", 10, 1))
     }
     contents += Button("Toggle Clock") {
-      displayModel.toggleClock()
+      selectedSignalModel.toggleClock()
     }
     contents += Button("Remove signal(s)") {
       signalAndWavePanel.removeSignals(this)
     }
     contents += Button("Add group") {
-      displayModel.addGroup()
+      selectedSignalModel.addGroup()
     }
   }
 
@@ -89,7 +91,6 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
     }
   }
 
-  //TODO this does not seem to handle Command-Q as was hoped
   override def closeOperation(): Unit = {
     doQuit()
   }
@@ -110,22 +111,37 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
   def saveSettings(file: File): Unit = {
     val writer = new PrintWriter(file)
 
-    writer.println(s"windowsize,${size.width},${size.height}")
-    signalAndWavePanel.tree.cellValues.foreach {
-      case waveFormNode: WaveFormNode =>
-        waveFormNode.signal match {
-          case _: PureSignal =>
-            displayModel.waveDisplaySettings.get(waveFormNode.name) match {
-              case Some(waveDisplaySetting: WaveDisplaySetting) =>
-                val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
-                writer.println(s"node,${waveFormNode.name},$dataFormat")
+    writer.println(s"window_size,${size.width},${size.height}")
+
+    def walkNodes(path: Tree.Path[GenericTreeNode], depth: Int = 1): Unit = {
+      selectedSignalModel.treeModel.getChildPathsOf(path).toArray.zipWithIndex.foreach { case (path, index) =>
+        val pathString = path.map { node =>
+          node.name
+        }.mkString(",")
+        val node = path.last
+        node match {
+          case directoryNode: DirectoryNode =>
+            writer.println(s"node,$depth,$index,${directoryNode.name}")
+          case waveFormNode: WaveFormNode =>
+            waveFormNode.signal match {
+              case pureSignal: PureSignal =>
+                selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
+                  case Some(waveDisplaySetting: WaveDisplaySetting) =>
+                    val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
+                    writer.println(s"signal_node,$depth,$index,${waveFormNode.name},${pureSignal.name},$dataFormat")
+                  case _ =>
+                }
               case _ =>
             }
           case _ =>
         }
+        walkNodes(path, depth = depth + 1)
+      }
     }
 
-    displayModel.markers.foreach { marker =>
+    walkNodes(selectedSignalModel.RootPath)
+
+    selectedSignalModel.markers.foreach { marker =>
       writer.println(s"marker,${marker.timestamp}")
     }
 
@@ -158,7 +174,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
     layout(showDependenciesPanel) = South
     layout(inputControlPanel) = East
 
-    listenTo(displayModel)
+    listenTo(selectedSignalModel)
     listenTo(dataModel)
     reactions += {
       case e: DependencyComponentRequested =>
@@ -167,7 +183,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SelectionModel, displayMo
           case None => ""
         }
       case e: CursorSet =>
-        setMarkerLabel(displayModel.cursorPosition)
+        setMarkerLabel(selectedSignalModel.cursorPosition)
       case _: MaxTimestampChanged =>
         signalAndWavePanel.zoomToEnd(this)
     }

@@ -3,11 +3,11 @@ package visualizer.painters
 import java.awt.{FontMetrics, Polygon, Rectangle}
 
 import visualizer.DrawMetrics
-import visualizer.models.{DisplayModel, GenericTreeNode, WaveFormNode}
+import visualizer.models.{GenericTreeNode, SelectedSignalModel, WaveFormNode}
 
 import scala.swing.{Font, Graphics2D}
 
-abstract class Painter(displayModel: DisplayModel) {
+abstract class Painter(selectedSignalModel: SelectedSignalModel) {
   def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: GenericTreeNode, maxTimestamp: Long): Unit
 }
 

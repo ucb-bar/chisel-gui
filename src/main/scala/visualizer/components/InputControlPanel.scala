@@ -2,11 +2,11 @@ package visualizer.components
 
 import treadle.executable.StopException
 import visualizer.{PureSignalsChanged, TreadleController}
-import visualizer.models.{DataModel, DisplayModel}
+import visualizer.models.{DataModel, SelectedSignalModel}
 
 import scala.swing._
 
-class InputControlPanel(dataModel: DataModel, displayModel: DisplayModel) extends GridPanel(2, 1) {
+class InputControlPanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel) extends GridPanel(2, 1) {
 
   ///////////////////////////////////////////////////////////////////////////
   // View

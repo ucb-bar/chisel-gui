@@ -11,11 +11,11 @@ import scala.collection.mutable.ArrayBuffer
 //
 // Transfer handler to make tree re-arrangeable
 //
-class TreeTransferHandler(displayModel: DisplayModel) extends TransferHandler {
+class TreeTransferHandler(selectedSignalModel: SelectedSignalModel) extends TransferHandler {
   val mimeType: String = DataFlavor.javaJVMLocalObjectMimeType + ";class=\"" +
     classOf[Array[DefaultMutableTreeNode]].toString.drop(6) + "\""
-  val nodesFlavor:   DataFlavor = new DataFlavor(mimeType)
-  val flavors:       Array[DataFlavor] = Array[DataFlavor](nodesFlavor)
+  val nodesFlavor: DataFlavor = new DataFlavor(mimeType)
+  val flavors: Array[DataFlavor] = Array[DataFlavor](nodesFlavor)
   var nodesToRemove: Array[DefaultMutableTreeNode] = Array[DefaultMutableTreeNode]()
 
   override def canImport(support: TransferSupport): Boolean = {
@@ -66,7 +66,7 @@ class TreeTransferHandler(displayModel: DisplayModel) extends TransferHandler {
 
   /**
     * directory nodes must be copied because their contents can change from selection panel to
-    * inspection panel
+    * siganls selected panel
     *
     * @param node node to copy
     * @return
@@ -80,8 +80,8 @@ class TreeTransferHandler(displayModel: DisplayModel) extends TransferHandler {
     //TODO remove commented code, settings are accessed by name so don't need to be copied
     //    originalInspectedNode match {
     //      case waveFormNode: WaveFormNode =>
-    //        displayModel.waveDisplaySettings(copiedInspectedNode.nodeId) =
-    //          displayModel.waveDisplaySettings(originalInspectedNode.nodeId)
+    //        selectedSignalModel.waveDisplaySettings(copiedInspectedNode.nodeId) =
+    //          selectedSignalModel.waveDisplaySettings(originalInspectedNode.nodeId)
     //      case None =>
     //    }
     new DefaultMutableTreeNode(newNode)
@@ -94,7 +94,7 @@ class TreeTransferHandler(displayModel: DisplayModel) extends TransferHandler {
       nodesToRemove.foreach { node =>
         model.removeNodeFromParent(node)
       }
-      displayModel.moveSignals(null)
+      selectedSignalModel.moveSignals(null)
     }
   }
 

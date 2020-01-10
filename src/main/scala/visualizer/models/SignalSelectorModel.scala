@@ -12,7 +12,7 @@ import scala.util.matching.Regex
   * The list may be filtered.
   *
   */
-class SelectionModel extends Publisher {
+class SignalSelectorModel extends Publisher {
 
   ///////////////////////////////////////////////////////////////////////////
   // Directory Tree Model and Pure Signals
@@ -60,13 +60,14 @@ class SelectionModel extends Publisher {
     val modules = fullPath.init
 
     if (dataModelFilter.allow(fullPath)) {
-      val parentPath = modules.foldLeft(RootPath) { (parentPath, module) =>
-        val node = DirectoryNode(module)
-        val children = directoryTreeModel.getChildrenOf(parentPath)
-        if (!children.contains(node)) {
-          insertUnderSorted(parentPath, node)
+      val parentPath = modules.foldLeft(RootPath) { (pathAccumulator, module) =>
+        val children = directoryTreeModel.getChildrenOf(pathAccumulator)
+        val dirNode = children.find(child => child.name == module).getOrElse {
+          val newDirNode = DirectoryNode(module)
+          insertUnderSorted(pathAccumulator, newDirNode)
+          newDirNode
         }
-        parentPath :+ node
+        pathAccumulator :+ dirNode
       }
       val node = WaveFormNode(signalName, signal)
       insertUnderSorted(parentPath, node)

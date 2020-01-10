@@ -7,7 +7,7 @@ import visualizer.models._
 
 import scala.swing.Graphics2D
 
-class SingleBitPainter(displayModel: DisplayModel) extends Painter(displayModel) {
+class SingleBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter(selectedSignalModel) {
   def paintWaveform(g: Graphics2D,
                     visibleRect: Rectangle,
                     top: Int,
@@ -17,7 +17,7 @@ class SingleBitPainter(displayModel: DisplayModel) extends Painter(displayModel)
       case waveFormNode: WaveFormNode =>
         waveFormNode.signal match {
           case pureSignal: PureSignal =>
-            val startTimestamp = displayModel.xCoordinateToTimestamp(visibleRect.x)
+            val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
             g.setColor(Color.black)
 
             // Only paint from first transition at or before the start timestamp
@@ -27,12 +27,12 @@ class SingleBitPainter(displayModel: DisplayModel) extends Painter(displayModel)
                 .findTransition(startTimestamp)
                 .sliding(2)
                 .takeWhile { transitionPair =>
-                  displayModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
+                  selectedSignalModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
                 }
                 .foreach {
                   case transition1 :: transition2 :: Nil =>
-                    val left: Int = displayModel.timestampToXCoordinate(transition1.timestamp)
-                    val right: Int = displayModel.timestampToXCoordinate(transition2.timestamp)
+                    val left: Int = selectedSignalModel.timestampToXCoordinate(transition1.timestamp)
+                    val right: Int = selectedSignalModel.timestampToXCoordinate(transition2.timestamp)
                     val z = if (transition1.value == 0) DrawMetrics.WaveformHeight else 0
 
                     // horizontal portion
@@ -43,8 +43,8 @@ class SingleBitPainter(displayModel: DisplayModel) extends Painter(displayModel)
                       g.drawLine(left, top, left, top + DrawMetrics.WaveformHeight)
                     }
                   case transition :: Nil =>
-                    val left: Int = displayModel.timestampToXCoordinate(0L)
-                    val right: Int = displayModel.timestampToXCoordinate(transition.timestamp)
+                    val left: Int = selectedSignalModel.timestampToXCoordinate(0L)
+                    val right: Int = selectedSignalModel.timestampToXCoordinate(transition.timestamp)
                     val z = if (transition.value == 0) DrawMetrics.WaveformHeight else 0
 
                     // horizontal portion
@@ -59,8 +59,8 @@ class SingleBitPainter(displayModel: DisplayModel) extends Painter(displayModel)
               pureSignal.waveform.get.transitions.lastOption match {
                 case Some(lastTransition) =>
                   if (lastTransition.timestamp < maxTimestamp) {
-                    val left: Int = displayModel.timestampToXCoordinate(lastTransition.timestamp)
-                    val right: Int = displayModel.timestampToXCoordinate(maxTimestamp)
+                    val left: Int = selectedSignalModel.timestampToXCoordinate(lastTransition.timestamp)
+                    val right: Int = selectedSignalModel.timestampToXCoordinate(maxTimestamp)
                     val z = if (lastTransition.value == 0L) DrawMetrics.WaveformHeight else 0
 
                     // horizontal portion

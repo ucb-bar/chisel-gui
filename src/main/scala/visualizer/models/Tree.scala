@@ -4,26 +4,67 @@ import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 import scalaswingcontrib.tree.Tree.Path
 import scalaswingcontrib.tree.{Tree, TreeModel}
+import visualizer.TreadleController.dataModel
 
 import scala.collection.mutable
 
 // Nodes with no signal are groups if InspectedNode, or modules if DirectoryNode
 
+object GenericTreeNode {
+  var lastNodeId: Long = 0
+
+  def getNodeId(): Long = {
+    lastNodeId += 1L
+    lastNodeId
+  }
+}
+
 trait GenericTreeNode {
+  def nodeId: Long
+
   def name: String
+
+  def serialize: String = s"${getClass.getName}($name)"
 }
 
 trait SignalTreeNode extends GenericTreeNode {
-  def name: String
-
   def signal: Signal[_]
 }
 
-case class WaveFormNode(name: String, signal: Signal[_]) extends SignalTreeNode
-
-case class DirectoryNode(name: String) extends GenericTreeNode {
-  val children: mutable.ArrayBuffer[GenericTreeNode] = new mutable.ArrayBuffer()
+case class WaveFormNode(name: String, signal: Signal[_], nodeId: Long) extends SignalTreeNode {
+  override def serialize: String = {
+    signal match {
+      case p: PureSignal =>
+        s"${getClass.getName}(${p.name})"
+      case _ =>
+        super.serialize
+    }
+  }
 }
+
+object WaveFormNode {
+  def apply(name: String, signal: Signal[_]): WaveFormNode = {
+    WaveFormNode(name, signal, GenericTreeNode.getNodeId())
+  }
+}
+
+case class DirectoryNode(name: String, nodeId: Long) extends GenericTreeNode
+
+object DirectoryNode {
+  def apply(name: String): DirectoryNode = {
+    new DirectoryNode(name, GenericTreeNode.getNodeId())
+  }
+}
+
+trait AddDirection
+
+case object InsertBefore extends AddDirection
+
+case object InsertInto extends AddDirection
+
+case object InsertAfter extends AddDirection
+
+case object AppendToEnd extends AddDirection
 
 object TreeHelper {
   def viewableDepthFirstIterator(tree: Tree[GenericTreeNode]): Iterator[GenericTreeNode] =

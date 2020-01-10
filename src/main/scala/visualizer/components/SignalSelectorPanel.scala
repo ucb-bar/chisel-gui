@@ -4,7 +4,8 @@ import javax.swing.BorderFactory
 import javax.swing.tree.TreePath
 import scalaswingcontrib.event.TreeNodesInserted
 import scalaswingcontrib.tree.Tree
-import visualizer.DrawMetrics
+import scalaswingcontrib.tree.Tree.Path
+import visualizer.{DrawMetrics, SignalsChanged}
 import visualizer.models._
 
 import scala.swing._
@@ -15,22 +16,23 @@ import scala.swing.event._
   * wave form viewer.
   * Moves signals to the [[SelectedSignalPanel]]
   *
-  * @param dataModel    underlying data model
-  * @param displayModel underlying displayModel
+  * @param dataModel           underlying data model
+  * @param selectedSignalModel underlying model for signals that have been selected for viewing
   */
 class SignalSelectorPanel(
                            dataModel: DataModel,
-                           selectionModel: SelectionModel,
-                           displayModel: DisplayModel
+                           signalSelectorModel: SignalSelectorModel,
+                           selectedSignalModel: SelectedSignalModel
                          ) extends BoxPanel(Orientation.Vertical) {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
   val tree: Tree[GenericTreeNode] = new Tree[GenericTreeNode] {
-    model = selectionModel.directoryTreeModel
+    model = signalSelectorModel.directoryTreeModel
     renderer = Tree.Renderer(_.name)
     showsRootHandles = true
+    dragEnabled = true
 
     listenTo(mouse.clicks)
     listenTo(keys)
@@ -38,7 +40,7 @@ class SignalSelectorPanel(
     reactions += {
       case KeyReleased(_, key, _, _) =>
         if (key == Key.Enter) {
-          addSelectedToInspection()
+          addToSelectedSignalsModel(InsertAfter)
         }
       case m: MouseClicked =>
         if (m.clicks == 1) {
@@ -48,24 +50,46 @@ class SignalSelectorPanel(
           selection.cellValues.foreach {
             case directoryNode: DirectoryNode =>
               //TODO: This will not bring along the children, should it?
-              displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
+              selectedSignalModel.addFromDirectoryToInspected(directoryNode.copy(), this)
             case otherNode =>
-              displayModel.addFromDirectoryToInspected(otherNode, this)
+              selectedSignalModel.addFromDirectoryToInspected(otherNode, this)
           }
         }
     }
   }
 
   def updateModel(): Unit = {
-    tree.model = selectionModel.directoryTreeModel
+    tree.model = signalSelectorModel.directoryTreeModel
   }
 
-  def addSelectedToInspection(): Unit = {
-    tree.selection.cellValues.foreach {
-      case directoryNode: DirectoryNode =>
-        displayModel.addFromDirectoryToInspected(directoryNode.copy(), this)
-      case otherNode =>
-        displayModel.addFromDirectoryToInspected(otherNode, this)
+  /** Add the selected fields to the SelectedSignalsPanel
+    * Use the first selected value of the SelectedSignalsPanel as the insert point
+    *
+    * @param addDirection Where to put
+    */
+  def addToSelectedSignalsModel(addDirection: AddDirection): Unit = {
+
+    def addPath(path: Path[GenericTreeNode], addDirection: AddDirection, targetPathOpt: Option[Path[GenericTreeNode]] = None) {
+      path.last match {
+        case directoryNode: DirectoryNode =>
+          if (tree.isExpanded(path)) {
+            selectedSignalModel.addNodes(addDirection, directoryNode, source = this, targetPathOpt)
+          } else {
+            val lastTarget = selectedSignalModel.addNodes(addDirection, directoryNode, source = this, targetPathOpt)
+            val childPaths = tree.model.getChildPathsOf(path).toArray
+            childPaths.foreach { child_path =>
+              addPath(child_path, InsertInto, Some(lastTarget))
+            }
+          }
+        //          selectedSignalModel.addNodes(addDirection, directoryNode, source = this, targetPathOpt)
+        case otherNode =>
+          selectedSignalModel.addNodes(addDirection, otherNode, source = this, targetPathOpt)
+      }
+    }
+
+    val paths = tree.selection.paths.toArray
+    paths.foreach { path =>
+      addPath(path, addDirection)
     }
   }
 
@@ -102,17 +126,28 @@ class SignalSelectorPanel(
 
   contents += toolBar
 
-  val addSymbolsButton = new Button("Add")
+  val insertSignalBeforeButton = new Button("↑")
+  val insertSignalAfterButton = new Button("↓")
+  val insertSignalIntoButton = new Button("→")
+  val appendSignalButton = new Button("⤓")
+
   val symbolList: ScrollPane = new ScrollPane(tree) {
     border = BorderFactory.createEmptyBorder()
   }
+
   contents += symbolList
+
+  contents += Swing.Glue
 
   private val lowerToolbar = new ToolBar {
     peer.setFloatable(false)
 
-    contents += addSymbolsButton
-    contents += Swing.Glue
+    contents += new Label("Insert:")
+    contents += insertSignalBeforeButton
+    contents += insertSignalAfterButton
+    contents += insertSignalIntoButton
+    contents += appendSignalButton
+    // contents += Swing.Glue
   }
 
   contents += lowerToolbar
@@ -120,10 +155,19 @@ class SignalSelectorPanel(
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
-  listenTo(addSymbolsButton)
+
+  def refreshSelected(): Unit = {
+    publish(SignalsChanged(this))
+  }
+
+  listenTo(insertSignalBeforeButton)
+  listenTo(insertSignalIntoButton)
+  listenTo(insertSignalAfterButton)
+  listenTo(appendSignalButton)
+
   listenTo(showTempSignalsButton)
   listenTo(showGenSignalsButton)
-  listenTo(addSymbolsButton)
+  listenTo(appendSignalButton)
   listenTo(signalPatternText)
   listenTo(tree)
   listenTo(mouse.clicks)
@@ -136,41 +180,50 @@ class SignalSelectorPanel(
     //      } else if (m.clicks == 2) {
     //        println(s"mouse double clicked in DirectoryComponent ${m.clicks}")
     //        tree.selection.cellValues.foreach { node =>
-    //          displayModel.addFromDirectoryToInspected(node.toInspected, this)
+    //          selectedSignalModel.addFromDirectoryToInspected(node.toInspected, this)
     //        }
     //      }
 
-    case ButtonClicked(`addSymbolsButton`) =>
-      addSelectedToInspection()
+    case ButtonClicked(`insertSignalBeforeButton`) =>
+      addToSelectedSignalsModel(InsertBefore)
+
+    case ButtonClicked(`insertSignalIntoButton`) =>
+      addToSelectedSignalsModel(InsertInto)
+
+    case ButtonClicked(`insertSignalAfterButton`) =>
+      addToSelectedSignalsModel(InsertAfter)
+
+    case ButtonClicked(`appendSignalButton`) =>
+      addToSelectedSignalsModel(AppendToEnd)
 
     case ButtonClicked(`showTempSignalsButton`) =>
       showTempSignalsButton.pushAction {
-        selectionModel.dataModelFilter = selectionModel.dataModelFilter.copy(
+        signalSelectorModel.dataModelFilter = signalSelectorModel.dataModelFilter.copy(
           showTempVariables = showTempSignalsButton.pushed
         )
-        selectionModel.updateTreeModel()
-        tree.model = selectionModel.directoryTreeModel
+        signalSelectorModel.updateTreeModel()
+        tree.model = signalSelectorModel.directoryTreeModel
       }
 
     case ButtonClicked(`showGenSignalsButton`) =>
       showGenSignalsButton.pushAction {
-        selectionModel.dataModelFilter = selectionModel.dataModelFilter.copy(
+        signalSelectorModel.dataModelFilter = signalSelectorModel.dataModelFilter.copy(
           showGenVariables = showGenSignalsButton.pushed
         )
-        selectionModel.updateTreeModel()
-        tree.model = selectionModel.directoryTreeModel
+        signalSelectorModel.updateTreeModel()
+        tree.model = signalSelectorModel.directoryTreeModel
       }
 
     case EditDone(`signalPatternText`) =>
-      selectionModel.dataModelFilter = selectionModel.dataModelFilter.copy(
+      signalSelectorModel.dataModelFilter = signalSelectorModel.dataModelFilter.copy(
         pattern = signalPatternText.text
       )
-      selectionModel.updateTreeModel()
-      tree.model = selectionModel.directoryTreeModel
+      signalSelectorModel.updateTreeModel()
+      tree.model = signalSelectorModel.directoryTreeModel
 
     case e: TreeNodesInserted[_] =>
-      if (selectionModel.directoryTreeModel.size == e.childIndices.length) {
-        tree.peer.expandPath(new TreePath(selectionModel.directoryTreeModel.peer.getRoot))
+      if (signalSelectorModel.directoryTreeModel.size == e.childIndices.length) {
+        tree.peer.expandPath(new TreePath(signalSelectorModel.directoryTreeModel.peer.getRoot))
       }
   }
 
