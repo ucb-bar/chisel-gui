@@ -54,20 +54,24 @@ class SelectedSignalModel extends Publisher {
     publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
   }
 
-  def addNodes(addDirection: AddDirection, genericTreeNode: GenericTreeNode, source: Component, targetPathOpt: Option[Path[GenericTreeNode]] = None): Path[GenericTreeNode] = {
+  def addNodes(addDirection: AddDirection,
+               genericTreeNode: GenericTreeNode,
+               source: Component,
+               targetPathOpt: Option[Path[GenericTreeNode]] = None): Path[GenericTreeNode] = {
 
     val tree = TreadleController.mainWindow.signalAndWavePanel.tree
 
-    def targetPath = if (targetPathOpt.isDefined) {
-      targetPathOpt
-    } else {
-      addDirection match {
-        case InsertBefore => tree.selection.paths.headOption
-        case InsertInto => tree.selection.paths.headOption
-        case InsertAfter => tree.selection.paths.lastOption
-        case _ => Some(RootPath)
+    def targetPath =
+      if (targetPathOpt.isDefined) {
+        targetPathOpt
+      } else {
+        addDirection match {
+          case InsertBefore => tree.selection.paths.headOption
+          case InsertInto => tree.selection.paths.headOption
+          case InsertAfter => tree.selection.paths.lastOption
+          case _ => Some(RootPath)
+        }
       }
-    }
 
     /** Complicated code to figure out where to insert
       *

@@ -91,7 +91,6 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     }
   }
 
-  //TODO this does not seem to handle Command-Q as was hoped
   override def closeOperation(): Unit = {
     doQuit()
   }

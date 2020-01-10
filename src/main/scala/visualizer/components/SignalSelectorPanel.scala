@@ -5,7 +5,7 @@ import javax.swing.tree.TreePath
 import scalaswingcontrib.event.TreeNodesInserted
 import scalaswingcontrib.tree.Tree
 import scalaswingcontrib.tree.Tree.Path
-import visualizer.DrawMetrics
+import visualizer.{DrawMetrics, SignalsChanged}
 import visualizer.models._
 
 import scala.swing._
@@ -155,6 +155,11 @@ class SignalSelectorPanel(
   ///////////////////////////////////////////////////////////////////////////
   // Controller
   ///////////////////////////////////////////////////////////////////////////
+
+  def refreshSelected(): Unit = {
+    publish(SignalsChanged(this))
+  }
+
   listenTo(insertSignalBeforeButton)
   listenTo(insertSignalIntoButton)
   listenTo(insertSignalAfterButton)

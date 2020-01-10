@@ -11,22 +11,27 @@ import scala.collection.mutable
 // Nodes with no signal are groups if InspectedNode, or modules if DirectoryNode
 
 object GenericTreeNode {
-  val WaveNodePattern = s"""WaveFormNode(\([^) ]\))""".r
+  var lastNodeId: Long = 0
+
+  def getNodeId(): Long = {
+    lastNodeId += 1L
+    lastNodeId
+  }
 }
 
 trait GenericTreeNode {
+  def nodeId: Long
+
   def name: String
 
   def serialize: String = s"${getClass.getName}($name)"
 }
 
 trait SignalTreeNode extends GenericTreeNode {
-  def name: String
-
   def signal: Signal[_]
 }
 
-case class WaveFormNode(name: String, signal: Signal[_]) extends SignalTreeNode {
+case class WaveFormNode(name: String, signal: Signal[_], nodeId: Long) extends SignalTreeNode {
   override def serialize: String = {
     signal match {
       case p: PureSignal =>
@@ -37,7 +42,19 @@ case class WaveFormNode(name: String, signal: Signal[_]) extends SignalTreeNode 
   }
 }
 
-case class DirectoryNode(name: String) extends GenericTreeNode
+object WaveFormNode {
+  def apply(name: String, signal: Signal[_]): WaveFormNode = {
+    WaveFormNode(name, signal, GenericTreeNode.getNodeId())
+  }
+}
+
+case class DirectoryNode(name: String, nodeId: Long) extends GenericTreeNode
+
+object DirectoryNode {
+  def apply(name: String): DirectoryNode = {
+    new DirectoryNode(name, GenericTreeNode.getNodeId())
+  }
+}
 
 trait AddDirection
 

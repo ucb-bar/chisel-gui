@@ -18,6 +18,8 @@ import scala.collection.mutable.ArrayBuffer
 import scala.swing.{Dimension, Publisher, SwingApplication}
 
 object TreadleController extends SwingApplication with Publisher {
+  System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS");
+
   val shell: Shell = new Shell("chisel-gui") with ChiselGuiCli
 
   var testerOpt: Option[TreadleTester] = None
@@ -29,13 +31,12 @@ object TreadleController extends SwingApplication with Publisher {
 
   val sourceInfoMap: mutable.HashMap[String, String] = new mutable.HashMap()
 
-  lazy val mainWindow = new MainWindow(dataModel, signalSelectorModel, selectedSignalModel)
+  var mainWindow: MainWindow = _
+  var mainWindowSize = new Dimension(1000, 600)
+  var startupMarkers = new mutable.ArrayBuffer[Long]()
 
   override def startup(args: Array[String]): Unit = {
     val startAnnotations = shell.parse(args)
-
-    if (mainWindow.size == new Dimension(0, 0)) mainWindow.pack()
-    mainWindow.visible = true
 
     val firrtlFileNameOpt = startAnnotations.collectFirst { case a: ProgramArgsAnnotation => a.arg }
 
@@ -61,10 +62,18 @@ object TreadleController extends SwingApplication with Publisher {
       // Cannot get here. Should be trapped by shell.parse
 
     }
-    signalSelectorModel.updateTreeModel()
+    loadSaveFileOnStartUp()
+    mainWindow = new MainWindow(dataModel, signalSelectorModel, selectedSignalModel)
+    if (mainWindow.size == new Dimension(0, 0)) mainWindow.pack()
+    mainWindow.size = mainWindowSize
+    mainWindow.preferredSize = mainWindowSize
+    mainWindow.visible = true
+    startupMarkers.foreach { markerValue =>
+      selectedSignalModel.addMarker("ad", markerValue)
+    }
+
     populateWaveForms()
     signalSelectorModel.updateTreeModel()
-    loadSaveFileOnStartUp()
     mainWindow.signalSelectorPanel.updateModel()
   }
 
@@ -111,12 +120,14 @@ object TreadleController extends SwingApplication with Publisher {
     var currentPath = selectedSignalModel.RootPath
     var lastNode: GenericTreeNode = new GenericTreeNode {
       override def name: String = ""
+
+      override def nodeId: Long = 0L
     }
     var currentDepth = 1
 
     def addNode(depthString: String, indexString: String, node: GenericTreeNode): Unit = {
       val depth = depthString.toInt
-      var index = indexString.toInt
+      val index = indexString.toInt
 
       if (depth > currentDepth) {
         currentPath = currentPath ++ Seq(lastNode)
@@ -128,11 +139,11 @@ object TreadleController extends SwingApplication with Publisher {
 
       try {
         selectedSignalModel.treeModel.insertUnder(currentPath, node, index)
-      }
-      catch {
+      } catch {
         case t: Throwable =>
           println(t.getMessage)
           println(s"depthString $depthString indexString $indexString $node")
+          throw t
       }
       lastNode = node
     }
@@ -144,9 +155,7 @@ object TreadleController extends SwingApplication with Publisher {
           val fields = line.split(",").map(_.trim).toList
           fields match {
             case "window_size" :: widthString :: heightString :: Nil =>
-              val size = new Dimension(widthString.toInt, heightString.toInt)
-              mainWindow.size = size
-              mainWindow.preferredSize = size
+              mainWindowSize = new Dimension(widthString.toInt, heightString.toInt)
 
             case "signal_node" :: depthString :: indexString :: nodeName :: signalName :: formatString :: Nil =>
               dataModel.nameToSignal.get(signalName) match {
@@ -166,7 +175,7 @@ object TreadleController extends SwingApplication with Publisher {
 
             case "marker" :: timeString :: Nil =>
               try {
-                selectedSignalModel.addMarker("ad", timeString.toLong)
+                startupMarkers += timeString.toLong
               } catch {
                 case _: Throwable =>
               }
@@ -252,8 +261,6 @@ object TreadleController extends SwingApplication with Publisher {
         case _ =>
       }
     }
-
-    println("signals loaded from tester")
   }
 
   def setupSignalsFromVcd(vcd: VCD): Unit = {
@@ -266,7 +273,6 @@ object TreadleController extends SwingApplication with Publisher {
 
       dataModel.addSignal(name, signal)
     }
-    println("signals loaded")
   }
 
   def populateWaveForms(): Unit = {
@@ -286,9 +292,6 @@ object TreadleController extends SwingApplication with Publisher {
         dataModel.setMaxTimestamp(newMaxTimestamp)
       case _ =>
     }
-
-    publish(new PureSignalsChanged)
-    mainWindow.repaint()
   }
 
   def loadDrivingSignals(signal: PureSignal): Unit = {
