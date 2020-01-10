@@ -7,7 +7,7 @@ import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 import scalaswingcontrib.tree.Tree
 import treadle.executable.ClockInfo
 import visualizer.models._
-import visualizer.{CursorSet, DependencyComponentRequested, MarkerChanged, MaxTimestampChanged, TreadleController}
+import visualizer.{CursorSet, DependencyComponentRequested, MarkerChanged, MaxTimestampChanged, AppController}
 
 import scala.swing.Swing._
 import scala.swing._
@@ -75,7 +75,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     contents += new Menu("File") {
       contents += new MenuItem(Action("Save") {
         val chooser = new FileChooser(new File("."))
-        val suggestedName = TreadleController.testerOpt.get.topName + ".save"
+        val suggestedName = AppController.testerOpt.get.topName + ".save"
         chooser.selectedFile = new File(suggestedName)
 
         val result = chooser.showSaveDialog(this)
@@ -98,9 +98,12 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
   def doQuit(): Unit = {
     println("Done")
 
-    TreadleController.testerOpt match {
+    AppController.testerOpt match {
       case Some(tester) =>
         tester.finish
+
+        val saveFile = new File(AppController.saveFilePrefix + tester.topName + AppController.saveFileSuffix)
+        saveSettings(saveFile)
       case _ =>
     }
     this.close()
@@ -178,7 +181,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     listenTo(dataModel)
     reactions += {
       case e: DependencyComponentRequested =>
-        showDependenciesPanel.textComponent.text = TreadleController.testerOpt match {
+        showDependenciesPanel.textComponent.text = AppController.testerOpt match {
           case Some(t) => t.dependencyInfo(e.pureSignalName)
           case None => ""
         }

@@ -50,6 +50,7 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
           case _: CombinedSignal =>
             readyValidPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
         }
+      case _ =>
     }
 
     // Draw markers

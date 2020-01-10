@@ -31,7 +31,7 @@ class SelectedSignalPanel(dataModel: DataModel, selectedSignalModel: SelectedSig
   ///////////////////////////////////////////////////////////////////////////
   listenTo(selectedSignalModel)
   listenTo(keys, tree.keys)
-  listenTo(mouse.clicks)
+//  listenTo(mouse.clicks)
   reactions += {
     case _: SignalsChanged =>
       computeBounds()

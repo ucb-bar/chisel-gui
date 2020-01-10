@@ -1,7 +1,7 @@
 package visualizer.models
 
-import visualizer.TreadleController.dataModel
-import visualizer.{MaxTimestampChanged, TreadleController, Util}
+import visualizer.AppController.dataModel
+import visualizer.{MaxTimestampChanged, AppController, Util}
 
 import scala.collection.mutable
 import scala.swing.Publisher
@@ -21,6 +21,8 @@ class DataModel extends Publisher {
     val a = nameToSignal.flatMap {
       case (fullName: String, pureSignal: PureSignal) =>
         if (pureSignal.sortGroup == 0) Some(fullName) else None
+      case _ =>
+        None
     }
     a.toSeq.sorted
   }
@@ -33,7 +35,7 @@ class DataModel extends Publisher {
     *
     */
   def loadMoreWaveformValues(): Unit = {
-    TreadleController.testerOpt match {
+    AppController.testerOpt match {
       case Some(t) =>
         t.engine.vcdOption match {
           case Some(vcd) =>

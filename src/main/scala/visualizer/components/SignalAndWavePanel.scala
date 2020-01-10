@@ -6,7 +6,7 @@ import javax.swing.tree.{DefaultMutableTreeNode, TreePath}
 import javax.swing.{BorderFactory, DropMode, SwingUtilities}
 import scalaswingcontrib.tree.Tree
 import visualizer.models._
-import visualizer.{DrawMetrics, SignalsChanged, TreadleController}
+import visualizer.{DrawMetrics, SignalsChanged, AppController}
 
 import scala.swing.BorderPanel.Position._
 import scala.swing._
@@ -40,7 +40,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     signal match {
       case Some(pureSignal: PureSignal) =>
         contents += new MenuItem(Action("Add Driving Signals") {
-          TreadleController.loadDrivingSignals(pureSignal)
+          AppController.loadDrivingSignals(pureSignal)
         })
 
         pureSignal.symbolOpt.foreach { symbol =>
@@ -48,7 +48,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
             case s: FileInfo =>
               s.info.string match {
                 case SourceInfoPattern(file, line) =>
-                  TreadleController.sourceInfoMap.get(file).foreach { targetFile =>
+                  AppController.sourceInfoMap.get(file).foreach { targetFile =>
                     val command = Seq(
                       "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea",
                       "--line",

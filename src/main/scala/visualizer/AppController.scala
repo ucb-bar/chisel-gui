@@ -17,10 +17,13 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.swing.{Dimension, Publisher, SwingApplication}
 
-object TreadleController extends SwingApplication with Publisher {
+object AppController extends SwingApplication with Publisher {
   System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
 
   val shell: Shell = new Shell("chisel-gui") with ChiselGuiCli
+
+  val saveFilePrefix = ".chiselgui."
+  val saveFileSuffix = ".txt"
 
   var testerOpt: Option[TreadleTester] = None
   var vcdOpt: Option[treadle.vcd.VCD] = None
@@ -150,7 +153,7 @@ object TreadleController extends SwingApplication with Publisher {
     }
 
     testerOpt.foreach { tester =>
-      val fileNameGuess = new File(tester.topName + ".save")
+      val fileNameGuess = new File(saveFilePrefix + tester.topName + saveFileSuffix)
       if (fileNameGuess.exists()) {
         FileUtils.getLines(fileNameGuess).foreach { line =>
           val fields = line.split(",").map(_.trim).toList
