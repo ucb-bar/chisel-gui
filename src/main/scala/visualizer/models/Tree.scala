@@ -4,7 +4,7 @@ import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 import scalaswingcontrib.tree.Tree.Path
 import scalaswingcontrib.tree.{Tree, TreeModel}
-import visualizer.TreadleController.dataModel
+import visualizer.AppController.dataModel
 
 import scala.collection.mutable
 
@@ -13,7 +13,7 @@ import scala.collection.mutable
 object GenericTreeNode {
   var lastNodeId: Long = 0
 
-  def getNodeId(): Long = {
+  def assignNodeId(): Long = {
     lastNodeId += 1L
     lastNodeId
   }
@@ -44,7 +44,7 @@ case class WaveFormNode(name: String, signal: Signal[_], nodeId: Long) extends S
 
 object WaveFormNode {
   def apply(name: String, signal: Signal[_]): WaveFormNode = {
-    WaveFormNode(name, signal, GenericTreeNode.getNodeId())
+    WaveFormNode(name, signal, GenericTreeNode.assignNodeId())
   }
 }
 
@@ -52,7 +52,7 @@ case class DirectoryNode(name: String, nodeId: Long) extends GenericTreeNode
 
 object DirectoryNode {
   def apply(name: String): DirectoryNode = {
-    new DirectoryNode(name, GenericTreeNode.getNodeId())
+    new DirectoryNode(name, GenericTreeNode.assignNodeId())
   }
 }
 

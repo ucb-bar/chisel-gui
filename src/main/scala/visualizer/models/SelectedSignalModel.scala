@@ -59,7 +59,7 @@ class SelectedSignalModel extends Publisher {
                source: Component,
                targetPathOpt: Option[Path[GenericTreeNode]] = None): Path[GenericTreeNode] = {
 
-    val tree = TreadleController.mainWindow.signalAndWavePanel.tree
+    val tree = AppController.mainWindow.signalAndWavePanel.tree
 
     def targetPath =
       if (targetPathOpt.isDefined) {
