@@ -7,7 +7,7 @@ import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 import scalaswingcontrib.tree.Tree
 import treadle.executable.ClockInfo
 import visualizer.models._
-import visualizer.{CursorSet, DependencyComponentRequested, MarkerChanged, MaxTimestampChanged, AppController}
+import visualizer.{AppController, CursorSet, DependencyComponentRequested, MarkerChanged, MaxTimestampChanged}
 
 import scala.swing.Swing._
 import scala.swing._
@@ -117,28 +117,29 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     writer.println(s"window_size,${size.width},${size.height}")
 
     def walkNodes(path: Tree.Path[GenericTreeNode], depth: Int = 1): Unit = {
-      selectedSignalModel.treeModel.getChildPathsOf(path).toArray.zipWithIndex.foreach { case (path, index) =>
-        val pathString = path.map { node =>
-          node.name
-        }.mkString(",")
-        val node = path.last
-        node match {
-          case directoryNode: DirectoryNode =>
-            writer.println(s"node,$depth,$index,${directoryNode.name}")
-          case waveFormNode: WaveFormNode =>
-            waveFormNode.signal match {
-              case pureSignal: PureSignal =>
-                selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
-                  case Some(waveDisplaySetting: WaveDisplaySetting) =>
-                    val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
-                    writer.println(s"signal_node,$depth,$index,${waveFormNode.name},${pureSignal.name},$dataFormat")
-                  case _ =>
-                }
-              case _ =>
-            }
-          case _ =>
-        }
-        walkNodes(path, depth = depth + 1)
+      selectedSignalModel.treeModel.getChildPathsOf(path).toArray.zipWithIndex.foreach {
+        case (path, index) =>
+          val pathString = path.map { node =>
+            node.name
+          }.mkString(",")
+          val node = path.last
+          node match {
+            case directoryNode: DirectoryNode =>
+              writer.println(s"node,$depth,$index,${directoryNode.name}")
+            case waveFormNode: WaveFormNode =>
+              waveFormNode.signal match {
+                case pureSignal: PureSignal =>
+                  selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
+                    case Some(waveDisplaySetting: WaveDisplaySetting) =>
+                      val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
+                      writer.println(s"signal_node,$depth,$index,${waveFormNode.name},${pureSignal.name},$dataFormat")
+                    case _ =>
+                  }
+                case _ =>
+              }
+            case _ =>
+          }
+          walkNodes(path, depth = depth + 1)
       }
     }
 
@@ -147,6 +148,9 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     selectedSignalModel.markers.foreach { marker =>
       writer.println(s"marker,${marker.timestamp}")
     }
+
+    val visibleRect = signalAndWavePanel.wavePanel.peer.getVisibleRect
+    writer.println(s"scale-and-window,${selectedSignalModel.scale},${visibleRect.x}")
 
     writer.close()
   }
