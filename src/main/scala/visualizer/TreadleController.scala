@@ -18,7 +18,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.swing.{Dimension, Publisher, SwingApplication}
 
 object TreadleController extends SwingApplication with Publisher {
-  System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS");
+  System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
 
   val shell: Shell = new Shell("chisel-gui") with ChiselGuiCli
 
@@ -75,6 +75,7 @@ object TreadleController extends SwingApplication with Publisher {
     populateWaveForms()
     signalSelectorModel.updateTreeModel()
     mainWindow.signalSelectorPanel.updateModel()
+    publish(new PureSignalsChanged)
   }
 
   def seedFromVcd(vcd: treadle.vcd.VCD, stopAtTime: Long = Long.MaxValue): Unit = {
