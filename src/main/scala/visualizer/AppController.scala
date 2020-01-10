@@ -37,6 +37,8 @@ object AppController extends SwingApplication with Publisher {
   var mainWindow: MainWindow = _
   var mainWindowSize = new Dimension(1000, 600)
   var startupMarkers = new mutable.ArrayBuffer[Long]()
+  var startupScale: Double = 10.0
+  var startupVisibleX: Int = -1
 
   override def startup(args: Array[String]): Unit = {
     val startAnnotations = shell.parse(args)
@@ -78,6 +80,11 @@ object AppController extends SwingApplication with Publisher {
     populateWaveForms()
     signalSelectorModel.updateTreeModel()
     mainWindow.signalSelectorPanel.updateModel()
+
+    if (startupScale > 0.0 && startupVisibleX >= 0) {
+      mainWindow.signalAndWavePanel.setScaleAndVisible(startupScale, startupVisibleX)
+    }
+
     publish(new PureSignalsChanged)
   }
 
@@ -183,6 +190,16 @@ object AppController extends SwingApplication with Publisher {
               } catch {
                 case _: Throwable =>
               }
+
+            case "scale-and-window" :: scaleString :: xString :: Nil =>
+              try {
+                startupScale = scaleString.toDouble
+                startupVisibleX = xString.toInt
+              } catch {
+                case t: Throwable =>
+                  println(s"Cannot parse line $line from ${fileNameGuess.getName}")
+              }
+
             case _ =>
               println(s"Invalid line $line in save file")
 

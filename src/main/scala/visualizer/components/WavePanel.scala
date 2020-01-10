@@ -3,6 +3,7 @@ package visualizer.components
 import java.awt.{Color, Rectangle}
 
 import scalaswingcontrib.tree.Tree
+import treadle.TreadleTester
 import visualizer._
 import visualizer.models._
 import visualizer.painters.{MultiBitPainter, ReadyValidPainter, SingleBitPainter}
@@ -10,7 +11,8 @@ import visualizer.painters.{MultiBitPainter, ReadyValidPainter, SingleBitPainter
 import scala.swing._
 import scala.swing.event._
 
-class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, tree: Tree[GenericTreeNode]) extends BorderPanel {
+class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, tree: Tree[GenericTreeNode])
+  extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -25,7 +27,7 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
     val visibleRect = peer.getVisibleRect
 
     // Set background color
-    background = Color.white
+    background = new Color(240, 240, 240) //Color.lightGray
 
     // Draw waveforms
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach {
@@ -53,6 +55,9 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
       case _ =>
     }
 
+    // Draw grid lines
+    drawGridLines(g, visibleRect)
+
     // Draw markers
     drawMarkers(g, visibleRect)
 
@@ -75,13 +80,33 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
     }
   }
 
+  def drawGridLines(g: Graphics2D, visibleRect: Rectangle): Unit = {
+    val startTime = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
+    val endTime = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x + visibleRect.width)
+    val clockPeriod: Long = AppController.testerOpt match {
+      case Some(tester) => tester.clockInfoList.head.period * 10
+      case _ => 10L
+    }
+
+    val startGridlineX = (startTime / clockPeriod) * clockPeriod
+    val endGridLineX = (endTime / clockPeriod) * clockPeriod
+
+    g.setColor(new Color(200, 200, 255))
+    for (time <- startGridlineX to endGridLineX by clockPeriod) {
+      val x = selectedSignalModel.timestampToXCoordinate(time)
+      g.drawLine(x, 0, x, visibleRect.y + visibleRect.height)
+    }
+  }
+
   //
   // Helper functions
   //
   def computeBounds(): Unit = {
-    preferredSize = new Dimension(selectedSignalModel.timestampToXCoordinate(dataModel.maxTimestamp),
+    preferredSize = new Dimension(
+      selectedSignalModel.timestampToXCoordinate(dataModel.maxTimestamp),
       TreeHelper.viewableDepthFirstIterator(tree).size
-        * DrawMetrics.WaveformVerticalSpacing)
+        * DrawMetrics.WaveformVerticalSpacing
+    )
     revalidate()
   }
 
@@ -100,7 +125,9 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
       if (e.timestamp < 0)
         repaint()
       else
-        repaint(new Rectangle(selectedSignalModel.timestampToXCoordinate(e.timestamp) - 1, 0, 2, peer.getVisibleRect.height))
+        repaint(
+          new Rectangle(selectedSignalModel.timestampToXCoordinate(e.timestamp) - 1, 0, 2, peer.getVisibleRect.height)
+        )
     case e: MousePressed =>
       val timestamp = selectedSignalModel.xCoordinateToTimestamp(e.peer.getX)
       if (selectedSignalModel.cursorPosition != selectedSignalModel.selectionStart)

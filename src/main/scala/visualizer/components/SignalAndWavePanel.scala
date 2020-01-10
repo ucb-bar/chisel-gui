@@ -254,6 +254,14 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     wavePanel.peer.scrollRectToVisible(newVisibleRect)
   }
 
+  def setScaleAndVisible(newScale: Double, newVisibleX: Int): Unit = {
+    selectedSignalModel.setScale(newScale, null)
+
+    val newVisibleRect = wavePanel.peer.getVisibleRect
+    newVisibleRect.x = newVisibleX
+    wavePanel.peer.scrollRectToVisible(newVisibleRect)
+  }
+
   def zoomIn(source: Component): Unit = {
     setScaleKeepCentered(selectedSignalModel.scale * 1.25, source)
   }
@@ -264,6 +272,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
 
   /**
     * move wave view to end, keeping the current scale
+    *
     * @param source component to scroll
     */
   def zoomToEnd(source: Component): Unit = {
