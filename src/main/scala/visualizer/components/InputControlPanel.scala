@@ -1,7 +1,7 @@
 package visualizer.components
 
 import treadle.executable.StopException
-import visualizer.{PureSignalsChanged, AppController}
+import visualizer.{PureSignalsChanged, ChiselGUI}
 import visualizer.models.{DataModel, SelectedSignalModel}
 
 import scala.swing._
@@ -16,7 +16,7 @@ class InputControlPanel(dataModel: DataModel, selectedSignalModel: SelectedSigna
     editable = false
   }
 
-  listenTo(AppController)
+  listenTo(ChiselGUI)
   reactions += {
     case _: PureSignalsChanged =>
       fillInputs()
@@ -46,7 +46,7 @@ class InputControlPanel(dataModel: DataModel, selectedSignalModel: SelectedSigna
         c
       }
 
-      AppController.testerOpt match {
+      ChiselGUI.testerOpt match {
         case Some(tester) =>
           val symbolTable = tester.engine.symbolTable
           val clockNames = tester.clockStepper.clockAssigners.keys.map(_.name).toSet

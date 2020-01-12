@@ -2,12 +2,12 @@ package visualizer.components
 
 import java.io.{File, PrintWriter}
 
-import javax.swing.BorderFactory
 import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
+import javax.swing.{BorderFactory, SwingConstants}
 import scalaswingcontrib.tree.Tree
 import treadle.executable.ClockInfo
 import visualizer.models._
-import visualizer.{AppController, CursorSet, DependencyComponentRequested, MarkerChanged, MaxTimestampChanged}
+import visualizer.{ChiselGUI, CursorSet, DependencyComponentRequested, MaxTimestampChanged}
 
 import scala.swing.Swing._
 import scala.swing._
@@ -39,19 +39,24 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
   private val toolbar = new ToolBar() {
     peer.setFloatable(false)
 
-    contents += Button("Zoom In") {
+    contents += HStrut(300)
+
+    contents += new Label("Zoom")
+
+    contents += Button("⇤") {
+      signalAndWavePanel.zoomToStart(this)
+    }
+    contents += Button("⇥ ⇤") {
       signalAndWavePanel.zoomIn(this)
     }
-    contents += Button("Zoom Out") {
+    contents += Button("⇤ ⇥") {
       signalAndWavePanel.zoomOut(this)
     }
-    contents += Button("Zoom To End") {
+    contents += Button("⇥") {
       signalAndWavePanel.zoomToEnd(this)
     }
 
     contents += HStrut(20)
-
-    contents += markerTimeLabel
 
     contents += Button("Add Marker") {
       selectedSignalModel.addMarker("ad", selectedSignalModel.cursorPosition)
@@ -70,12 +75,21 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     }
   }
 
+  private val statusBar = new ToolBar() {
+    peer.setFloatable(false)
+
+    contents += HStrut(400)
+
+    contents += markerTimeLabel
+
+  }
+
   title = "Chisel Visualizer"
   menuBar = new MenuBar {
     contents += new Menu("File") {
       contents += new MenuItem(Action("Save") {
         val chooser = new FileChooser(new File("."))
-        val suggestedName = AppController.testerOpt.get.topName + ".save"
+        val suggestedName = ChiselGUI.testerOpt.get.topName + ".save"
         chooser.selectedFile = new File(suggestedName)
 
         val result = chooser.showSaveDialog(this)
@@ -98,11 +112,11 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
   def doQuit(): Unit = {
     println("Done")
 
-    AppController.testerOpt match {
+    ChiselGUI.testerOpt match {
       case Some(tester) =>
         tester.finish
 
-        val saveFile = new File(AppController.saveFilePrefix + tester.topName + AppController.saveFileSuffix)
+        val saveFile = new File(ChiselGUI.saveFilePrefix + tester.topName + ChiselGUI.saveFileSuffix)
         saveSettings(saveFile)
       case _ =>
     }
@@ -178,14 +192,14 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     }
 
     layout(splitPane) = Center
-    layout(showDependenciesPanel) = South
+    layout(statusBar) = South
     layout(inputControlPanel) = East
 
     listenTo(selectedSignalModel)
     listenTo(dataModel)
     reactions += {
       case e: DependencyComponentRequested =>
-        showDependenciesPanel.textComponent.text = AppController.testerOpt match {
+        showDependenciesPanel.textComponent.text = ChiselGUI.testerOpt match {
           case Some(t) => t.dependencyInfo(e.pureSignalName)
           case None => ""
         }

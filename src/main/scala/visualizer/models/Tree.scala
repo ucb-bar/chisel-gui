@@ -4,9 +4,6 @@ import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 import scalaswingcontrib.tree.Tree.Path
 import scalaswingcontrib.tree.{Tree, TreeModel}
-import visualizer.AppController.dataModel
-
-import scala.collection.mutable
 
 // Nodes with no signal are groups if InspectedNode, or modules if DirectoryNode
 

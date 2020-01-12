@@ -1,5 +1,7 @@
 package visualizer.components
 
+import java.awt.Color
+
 import visualizer._
 import visualizer.models._
 
@@ -19,6 +21,9 @@ class TimelineComponent(dataModel: DataModel, selectedSignalModel: SelectedSigna
   ///////////////////////////////////////////////////////////////////////////
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)
+
+    background = new Color(230, 230, 230) //Color.lightGray
+
 
     val visibleRect = peer.getVisibleRect
     val metrics = g.getFontMetrics

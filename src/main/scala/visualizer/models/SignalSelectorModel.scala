@@ -2,7 +2,7 @@ package visualizer.models
 
 import scalaswingcontrib.tree.Tree.Path
 import scalaswingcontrib.tree._
-import visualizer.AppController
+import visualizer.ChiselGUI
 
 import scala.annotation.tailrec
 import scala.swing.Publisher
@@ -77,7 +77,7 @@ class SignalSelectorModel extends Publisher {
   def updateTreeModel(): Unit = {
     directoryTreeModel = InternalTreeModel.empty[GenericTreeNode]
 
-    AppController.dataModel.nameToSignal.foreach {
+    ChiselGUI.dataModel.nameToSignal.foreach {
       case (name, signal) =>
         addSignalToSelectionList(name, signal)
     }
