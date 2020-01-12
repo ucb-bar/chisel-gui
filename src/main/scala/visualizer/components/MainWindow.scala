@@ -18,7 +18,7 @@ import scala.swing._
   * @param selectedSignalModel Source of things selected for waveform view
   */
 class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, selectedSignalModel: SelectedSignalModel)
-  extends MainFrame {
+    extends MainFrame {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -61,17 +61,20 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     contents += Button("Add Marker") {
       selectedSignalModel.addMarker("ad", selectedSignalModel.cursorPosition)
     }
-    contents += Button("Setup mock clock") {
-      selectedSignalModel.setClock(ClockInfo("mock clock", 10, 1))
-    }
-    contents += Button("Toggle Clock") {
+    contents += Button("Toggle Ruler") {
       selectedSignalModel.toggleClock()
     }
-    contents += Button("Remove signal(s)") {
-      signalAndWavePanel.removeSignals(this)
-    }
     contents += Button("Add group") {
-      selectedSignalModel.addGroup()
+      Dialog.showInput(
+        this,
+        "GroupName: ",
+        title = "Add New Group",
+        initial = "NewGroup"
+      ) match {
+        case Some(newGroupName) =>
+          selectedSignalModel.addGroup(newGroupName)
+        case _ =>
+      }
     }
   }
 
@@ -101,6 +104,18 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
       contents += new Separator()
       contents += new MenuItem(Action("Quit") {
         doQuit()
+      })
+    }
+    contents += new Menu("View") {
+      contents += new CheckMenuItem("Color") {
+        action = Action("Color") {
+          enabled = !enabled
+        }
+      }
+    }
+    contents += new Menu("Help") {
+      contents += new MenuItem(Action("Show Version") {
+        Dialog.showMessage(this, "Version 0.1 01/12/2020")
       })
     }
   }
