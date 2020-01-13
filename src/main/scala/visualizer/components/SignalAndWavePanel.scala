@@ -6,7 +6,7 @@ import javax.swing.tree.{DefaultMutableTreeNode, TreePath}
 import javax.swing.{BorderFactory, DropMode, SwingUtilities}
 import scalaswingcontrib.tree.Tree
 import visualizer.models._
-import visualizer.{DrawMetrics, SignalsChanged, AppController}
+import visualizer.{DrawMetrics, SignalsChanged, ChiselGUI}
 
 import scala.swing.BorderPanel.Position._
 import scala.swing._
@@ -40,7 +40,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     signal match {
       case Some(pureSignal: PureSignal) =>
         contents += new MenuItem(Action("Add Driving Signals") {
-          AppController.loadDrivingSignals(pureSignal)
+          ChiselGUI.loadDrivingSignals(pureSignal)
         })
 
         pureSignal.symbolOpt.foreach { symbol =>
@@ -48,7 +48,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
             case s: FileInfo =>
               s.info.string match {
                 case SourceInfoPattern(file, line) =>
-                  AppController.sourceInfoMap.get(file).foreach { targetFile =>
+                  ChiselGUI.sourceInfoMap.get(file).foreach { targetFile =>
                     val command = Seq(
                       "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea",
                       "--line",
@@ -80,6 +80,23 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     showsRootHandles = true
 
     def show(a: GenericTreeNode): String = {
+      def hasFileInfoGlyph(signal: Signal[_]): String = {
+        signal match {
+          case pureSignal: PureSignal =>
+            pureSignal.symbolOpt match {
+              case Some(symbol) =>
+                symbol.info match {
+                  case s: FileInfo =>
+                    "⇡ "
+                  case _ =>
+                    ""
+                }
+              case _ => ""
+            }
+          case _ => ""
+        }
+      }
+
       val s = a match {
         case _: DirectoryNode =>
           a.name
@@ -108,7 +125,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
                   }
                 case _ => ""
               }
-              s"${a.name} = $txt"
+              s"${hasFileInfoGlyph(signal)}${a.name} = $txt"
             case _ =>
               a.name
           }
@@ -268,6 +285,19 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
 
   def zoomOut(source: Component): Unit = {
     setScaleKeepCentered(selectedSignalModel.scale * 0.8, source)
+  }
+
+  /**
+    * move wave view to start, keeping the current scale
+    *
+    * @param source component to scroll
+    */
+  def zoomToStart(source: Component): Unit = {
+    val oldVisibleRect = wavePanel.peer.getVisibleRect
+
+    val newVisibleRect = wavePanel.peer.getVisibleRect
+    newVisibleRect.x = 0
+    wavePanel.peer.scrollRectToVisible(newVisibleRect)
   }
 
   /**

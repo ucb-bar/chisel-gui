@@ -2,12 +2,12 @@ package visualizer.components
 
 import java.io.{File, PrintWriter}
 
-import javax.swing.BorderFactory
 import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
+import javax.swing.{BorderFactory, SwingConstants}
 import scalaswingcontrib.tree.Tree
 import treadle.executable.ClockInfo
 import visualizer.models._
-import visualizer.{AppController, CursorSet, DependencyComponentRequested, MarkerChanged, MaxTimestampChanged}
+import visualizer.{ChiselGUI, CursorSet, DependencyComponentRequested, MaxTimestampChanged}
 
 import scala.swing.Swing._
 import scala.swing._
@@ -18,7 +18,7 @@ import scala.swing._
   * @param selectedSignalModel Source of things selected for waveform view
   */
 class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, selectedSignalModel: SelectedSignalModel)
-  extends MainFrame {
+    extends MainFrame {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -39,35 +39,52 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
   private val toolbar = new ToolBar() {
     peer.setFloatable(false)
 
-    contents += Button("Zoom In") {
+    contents += HStrut(300)
+
+    contents += new Label("Zoom")
+
+    contents += Button("⇤") {
+      signalAndWavePanel.zoomToStart(this)
+    }
+    contents += Button("⇥ ⇤") {
       signalAndWavePanel.zoomIn(this)
     }
-    contents += Button("Zoom Out") {
+    contents += Button("⇤ ⇥") {
       signalAndWavePanel.zoomOut(this)
     }
-    contents += Button("Zoom To End") {
+    contents += Button("⇥") {
       signalAndWavePanel.zoomToEnd(this)
     }
 
     contents += HStrut(20)
 
-    contents += markerTimeLabel
-
     contents += Button("Add Marker") {
       selectedSignalModel.addMarker("ad", selectedSignalModel.cursorPosition)
     }
-    contents += Button("Setup mock clock") {
-      selectedSignalModel.setClock(ClockInfo("mock clock", 10, 1))
-    }
-    contents += Button("Toggle Clock") {
+    contents += Button("Toggle Ruler") {
       selectedSignalModel.toggleClock()
     }
-    contents += Button("Remove signal(s)") {
-      signalAndWavePanel.removeSignals(this)
-    }
     contents += Button("Add group") {
-      selectedSignalModel.addGroup()
+      Dialog.showInput(
+        this,
+        "GroupName: ",
+        title = "Add New Group",
+        initial = "NewGroup"
+      ) match {
+        case Some(newGroupName) =>
+          selectedSignalModel.addGroup(newGroupName)
+        case _ =>
+      }
     }
+  }
+
+  private val statusBar = new ToolBar() {
+    peer.setFloatable(false)
+
+    contents += HStrut(400)
+
+    contents += markerTimeLabel
+
   }
 
   title = "Chisel Visualizer"
@@ -75,7 +92,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     contents += new Menu("File") {
       contents += new MenuItem(Action("Save") {
         val chooser = new FileChooser(new File("."))
-        val suggestedName = AppController.testerOpt.get.topName + ".save"
+        val suggestedName = ChiselGUI.testerOpt.get.topName + ".save"
         chooser.selectedFile = new File(suggestedName)
 
         val result = chooser.showSaveDialog(this)
@@ -89,6 +106,18 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
         doQuit()
       })
     }
+    contents += new Menu("View") {
+      contents += new CheckMenuItem("Color") {
+        action = Action("Color") {
+          enabled = !enabled
+        }
+      }
+    }
+    contents += new Menu("Help") {
+      contents += new MenuItem(Action("Show Version") {
+        Dialog.showMessage(this, "Version 0.1 01/12/2020")
+      })
+    }
   }
 
   override def closeOperation(): Unit = {
@@ -98,11 +127,11 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
   def doQuit(): Unit = {
     println("Done")
 
-    AppController.testerOpt match {
+    ChiselGUI.testerOpt match {
       case Some(tester) =>
         tester.finish
 
-        val saveFile = new File(AppController.saveFilePrefix + tester.topName + AppController.saveFileSuffix)
+        val saveFile = new File(ChiselGUI.saveFilePrefix + tester.topName + ChiselGUI.saveFileSuffix)
         saveSettings(saveFile)
       case _ =>
     }
@@ -178,14 +207,14 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     }
 
     layout(splitPane) = Center
-    layout(showDependenciesPanel) = South
+    layout(statusBar) = South
     layout(inputControlPanel) = East
 
     listenTo(selectedSignalModel)
     listenTo(dataModel)
     reactions += {
       case e: DependencyComponentRequested =>
-        showDependenciesPanel.textComponent.text = AppController.testerOpt match {
+        showDependenciesPanel.textComponent.text = ChiselGUI.testerOpt match {
           case Some(t) => t.dependencyInfo(e.pureSignalName)
           case None => ""
         }

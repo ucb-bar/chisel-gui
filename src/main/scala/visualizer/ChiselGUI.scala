@@ -17,7 +17,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.swing.{Dimension, Publisher, SwingApplication}
 
-object AppController extends SwingApplication with Publisher {
+object ChiselGUI extends SwingApplication with Publisher {
   System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
 
   val shell: Shell = new Shell("chisel-gui") with ChiselGuiCli
@@ -47,6 +47,10 @@ object AppController extends SwingApplication with Publisher {
 
     val vcdFileNameOpt = startAnnotations.collectFirst { case a: VcdFile => a.vcdFileName }
 
+    if (firrtlFileNameOpt.isEmpty && vcdFileNameOpt.isEmpty) {
+
+    }
+
     startAnnotations.collectFirst { case pathAnnotation: ChiselSourcePaths => pathAnnotation.paths }.foreach { paths =>
       paths.foreach { path =>
         SourceFinder.walk(path).foreach { scalaPath =>
@@ -55,18 +59,22 @@ object AppController extends SwingApplication with Publisher {
       }
     }
 
-    (firrtlFileNameOpt, vcdFileNameOpt) match {
+    val headerBarTitle = (firrtlFileNameOpt, vcdFileNameOpt) match {
       case (Some(firrtlFileName), Some(vcdFile)) =>
         setupTreadle(firrtlFileName, startAnnotations)
         setupVcdInput(vcdFile)
+        s"$firrtlFileName - $vcdFile"
       case (Some(firrtlFileName), None) =>
         setupTreadle(firrtlFileName, startAnnotations)
+        s"$firrtlFileName"
       case (None, Some(vcdFile)) =>
         setupVcdInput(vcdFile)
+        s"$vcdFile"
       case _ =>
-      // Cannot get here. Should be trapped by shell.parse
-
+        // Cannot get here. Should be trapped by shell.parse
+        "ChiselGUI"
     }
+
     loadSaveFileOnStartUp()
     mainWindow = new MainWindow(dataModel, signalSelectorModel, selectedSignalModel)
     if (mainWindow.size == new Dimension(0, 0)) mainWindow.pack()
@@ -76,6 +84,8 @@ object AppController extends SwingApplication with Publisher {
     startupMarkers.foreach { markerValue =>
       selectedSignalModel.addMarker("ad", markerValue)
     }
+
+    mainWindow.title = headerBarTitle
 
     populateWaveForms()
     signalSelectorModel.updateTreeModel()

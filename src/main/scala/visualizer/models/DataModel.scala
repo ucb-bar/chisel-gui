@@ -1,7 +1,7 @@
 package visualizer.models
 
-import visualizer.AppController.dataModel
-import visualizer.{MaxTimestampChanged, AppController, Util}
+import visualizer.ChiselGUI.dataModel
+import visualizer.{MaxTimestampChanged, ChiselGUI, Util}
 
 import scala.collection.mutable
 import scala.swing.Publisher
@@ -35,7 +35,7 @@ class DataModel extends Publisher {
     *
     */
   def loadMoreWaveformValues(): Unit = {
-    AppController.testerOpt match {
+    ChiselGUI.testerOpt match {
       case Some(t) =>
         t.engine.vcdOption match {
           case Some(vcd) =>

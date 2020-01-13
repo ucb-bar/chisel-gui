@@ -83,16 +83,16 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
   def drawGridLines(g: Graphics2D, visibleRect: Rectangle): Unit = {
     val startTime = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
     val endTime = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x + visibleRect.width)
-    val clockPeriod: Long = AppController.testerOpt match {
+    val clockPeriod: Long = ChiselGUI.testerOpt match {
       case Some(tester) => tester.clockInfoList.head.period * 10
       case _ => 10L
     }
 
-    val startGridlineX = (startTime / clockPeriod) * clockPeriod
+    val startGridLineX = (startTime / clockPeriod) * clockPeriod
     val endGridLineX = (endTime / clockPeriod) * clockPeriod
 
     g.setColor(new Color(200, 200, 255))
-    for (time <- startGridlineX to endGridLineX by clockPeriod) {
+    for (time <- startGridLineX to endGridLineX by clockPeriod) {
       val x = selectedSignalModel.timestampToXCoordinate(time)
       g.drawLine(x, 0, x, visibleRect.y + visibleRect.height)
     }

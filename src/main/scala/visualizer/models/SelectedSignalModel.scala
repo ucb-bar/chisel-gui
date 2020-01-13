@@ -59,7 +59,7 @@ class SelectedSignalModel extends Publisher {
                source: Component,
                targetPathOpt: Option[Path[GenericTreeNode]] = None): Path[GenericTreeNode] = {
 
-    val tree = AppController.mainWindow.signalAndWavePanel.tree
+    val tree = ChiselGUI.mainWindow.signalAndWavePanel.tree
 
     def targetPath =
       if (targetPathOpt.isDefined) {
@@ -134,8 +134,8 @@ class SelectedSignalModel extends Publisher {
     lastNodeAdded
   }
 
-  def addGroup(): Unit = {
-    val node = DirectoryNode("New Group")
+  def addGroup(newGroupName: String): Unit = {
+    val node = DirectoryNode(newGroupName)
     treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
   }
 

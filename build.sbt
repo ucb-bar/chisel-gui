@@ -1,3 +1,4 @@
+
 name := "chisel-gui"
 
 organization := "edu.berkeley.cs"
@@ -19,3 +20,14 @@ libraryDependencies ++= Seq(
   "edu.berkeley.cs" %% "treadle" % "1.2-SNAPSHOT",
   "com.github.benhutchison" %% "scalaswingcontrib" % "1.7"
 )
+
+// Assembly
+
+assemblyJarName in assembly := "chisel-gui.jar"
+
+mainClass in assembly := Some("visualizer.AppController")
+
+test in assembly := {} // Should there be tests?
+
+assemblyOutputPath in assembly := file("./utils/bin/chisel-gui.jar")
+
