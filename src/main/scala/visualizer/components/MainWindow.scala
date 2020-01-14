@@ -2,10 +2,10 @@ package visualizer.components
 
 import java.io.{File, PrintWriter}
 
+import javax.swing.BorderFactory
 import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
-import javax.swing.{BorderFactory, SwingConstants}
 import scalaswingcontrib.tree.Tree
-import treadle.executable.ClockInfo
+import visualizer.config.ColorTable
 import visualizer.models._
 import visualizer.{ChiselGUI, CursorSet, DependencyComponentRequested, MaxTimestampChanged}
 
@@ -59,7 +59,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     contents += HStrut(20)
 
     contents += Button("Add Marker") {
-      selectedSignalModel.addMarker("ad", selectedSignalModel.cursorPosition)
+      createMarker()
     }
     contents += Button("Toggle Ruler") {
       selectedSignalModel.toggleClock()
@@ -88,6 +88,8 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
   }
 
   title = "Chisel Visualizer"
+  var isAltColorScheme = false
+
   menuBar = new MenuBar {
     contents += new Menu("File") {
       contents += new MenuItem(Action("Save") {
@@ -106,10 +108,28 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
         doQuit()
       })
     }
+    contents += new Menu("Edit") {
+      contents += new MenuItem("") {
+        action = Action("Add Marker") {
+          createMarker()
+        }
+      }
+      contents += new MenuItem("") {
+        action = Action("Remove Marker") {
+          destroyMarker()
+        }
+      }
+    }
     contents += new Menu("View") {
-      contents += new CheckMenuItem("Color") {
-        action = Action("Color") {
-          enabled = !enabled
+      contents += new MenuItem("") {
+        action = Action("Toggle Wave Colors") {
+          isAltColorScheme = !isAltColorScheme
+          if (isAltColorScheme) {
+            ColorTable.setAltWaveColors()
+          } else {
+            ColorTable.setDefaultWaveColors()
+          }
+          signalAndWavePanel.updateWaveView()
         }
       }
     }
@@ -138,6 +158,34 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     this.close()
     super.closeOperation()
     System.exit(0)
+  }
+
+  def createMarker(): Unit = {
+    Dialog.showInput(
+      this,
+      "MarkerName: ",
+      title = "Add a time marker",
+      initial = s"Marker_${selectedSignalModel.cursorPosition}"
+    ) match {
+      case Some(newMarkerName) =>
+        selectedSignalModel.addMarker(newMarkerName, selectedSignalModel.cursorPosition)
+        signalAndWavePanel.updateWaveView()
+      case _ =>
+    }
+  }
+
+  def destroyMarker(): Unit = {
+    Dialog.showInput(
+      this,
+      "Remove Marker: ",
+      title = "Remove a marker by name",
+      initial = s""
+    ) match {
+      case Some(newMarkerName) =>
+        selectedSignalModel.removeMarker(newMarkerName)
+        signalAndWavePanel.updateWaveView()
+      case _ =>
+    }
   }
 
   def saveSettings(file: File): Unit = {
@@ -174,9 +222,14 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     walkNodes(selectedSignalModel.RootPath)
 
+    writer.println(s"cursor-position,${selectedSignalModel.cursorPosition}")
+
     selectedSignalModel.markers.foreach { marker =>
-      writer.println(s"marker,${marker.timestamp}")
+      writer.println(s"marker,${marker.description},${marker.timestamp},")
     }
+
+    val waveColorCode = if (ChiselGUI.mainWindow.isAltColorScheme) "alt" else "default"
+    writer.println(s"wave-colors,$waveColorCode")
 
     val visibleRect = signalAndWavePanel.wavePanel.peer.getVisibleRect
     writer.println(s"scale-and-window,${selectedSignalModel.scale},${visibleRect.x}")

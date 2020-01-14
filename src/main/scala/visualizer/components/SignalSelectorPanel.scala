@@ -1,12 +1,13 @@
 package visualizer.components
 
-import javax.swing.BorderFactory
 import javax.swing.tree.TreePath
+import javax.swing.{BorderFactory, SwingUtilities}
 import scalaswingcontrib.event.TreeNodesInserted
 import scalaswingcontrib.tree.Tree
 import scalaswingcontrib.tree.Tree.Path
-import visualizer.{DrawMetrics, SignalsChanged}
+import visualizer.config.DrawMetrics
 import visualizer.models._
+import visualizer.{ChiselGUI, SignalsChanged}
 
 import scala.swing._
 import scala.swing.event._
@@ -34,25 +35,32 @@ class SignalSelectorPanel(
     showsRootHandles = true
     dragEnabled = true
 
+    requestFocus()
+
     listenTo(mouse.clicks)
     listenTo(keys)
 
     reactions += {
-      case KeyReleased(_, key, _, _) =>
+      case KeyReleased(_, key, modifiers, _) =>
         if (key == Key.Enter) {
           addToSelectedSignalsModel(InsertAfter)
+        } else if (key == Key.Right && (modifiers & Key.Modifier.Shift) > 0) {
+
+          ChiselGUI.mainWindow.signalAndWavePanel.tree.requestFocus()
+          ChiselGUI.mainWindow.signalAndWavePanel.tree.requestFocusInWindow()
         }
       case m: MouseClicked =>
-        if (m.clicks == 1) {
-          println(s"Got mouse click in tree ${m.clicks}")
-        } else if (m.clicks == 2) {
-          println(s"mouse double clicked in tree ${m.clicks}")
-          selection.cellValues.foreach {
-            case directoryNode: DirectoryNode =>
-              //TODO: This will not bring along the children, should it?
-              selectedSignalModel.addFromDirectoryToInspected(directoryNode.copy(), this)
-            case otherNode =>
-              selectedSignalModel.addFromDirectoryToInspected(otherNode, this)
+        if (SwingUtilities.isLeftMouseButton(m.peer)) {
+          if (m.clicks == 1) {
+            println(s"Got mouse click in tree ${m.clicks}")
+          } else if (m.clicks == 2) {
+            println(s"mouse double clicked in tree ${m.clicks}")
+            selection.cellValues.foreach {
+              case directoryNode: DirectoryNode =>
+                selectedSignalModel.addFromDirectoryToInspected(directoryNode.copy(), this)
+              case otherNode =>
+                selectedSignalModel.addFromDirectoryToInspected(otherNode, this)
+            }
           }
         }
     }
@@ -69,7 +77,9 @@ class SignalSelectorPanel(
     */
   def addToSelectedSignalsModel(addDirection: AddDirection): Unit = {
 
-    def addPath(path: Path[GenericTreeNode], addDirection: AddDirection, targetPathOpt: Option[Path[GenericTreeNode]] = None) {
+    def addPath(path: Path[GenericTreeNode],
+                addDirection: AddDirection,
+                targetPathOpt: Option[Path[GenericTreeNode]] = None) {
       path.last match {
         case directoryNode: DirectoryNode =>
           if (tree.isExpanded(path)) {
@@ -170,20 +180,8 @@ class SignalSelectorPanel(
   listenTo(appendSignalButton)
   listenTo(signalPatternText)
   listenTo(tree)
-  listenTo(mouse.clicks)
 
   reactions += {
-    //TODO remove commented code, appears to be wrestling with mouse click listener above
-    //    case m: MouseClicked =>
-    //      if (m.clicks == 1) {
-    //        println(s"Got mouse click in DirectoryComponent ${m.clicks}")
-    //      } else if (m.clicks == 2) {
-    //        println(s"mouse double clicked in DirectoryComponent ${m.clicks}")
-    //        tree.selection.cellValues.foreach { node =>
-    //          selectedSignalModel.addFromDirectoryToInspected(node.toInspected, this)
-    //        }
-    //      }
-
     case ButtonClicked(`insertSignalBeforeButton`) =>
       addToSelectedSignalsModel(InsertBefore)
 
@@ -228,5 +226,4 @@ class SignalSelectorPanel(
   }
 
   focusable = true
-  requestFocus()
 }

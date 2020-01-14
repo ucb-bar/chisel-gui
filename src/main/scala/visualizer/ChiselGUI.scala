@@ -1,15 +1,18 @@
 package visualizer
 
+import java.awt.TrayIcon
 import java.io.File
 
 import firrtl.ir.ClockType
 import firrtl.options.{ProgramArgsAnnotation, Shell}
 import firrtl.stage.FirrtlSourceAnnotation
 import firrtl.{AnnotationSeq, FileUtils, InstanceKind, MemKind}
+import javax.imageio.ImageIO
 import treadle.executable.{Symbol, SymbolTable}
 import treadle.vcd.VCD
 import treadle.{TreadleTester, WriteVcdAnnotation}
 import visualizer.components.MainWindow
+import visualizer.config.ColorTable
 import visualizer.models._
 import visualizer.stage.{ChiselGuiCli, ChiselSourcePaths, VcdFile}
 
@@ -19,6 +22,8 @@ import scala.swing.{Dimension, Publisher, SwingApplication}
 
 object ChiselGUI extends SwingApplication with Publisher {
   System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
+
+  setApplicationIcon()
 
   val shell: Shell = new Shell("chisel-gui") with ChiselGuiCli
 
@@ -36,9 +41,11 @@ object ChiselGUI extends SwingApplication with Publisher {
 
   var mainWindow: MainWindow = _
   var mainWindowSize = new Dimension(1000, 600)
-  var startupMarkers = new mutable.ArrayBuffer[Long]()
+  var startupMarkers = new mutable.ArrayBuffer[Marker]()
+  var startupCursorPosition: Long = 0L
   var startupScale: Double = 10.0
   var startupVisibleX: Int = -1
+  var startUpColorScheme: String = "default"
 
   override def startup(args: Array[String]): Unit = {
     val startAnnotations = shell.parse(args)
@@ -47,9 +54,7 @@ object ChiselGUI extends SwingApplication with Publisher {
 
     val vcdFileNameOpt = startAnnotations.collectFirst { case a: VcdFile => a.vcdFileName }
 
-    if (firrtlFileNameOpt.isEmpty && vcdFileNameOpt.isEmpty) {
-
-    }
+    if (firrtlFileNameOpt.isEmpty && vcdFileNameOpt.isEmpty) {}
 
     startAnnotations.collectFirst { case pathAnnotation: ChiselSourcePaths => pathAnnotation.paths }.foreach { paths =>
       paths.foreach { path =>
@@ -81,8 +86,9 @@ object ChiselGUI extends SwingApplication with Publisher {
     mainWindow.size = mainWindowSize
     mainWindow.preferredSize = mainWindowSize
     mainWindow.visible = true
+    selectedSignalModel.cursorPosition = startupCursorPosition
     startupMarkers.foreach { markerValue =>
-      selectedSignalModel.addMarker("ad", markerValue)
+      selectedSignalModel.markers += markerValue
     }
 
     mainWindow.title = headerBarTitle
@@ -95,7 +101,16 @@ object ChiselGUI extends SwingApplication with Publisher {
       mainWindow.signalAndWavePanel.setScaleAndVisible(startupScale, startupVisibleX)
     }
 
+    if (startUpColorScheme != "default") {
+      ColorTable.setAltWaveColors()
+    }
+
     publish(new PureSignalsChanged)
+
+    mainWindow.signalSelectorPanel.tree.requestFocus()
+    mainWindow.signalSelectorPanel.tree.requestFocusInWindow()
+
+    setApplicationIcon()
   }
 
   def seedFromVcd(vcd: treadle.vcd.VCD, stopAtTime: Long = Long.MaxValue): Unit = {
@@ -194,12 +209,23 @@ object ChiselGUI extends SwingApplication with Publisher {
               val node = DirectoryNode(nodeName)
               addNode(depthString, indexString, node)
 
-            case "marker" :: timeString :: Nil =>
+            case "cursor-position" :: positionString :: Nil =>
               try {
-                startupMarkers += timeString.toLong
+                startupCursorPosition += positionString.toLong
               } catch {
                 case _: Throwable =>
               }
+
+            case "marker" :: markerName :: timeString :: Nil =>
+              try {
+                val time = timeString.toLong
+                startupMarkers += Marker(markerName, time)
+              } catch {
+                case _: Throwable =>
+              }
+
+            case "wave-colors" :: colorScheme :: Nil =>
+              startUpColorScheme = colorScheme
 
             case "scale-and-window" :: scaleString :: xString :: Nil =>
               try {
@@ -325,8 +351,7 @@ object ChiselGUI extends SwingApplication with Publisher {
     }
   }
 
-  def loadDrivingSignals(signal: PureSignal): Unit = {
-    val maxDepth = 3
+  def loadDrivingSignals(signal: PureSignal, maxDepth: Int): Unit = {
     testerOpt.foreach { tester =>
       val engine = tester.engine
       val digraph = engine.symbolTable.parentsOf
@@ -374,51 +399,28 @@ object ChiselGUI extends SwingApplication with Publisher {
     }
   }
 
-  //  ///////////////////////////////////////////////////////////////////////////
-  //  // Hard coded things
-  //  ///////////////////////////////////////////////////////////////////////////
-  //  def runSomeTreadle(t: TreadleTester): Unit = {
-  //    for {
-  //      a <- 10 to 20
-  //      b <- 20 to 22
-  //    } {
-  //      t.poke("io_e", 1)
-  //      t.poke("io_a", a)
-  //      t.poke("io_b", b)
-  //      t.step()
-  //      t.poke("io_e", 0)
-  //      t.step(clkSteps)
-  //    }
-  //  }
-  //
-  //  def makeBinaryTransitions(times: ArrayBuffer[Int]): Waveform[BigInt] = {
-  //    val transitions = times.zipWithIndex.map {
-  //      case (time, index) =>
-  //        Transition[BigInt](time, index % 2)
-  //    }
-  //    new Waveform(transitions)
-  //  }
-  //
-  ////  def hackySetup(): Unit = {
-  ////    val firrtlString = loadFile("samples/gcd.fir")
-  ////    val treadleTester = loadFirrtl(firrtlString)
-  ////    setupClock(treadleTester)
-  ////    runSomeTreadle(treadleTester)
-  ////    populateWaveForms(treadleTester)
-  ////
-  ////    val waveformReady = makeBinaryTransitions(ArrayBuffer[Int](0, 16, 66, 106, 136, 176, 306, 386, 406, 496, 506))
-  ////    val signalReady = new PureSignal("ready", None, Some(waveformReady), 0)
-  ////    val fakeReady = "module.io_fake_ready"
-  ////    dataModel.addSignal(fakeReady, signalReady)
-  ////    selectionModel.addSignalToSelectionList(fakeReady, signalReady)
-  ////
-  ////    val waveformValid = makeBinaryTransitions(ArrayBuffer[Int](0, 36, 66, 96, 116, 146, 206, 286, 396, 406, 506))
-  ////    val signalValid = new PureSignal("valid", None, Some(waveformValid), 0)
-  ////    dataModel.addSignal("module.io_fake_valid", signalValid)
-  ////
-  ////    val signalRV = ReadyValidCombiner(Array[PureSignal](signalReady, signalValid))
-  ////    dataModel.addSignal("module.io_rv", signalRV)
-  ////
-  ////    publish(new PureSignalsChanged)
-  ////  }
+  /** Try to change the system icon for the application
+    * This is a noble effort but does not seem to work
+    * no complaints from system but no change either
+    */
+  def setApplicationIcon(): Unit = {
+    import java.awt.SystemTray
+
+    if (!SystemTray.isSupported) {
+      println("SystemTray is not supported")
+    } else {
+      println("SystemTray IS supported")
+      val r = ImageIO.read(getClass.getResource("/images/bulb.gif"))
+      val tray = SystemTray.getSystemTray
+
+      val trayIcon = new TrayIcon(r)
+
+      try {
+        tray.add(trayIcon)
+      } catch {
+        case t: Throwable =>
+          println(s"Error trying to set app icon: ${t.getMessage}")
+      }
+    }
+  }
 }

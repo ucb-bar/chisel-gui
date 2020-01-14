@@ -3,6 +3,7 @@ package visualizer.components
 import java.awt.Color
 
 import visualizer._
+import visualizer.config.DrawMetrics
 import visualizer.models._
 
 import scala.swing._

@@ -2,7 +2,7 @@ package visualizer.painters
 
 import java.awt.{Color, Rectangle}
 
-import visualizer.DrawMetrics
+import visualizer.config.DrawMetrics
 import visualizer.models._
 
 import scala.swing.Graphics2D

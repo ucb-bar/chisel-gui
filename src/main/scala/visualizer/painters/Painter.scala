@@ -2,7 +2,7 @@ package visualizer.painters
 
 import java.awt.{FontMetrics, Polygon, Rectangle}
 
-import visualizer.DrawMetrics
+import visualizer.config.DrawMetrics
 import visualizer.models.{GenericTreeNode, SelectedSignalModel, WaveFormNode}
 
 import scala.swing.{Font, Graphics2D}
