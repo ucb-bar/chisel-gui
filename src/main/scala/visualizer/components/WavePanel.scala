@@ -1,10 +1,10 @@
 package visualizer.components
 
-import java.awt.{Color, Rectangle}
+import java.awt.Rectangle
 
 import scalaswingcontrib.tree.Tree
-import treadle.TreadleTester
 import visualizer._
+import visualizer.config.{ColorTable, DrawMetrics}
 import visualizer.models._
 import visualizer.painters.{MultiBitPainter, ReadyValidPainter, SingleBitPainter}
 
@@ -27,7 +27,7 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
     val visibleRect = peer.getVisibleRect
 
     // Set background color
-    background = new Color(240, 240, 240) //Color.lightGray
+    background = ColorTable(ColorTable.waveBackground)
 
     // Draw waveforms
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach {
@@ -62,7 +62,7 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
     drawMarkers(g, visibleRect)
 
     // Draw cursor
-    g.setColor(new Color(39, 223, 85))
+    g.setColor(ColorTable(ColorTable.waveCursor))
     val cursorX = selectedSignalModel.timestampToXCoordinate(selectedSignalModel.cursorPosition)
     g.drawLine(cursorX, visibleRect.y, cursorX, visibleRect.y + visibleRect.height)
   }
@@ -73,10 +73,14 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
     val startIndex = selectedSignalModel.getMarkerAtTime(startTime)
     val endIndex = selectedSignalModel.getMarkerAtTime(endTime)
 
-    g.setColor(Color.black)
+    g.setColor(ColorTable(ColorTable.waveMarker))
     selectedSignalModel.markers.slice(startIndex, endIndex + 1).foreach { marker =>
       val x = selectedSignalModel.timestampToXCoordinate(marker.timestamp)
       g.drawLine(x, 0, x, visibleRect.y + visibleRect.height)
+      g.drawString(marker.description,
+        x + DrawMetrics.MarkerNameXOffset,
+        visibleRect.y + visibleRect.height + DrawMetrics.MarkerNameYOffset)
+
     }
   }
 
@@ -91,7 +95,7 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
     val startGridLineX = (startTime / clockPeriod) * clockPeriod
     val endGridLineX = (endTime / clockPeriod) * clockPeriod
 
-    g.setColor(new Color(200, 200, 255))
+    g.setColor(ColorTable(ColorTable.waveGrid))
     for (time <- startGridLineX to endGridLineX by clockPeriod) {
       val x = selectedSignalModel.timestampToXCoordinate(time)
       g.drawLine(x, 0, x, visibleRect.y + visibleRect.height)

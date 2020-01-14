@@ -1,14 +1,14 @@
 package visualizer.models
 
 import scalaswingcontrib.tree.Tree.Path
-
-import scala.collection.mutable.ArrayBuffer
-import scala.swing._
 import scalaswingcontrib.tree._
 import treadle.executable.ClockInfo
 import visualizer._
+import visualizer.config.DrawMetrics
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
+import scala.swing._
 
 /** This model describes the selected and organized nodes that
   * have been selected to have their waveforms displayed
@@ -222,28 +222,33 @@ class SelectedSignalModel extends Publisher {
   // Markers
   ///////////////////////////////////////////////////////////////////////////
   var markers: ArrayBuffer[Marker] = ArrayBuffer[Marker]()
-  var nextMarkerId = 1
 
   def removeAllMarkers(): Unit = {
     markers.clear
     publish(MarkerChanged(-1, null))
-    nextMarkerId = 1
   }
 
   def addMarker(description: String, timestamp: Long): Unit = {
     // Adding to markers could be more efficient bc inserting into sorted sequence
-    markers += Marker(nextMarkerId, description, timestamp)
+    markers += Marker(description, timestamp)
     markers.sortBy(_.timestamp)
 
-    nextMarkerId += 1
     publish(MarkerChanged(timestamp, null))
+  }
+
+  def removeMarker(description: String): Unit = {
+    // Adding to markers could be more efficient bc inserting into sorted sequence
+    markers = markers.filterNot { marker =>
+      marker.description == description
+    }
+    publish(MarkerChanged(0, null))
   }
 
   // Returns index of element that matches
   def getMarkerAtTime(timestamp: Long): Int = {
     markers.reverse.indexWhere(timestamp >= _.timestamp) match {
       case i if i >= 0 => markers.size - 1 - i
-      case _           => 0
+      case _ => 0
     }
   }
 
@@ -316,6 +321,15 @@ class SelectedSignalModel extends Publisher {
 }
 
 case class Marker(id: Int, var description: String, timestamp: Long)
+
+object Marker {
+  var nextMarkerId = 1
+
+  def apply(name: String, timestamp: Long): Marker = {
+    nextMarkerId += 1
+    Marker(nextMarkerId, name, timestamp)
+  }
+}
 
 case class WaveDisplaySetting(var painter: Option[Int] = None, var dataFormat: Option[Format] = None)
 

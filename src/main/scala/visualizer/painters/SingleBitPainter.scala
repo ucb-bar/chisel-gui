@@ -2,7 +2,7 @@ package visualizer.painters
 
 import java.awt.{Color, Rectangle}
 
-import visualizer.DrawMetrics
+import visualizer.config.{ColorTable, DrawMetrics}
 import visualizer.models._
 
 import scala.swing.Graphics2D
@@ -18,7 +18,7 @@ class SingleBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter
         waveFormNode.signal match {
           case pureSignal: PureSignal =>
             val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
-            g.setColor(Color.black)
+            g.setColor(ColorTable(ColorTable.waveSignal))
 
             // Only paint from first transition at or before the start timestamp
             // up until the first transition after the end timestamp

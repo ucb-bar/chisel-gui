@@ -5,12 +5,13 @@ import javax.swing.event.{TreeExpansionEvent, TreeExpansionListener}
 import javax.swing.tree.{DefaultMutableTreeNode, TreePath}
 import javax.swing.{BorderFactory, DropMode, SwingUtilities}
 import scalaswingcontrib.tree.Tree
+import visualizer.config.DrawMetrics
 import visualizer.models._
-import visualizer.{DrawMetrics, SignalsChanged, ChiselGUI}
+import visualizer.{ChiselGUI, SignalsChanged}
 
 import scala.swing.BorderPanel.Position._
 import scala.swing._
-import scala.swing.event.MouseClicked
+import scala.swing.event.{Key, KeyReleased, MouseClicked}
 import scala.sys.process._
 import scala.util.matching.Regex
 
@@ -40,7 +41,21 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     signal match {
       case Some(pureSignal: PureSignal) =>
         contents += new MenuItem(Action("Add Driving Signals") {
-          ChiselGUI.loadDrivingSignals(pureSignal)
+          Dialog.showInput(
+            this,
+            "How deep to follow driving signals: ",
+            title = "How deep in driving stack",
+            initial = "2"
+          ) match {
+            case Some(depthString) =>
+              try {
+                val depth = depthString.toInt
+                ChiselGUI.loadDrivingSignals(pureSignal, depth)
+              } catch {
+                case _: Throwable =>
+              }
+            case _ =>
+          }
         })
 
         pureSignal.symbolOpt.foreach { symbol =>
@@ -169,15 +184,16 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     def handleMouseClick(e: MouseClicked): Unit = {
       println(s"mouse clicked in signalAndWave ${e.clicks}")
       if (SwingUtilities.isRightMouseButton(e.peer)) {
+        println("It was a right click")
         if (isPointInNode(e.point)) {
-          val row = getClosestRowForLocation(e.point.x, e.point.y)
-
-          if (!selection.rows.contains(row)) {
-            // Right clicked in a node that isn't selected
-            // Then select only the node that was right clicked
-            selectRows(getClosestRowForLocation(e.point.x, e.point.y))
-          }
-          repaint()
+          //          val row = getClosestRowForLocation(e.point.x, e.point.y)
+          //
+          //          if (!selection.rows.contains(row)) {
+          //            // Right clicked in a node that isn't selected
+          //            // Then select only the node that was right clicked
+          //            selectRows(getClosestRowForLocation(e.point.x, e.point.y))
+          //          }
+          //          repaint()
 
           val path = tree.peer.getClosestPathForLocation(e.point.x, e.point.y)
           val peerNode = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
@@ -187,15 +203,13 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
               popupMenu(Some(waveFormNode.signal)).show(this, e.point.x, e.point.y)
             case _ =>
           }
+        } else {
+          println("Doesn't seem to be in a node a")
         }
       } else {
         if (e.clicks == 1) {
           if (!isPointInNode(e.point)) {
             selection.clear()
-          }
-        } else if (e.clicks == 2) {
-          tree.selection.cellValues.foreach { node =>
-            selectedSignalModel.addFromDirectoryToInspected(node, this)
           }
         }
       }
@@ -204,6 +218,12 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     listenTo(mouse.clicks)
     listenTo(selectedSignalModel)
     reactions += {
+      case KeyReleased(_, key, modifiers, _) =>
+        if (key == Key.Left && (modifiers & Key.Modifier.Shift) > 0) {
+          ChiselGUI.mainWindow.signalSelectorPanel.tree.requestFocus()
+          ChiselGUI.mainWindow.signalSelectorPanel.tree.requestFocusInWindow()
+        }
+
       case _: SignalsChanged =>
         tree.peer.expandPath(new TreePath(model.peer.getRoot))
       case e: MouseClicked =>
@@ -277,6 +297,10 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     val newVisibleRect = wavePanel.peer.getVisibleRect
     newVisibleRect.x = newVisibleX
     wavePanel.peer.scrollRectToVisible(newVisibleRect)
+  }
+
+  def updateWaveView(): Unit = {
+    setScaleKeepCentered(selectedSignalModel.scale, this)
   }
 
   def zoomIn(source: Component): Unit = {

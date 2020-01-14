@@ -4,11 +4,12 @@ import java.awt.{Color, Font}
 
 import scalaswingcontrib.tree.Tree
 import visualizer._
+import visualizer.config.DrawMetrics
 import visualizer.models._
 
+import scala.swing.BorderPanel.Position.Center
 import scala.swing._
 import scala.swing.event._
-import BorderPanel.Position.Center
 
 class SelectedSignalPanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, tree: Tree[GenericTreeNode])
   extends BorderPanel {
@@ -31,15 +32,13 @@ class SelectedSignalPanel(dataModel: DataModel, selectedSignalModel: SelectedSig
   ///////////////////////////////////////////////////////////////////////////
   listenTo(selectedSignalModel)
   listenTo(keys, tree.keys)
-//  listenTo(mouse.clicks)
+
   reactions += {
     case _: SignalsChanged =>
       computeBounds()
       repaint()
     case _: WaveFormatChanged | _: CursorSet =>
       repaint()
-    case m: MouseButtonEvent =>
-      println(s"Mouse clicked ${m.clicks}")
     case KeyReleased(_, Key.BackSpace, _, _) =>
       selectedSignalModel.removeSelectedSignals(this, tree.selection.paths.iterator)
   }
