@@ -349,9 +349,10 @@ object Format {
 
   def deserialize(string: String): Format = {
     string match {
-      case "bin" => BinFormat
-      case "hex" => HexFormat
-      case "dec" => DecFormat
+      case "BinForma" => BinFormat
+      case "HexFormat" => HexFormat
+      case "DecFormat" => DecFormat
+      case "PlotFormat" => PlotFormat
       case _ => DecFormat
     }
   }
@@ -368,8 +369,15 @@ case object DecFormat extends Format {
     num.toString(10)
   }
 }
+
 case object HexFormat extends Format {
   def apply(num: BigInt): String = {
     "0x" + num.toString(16)
+  }
+}
+
+case object PlotFormat extends Format {
+  def apply(num: BigInt): String = {
+    num.toString(10)
   }
 }

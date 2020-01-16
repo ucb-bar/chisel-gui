@@ -1,6 +1,8 @@
 package visualizer.models
 
-import visualizer.Util
+import firrtl.ir.SIntType
+import treadle.executable.{SignedInt, Symbol}
+import treadle.{extremaOfSIntOfWidth, extremaOfUIntOfWidth}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -74,25 +76,50 @@ abstract class Signal[T] {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Three types of signals
+// Types of signals
 ///////////////////////////////////////////////////////////////////////////
-class PureSignal(
-  var name:      String,
-  var symbolOpt: Option[treadle.executable.Symbol],
-  var waveform:  Option[Waveform[BigInt]],
-  val sortGroup: Int // (IOs, registers, other, Ts and Gens)
-) extends Signal[BigInt]
 
-class TruncatedSignal(
-  val pureSignal: PureSignal,
-  val bits:       ArrayBuffer[Int],
-  var waveform:   Option[Waveform[BigInt]]
-) extends Signal[BigInt]
+/** A basic signal representing one wire from a firrtl file or a vcd file
+  *
+  * @param name      fully qualified name of signal
+  * @param symbolOpt pointer to a treadle symbol if there is one
+  * @param waveform  data to plot
+  * @param sortGroup ordering of this against others, currently not supported
+  * @param width     bitwidth of signal, could come from treadle or vcd
+  */
+class PureSignal(var name: String,
+                 var symbolOpt: Option[Symbol],
+                 var waveform: Option[Waveform[BigInt]],
+                 val sortGroup: Int,
+                 width: Int = 1)
+  extends Signal[BigInt] {
+  //
+  // This block is to help with showing signal as xy plot
+  //
+  val isSInt: Boolean = symbolOpt.isDefined && symbolOpt.get.dataType == SignedInt
+  val (minValue: BigInt, maxValue: BigInt) = if (isSInt) {
+    extremaOfSIntOfWidth(width)
+  } else {
+    extremaOfUIntOfWidth(width)
+  }
+  val range: BigInt = maxValue - minValue
+
+  def scaledValue(x: BigInt): BigDecimal = {
+    BigDecimal(x - minValue) / BigDecimal(range)
+  }
+}
+
+class DecoupledSignal(
+                       var name: String,
+                       var symbolOpt: Option[Symbol],
+                       var waveform: Option[Waveform[BigInt]],
+                       val sortGroup: Int // (IOs, registers, other, Ts and Gens)
+                     ) extends Signal[BigInt]
 
 class CombinedSignal(
-  val pureSignals: Array[PureSignal],
-  var waveform:    Option[Waveform[Array[BigInt]]]
-) extends Signal[Array[BigInt]]
+                      val pureSignals: Array[PureSignal],
+                      var waveform: Option[Waveform[Array[BigInt]]]
+                    ) extends Signal[Array[BigInt]]
 
 ///////////////////////////////////////////////////////////////////////////
 // Ready Valid Combiner
