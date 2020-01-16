@@ -3,7 +3,7 @@ package visualizer.painters
 import java.awt.{FontMetrics, Polygon, Rectangle}
 
 import visualizer.config.DrawMetrics
-import visualizer.models.{GenericTreeNode, SelectedSignalModel, WaveFormNode}
+import visualizer.models.{GenericTreeNode, PureSignal, SelectedSignalModel}
 
 import scala.swing.{Font, Graphics2D}
 
@@ -66,5 +66,17 @@ object Painter {
     g.drawLine(left, midY, nextX, bottom)
     g.drawLine(nextX, topY, right, topY)
     g.drawLine(nextX, bottom, right, bottom)
+  }
+
+  def drawPlotLine(g: Graphics2D,
+                   x1: Int,
+                   value1: BigInt,
+                   x2: Int,
+                   value2: BigInt,
+                   signal: PureSignal,
+                   top: Int): Unit = {
+    val y1 = DrawMetrics.WaveformHeight - (signal.scaledValue(value1) * DrawMetrics.WaveformHeight).toInt + top
+    val y2 = DrawMetrics.WaveformHeight - (signal.scaledValue(value2) * DrawMetrics.WaveformHeight).toInt + top
+    g.drawLine(x1, y1, x2, y2)
   }
 }

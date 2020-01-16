@@ -3,7 +3,7 @@ circuit GCD :
   module GCD : 
     input clock : Clock
     input reset : UInt<1>
-    output io : {flip a : UInt<16>, flip b : UInt<16>, flip e : UInt<1>, z : UInt<16>, v : UInt<1>}
+    output io : {flip a : UInt<7>, flip b : UInt<7>, flip e : UInt<1>, z : UInt<7>, v : UInt<1>}
     
     clock is invalid
     reset is invalid

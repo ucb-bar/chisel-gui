@@ -37,6 +37,9 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
       contents += new MenuItem(Action("Hexadecimal") {
         selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, HexFormat)
       })
+      contents += new MenuItem(Action("X/Y Plot") {
+        selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, PlotFormat)
+      })
     }
     signal match {
       case Some(pureSignal: PureSignal) =>
@@ -317,8 +320,6 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     * @param source component to scroll
     */
   def zoomToStart(source: Component): Unit = {
-    val oldVisibleRect = wavePanel.peer.getVisibleRect
-
     val newVisibleRect = wavePanel.peer.getVisibleRect
     newVisibleRect.x = 0
     wavePanel.peer.scrollRectToVisible(newVisibleRect)

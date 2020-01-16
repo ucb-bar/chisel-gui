@@ -17,16 +17,6 @@ class DataModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   val nameToSignal = new mutable.HashMap[String, Signal[_]]
 
-  def ioSignals: Seq[String] = {
-    val a = nameToSignal.flatMap {
-      case (fullName: String, pureSignal: PureSignal) =>
-        if (pureSignal.sortGroup == 0) Some(fullName) else None
-      case _ =>
-        None
-    }
-    a.toSeq.sorted
-  }
-
   def addSignal(fullName: String, signal: Signal[_ <: Any]): Unit = {
     dataModel.nameToSignal(fullName) = signal
   }

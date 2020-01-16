@@ -18,7 +18,8 @@ import visualizer.stage.{ChiselGuiCli, ChiselSourcePaths, VcdFile}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.swing.{Dimension, Publisher, SwingApplication}
+import scala.swing.Dialog.Result
+import scala.swing.{Dialog, Dimension, Publisher, SwingApplication}
 
 object ChiselGUI extends SwingApplication with Publisher {
   System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
@@ -46,6 +47,7 @@ object ChiselGUI extends SwingApplication with Publisher {
   var startupScale: Double = 10.0
   var startupVisibleX: Int = -1
   var startUpColorScheme: String = "default"
+  var startupWarnings: mutable.ArrayBuffer[String] = new mutable.ArrayBuffer()
 
   override def startup(args: Array[String]): Unit = {
     val startAnnotations = shell.parse(args)
@@ -81,6 +83,11 @@ object ChiselGUI extends SwingApplication with Publisher {
     }
 
     loadSaveFileOnStartUp()
+
+    testerOpt.foreach { tester =>
+      DecoupledHandler.lookForReadyValidBundles(tester)
+    }
+
     mainWindow = new MainWindow(dataModel, signalSelectorModel, selectedSignalModel)
     if (mainWindow.size == new Dimension(0, 0)) mainWindow.pack()
     mainWindow.size = mainWindowSize
@@ -106,6 +113,14 @@ object ChiselGUI extends SwingApplication with Publisher {
     }
 
     publish(new PureSignalsChanged)
+
+    startupWarnings.foreach { warning =>
+      val result = Dialog.showConfirmation(mainWindow, s"$warning\nContinue?", "Warning during startup")
+      println(result)
+      if (result != Result.Yes) {
+        System.exit(1)
+      }
+    }
 
     mainWindow.signalSelectorPanel.tree.requestFocus()
     mainWindow.signalSelectorPanel.tree.requestFocusInWindow()
@@ -232,7 +247,7 @@ object ChiselGUI extends SwingApplication with Publisher {
                 startupScale = scaleString.toDouble
                 startupVisibleX = xString.toInt
               } catch {
-                case t: Throwable =>
+                case _: Throwable =>
                   println(s"Cannot parse line $line from ${fileNameGuess.getName}")
               }
 
@@ -263,17 +278,24 @@ object ChiselGUI extends SwingApplication with Publisher {
     * @param annotations    Annotation that have been provided from command line
     */
   def setupTreadle(firrtlFileName: String, annotations: AnnotationSeq): Unit = {
-    val firrtlString = FileUtils.getText(firrtlFileName)
-    val treadleTester = treadle.TreadleTester(
-      Seq(
-        FirrtlSourceAnnotation(firrtlString),
-        WriteVcdAnnotation
-      ) ++
-        annotations
-    )
-    testerOpt = Some(treadleTester)
-    setupSignalsFromTreadle()
-    setupClock(treadleTester)
+    if (new File(firrtlFileName).exists) {
+      val firrtlString = FileUtils.getText(firrtlFileName)
+      val treadleTester = treadle.TreadleTester(
+        Seq(
+          FirrtlSourceAnnotation(firrtlString),
+          WriteVcdAnnotation
+        ) ++
+          annotations
+      )
+      testerOpt = Some(treadleTester)
+      setupSignalsFromTreadle()
+      setupClock(treadleTester)
+    } else {
+      val warning = s"Could not open FIRRTL file $firrtlFileName"
+      println(warning)
+      startupWarnings += warning
+
+    }
   }
 
   /** Get any initializing VCD data,
@@ -284,17 +306,24 @@ object ChiselGUI extends SwingApplication with Publisher {
     * @param vcdFileName name of a file containing VCD text
     */
   def setupVcdInput(vcdFileName: String): Unit = {
-    val vcd = treadle.vcd.VCD.read(vcdFileName)
+    if (new File(vcdFileName).exists) {
+      val vcd = treadle.vcd.VCD.read(vcdFileName)
 
-    testerOpt match {
-      case Some(tester) =>
-        seedFromVcd(vcd, stopAtTime = Long.MaxValue)
-        dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
-        vcdOpt = tester.engine.vcdOption
-      case _ =>
-        setupSignalsFromVcd(vcd)
-        vcdOpt = Some(vcd)
+      testerOpt match {
+        case Some(tester) =>
+          seedFromVcd(vcd, stopAtTime = Long.MaxValue)
+          dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
+          vcdOpt = tester.engine.vcdOption
+        case _ =>
+          setupSignalsFromVcd(vcd)
+          vcdOpt = Some(vcd)
+      }
+    } else {
+      val warning = s"Could not open VCD file $vcdFileName"
+      println(warning)
+      startupWarnings += warning
     }
+
   }
 
   def setupClock(t: TreadleTester): Unit = {
@@ -311,7 +340,7 @@ object ChiselGUI extends SwingApplication with Publisher {
             val sortGroup = Util.sortGroup(name, testerOpt)
             val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
             arrayBuffer += Transition(0L, BigInt(0))
-            val signal = new PureSignal(name, Some(symbol), Some(new Waveform(arrayBuffer)), sortGroup)
+            val signal = new PureSignal(name, Some(symbol), Some(new Waveform(arrayBuffer)), sortGroup, symbol.bitWidth)
 
             dataModel.addSignal(name, signal)
           }
@@ -326,7 +355,7 @@ object ChiselGUI extends SwingApplication with Publisher {
       val sortGroup = Util.sortGroup(name, testerOpt)
       val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
       arrayBuffer += Transition(0L, BigInt(0))
-      val signal = new PureSignal(name, None, Some(new Waveform(arrayBuffer)), sortGroup)
+      val signal = new PureSignal(name, None, Some(new Waveform(arrayBuffer)), sortGroup, wire.width)
 
       dataModel.addSignal(name, signal)
     }
