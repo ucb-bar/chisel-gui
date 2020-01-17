@@ -8,6 +8,7 @@ import firrtl.options.{ProgramArgsAnnotation, Shell}
 import firrtl.stage.FirrtlSourceAnnotation
 import firrtl.{AnnotationSeq, FileUtils, InstanceKind, MemKind}
 import javax.imageio.ImageIO
+import scalaswingcontrib.tree.Tree
 import treadle.executable.{Symbol, SymbolTable}
 import treadle.vcd.VCD
 import treadle.{TreadleTester, WriteVcdAnnotation}
@@ -44,10 +45,12 @@ object ChiselGUI extends SwingApplication with Publisher {
   var mainWindowSize = new Dimension(1000, 600)
   var startupMarkers = new mutable.ArrayBuffer[Marker]()
   var startupCursorPosition: Long = 0L
-  var startupScale:          Double = 10.0
-  var startupVisibleX:       Int = -1
-  var startUpColorScheme:    String = "default"
-  var startupWarnings:       mutable.ArrayBuffer[String] = new mutable.ArrayBuffer()
+  var startupScale: Double = 10.0
+  var startupVisibleX: Int = -1
+  var startUpColorScheme: String = "default"
+  var toExpand = new mutable.ArrayBuffer[Tree.Path[GenericTreeNode]]()
+
+  var startupWarnings: mutable.ArrayBuffer[String] = new mutable.ArrayBuffer()
 
   override def startup(args: Array[String]): Unit = {
     val startAnnotations = shell.parse(args)
@@ -115,6 +118,8 @@ object ChiselGUI extends SwingApplication with Publisher {
     if (startUpColorScheme != "default") {
       ColorTable.setAltWaveColors()
     }
+
+    expandNodesOnStartup()
 
     publish(new PureSignalsChanged)
 
@@ -230,32 +235,43 @@ object ChiselGUI extends SwingApplication with Publisher {
             case "window_size" :: widthString :: heightString :: Nil =>
               mainWindowSize = new Dimension(widthString.toInt, heightString.toInt)
 
-            case "signal_node" :: depthString :: indexString :: nodeName :: signalName :: formatString :: Nil =>
+            case "signal_node" :: depthString :: indexString ::
+              nodeName :: signalName :: formatString :: expand :: Nil =>
               dataModel.nameToSignal.get(signalName) match {
                 case Some(pureSignal: PureSignal) =>
                   val node = WaveFormNode(nodeName, pureSignal)
                   selectedSignalModel.waveDisplaySettings(signalName) = {
                     WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
                   }
-                  addNode(depthString, indexString, node)
-                case Some(_: CombinedSignal) =>
-                case _ =>
-              }
-
-            case "decoupled_node" :: depthString :: indexString :: nodeName :: signalName :: formatString :: Nil =>
-              dataModel.nameToSignal.get(signalName) match {
-                case Some(decoupledSignalGroup: DecoupledSignalGroup) =>
-                  val node = WaveFormNode(nodeName, decoupledSignalGroup)
-                  selectedSignalModel.waveDisplaySettings(signalName) = {
-                    WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
+                  if (expand == "expand") {
+                    toExpand += currentPath ++ Seq(node)
                   }
                   addNode(depthString, indexString, node)
                 case Some(_: CombinedSignal) =>
                 case _ =>
               }
 
-            case "node" :: depthString :: indexString :: nodeName :: Nil =>
+            case "decoupled_node" :: depthString :: indexString ::
+              nodeName :: signalName :: formatString :: expand :: Nil =>
+              dataModel.nameToSignal.get(signalName) match {
+                case Some(decoupledSignalGroup: DecoupledSignalGroup) =>
+                  val node = WaveFormNode(nodeName, decoupledSignalGroup)
+                  selectedSignalModel.waveDisplaySettings(signalName) = {
+                    WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
+                  }
+                  if (expand == "expand") {
+                    toExpand += currentPath ++ Seq(node)
+                  }
+                  addNode(depthString, indexString, node)
+                case Some(_: CombinedSignal) =>
+                case _ =>
+              }
+
+            case "node" :: depthString :: indexString :: nodeName :: expand :: Nil =>
               val node = DirectoryNode(nodeName)
+              if (expand == "expand") {
+                toExpand += currentPath ++ Seq(node)
+              }
               addNode(depthString, indexString, node)
 
             case "cursor-position" :: positionString :: Nil =>
@@ -291,6 +307,12 @@ object ChiselGUI extends SwingApplication with Publisher {
           }
         }
       }
+    }
+  }
+
+  def expandNodesOnStartup(): Unit = {
+    toExpand.foreach { path =>
+      mainWindow.signalAndWavePanel.tree.expandPath(path)
     }
   }
 

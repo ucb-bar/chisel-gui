@@ -199,17 +199,22 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
           val pathString = path.map { node =>
             node.name
           }.mkString(",")
+
+          val expand = if (signalAndWavePanel.tree.isExpanded(path)) "expand" else "close"
+
           val node = path.last
           node match {
             case directoryNode: DirectoryNode =>
-              writer.println(s"node,$depth,$index,${directoryNode.name}")
+              writer.println(s"node,$depth,$index,${directoryNode.name},$expand")
             case waveFormNode: WaveFormNode =>
               waveFormNode.signal match {
                 case pureSignal: PureSignal =>
                   selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
                     case Some(waveDisplaySetting: WaveDisplaySetting) =>
                       val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
-                      writer.println(s"signal_node,$depth,$index,${waveFormNode.name},${pureSignal.name},$dataFormat")
+                      writer.println(
+                        s"signal_node,$depth,$index,${waveFormNode.name},${pureSignal.name},$dataFormat,$expand"
+                      )
                     case _ =>
                   }
                 case decoupledSignalGroup: DecoupledSignalGroup =>
@@ -217,11 +222,12 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
                     case Some(waveDisplaySetting: WaveDisplaySetting) =>
                       val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
                       writer.println(
-                        s"decoupled_node,$depth,$index,${waveFormNode.name},${decoupledSignalGroup.name},$dataFormat"
+                        s"decoupled_node,$depth,$index,${waveFormNode.name}," +
+                          s"${decoupledSignalGroup.name},$dataFormat,$expand"
                       )
                     case _ =>
                       writer.println(
-                        s"decoupled_node,$depth,$index,${waveFormNode.name},${decoupledSignalGroup.name},none"
+                        s"decoupled_node,$depth,$index,${waveFormNode.name},${decoupledSignalGroup.name},none,$expand"
                       )
                   }
                 case _ =>
