@@ -12,7 +12,7 @@ import scala.swing._
 import scala.swing.event._
 
 class SelectedSignalPanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, tree: Tree[GenericTreeNode])
-  extends BorderPanel {
+    extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -22,8 +22,8 @@ class SelectedSignalPanel(dataModel: DataModel, selectedSignalModel: SelectedSig
 
   def computeBounds(): Unit = {
     preferredSize = new Dimension(600,
-      TreeHelper.viewableDepthFirstIterator(tree).size *
-        DrawMetrics.WaveformVerticalSpacing)
+                                  TreeHelper.viewableDepthFirstIterator(tree).size *
+                                    DrawMetrics.WaveformVerticalSpacing)
     revalidate()
   }
 
@@ -51,17 +51,17 @@ class SelectedSignalPanel(dataModel: DataModel, selectedSignalModel: SelectedSig
   */
 //TODO: Remove this after a bit of usage of the new way, see InspectionContainer#show
 class SignalNameRenderer(dataModel: DataModel, selectedSignalModel: SelectedSignalModel)
-  extends Tree.Renderer[GenericTreeNode] {
+    extends Tree.Renderer[GenericTreeNode] {
   private var labelBaseLine = -1
   private var valueBaseLine = 0
   val SignalNameFont = new Font("SansSerif", Font.BOLD, 10)
   val ValueFont = new Font("SansSerif", Font.PLAIN, 8)
 
   override def componentFor(
-                             owner: Tree[_],
-                             value: GenericTreeNode,
-                             cellInfo: companion.CellInfo
-                           ): Component = {
+    owner:    Tree[_],
+    value:    GenericTreeNode,
+    cellInfo: companion.CellInfo
+  ): Component = {
     new SignalNamePanel(value, cellInfo.isSelected)
   }
 
@@ -123,7 +123,7 @@ class SignalNameRenderer(dataModel: DataModel, selectedSignalModel: SelectedSign
                     (pair(0).toInt, pair(1).toInt) match {
                       case (0, 0) => "Not ready"
                       case (1, 1) => "Ready"
-                      case _ => "Waiting"
+                      case _      => "Waiting"
                     }
                   } else {
                     ""

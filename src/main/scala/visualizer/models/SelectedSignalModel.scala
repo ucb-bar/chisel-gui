@@ -19,15 +19,15 @@ class SelectedSignalModel extends Publisher {
   val waveDisplaySettings: mutable.HashMap[String, WaveDisplaySetting] =
     new mutable.HashMap[String, WaveDisplaySetting]()
 
-  val RootPath: Tree.Path[GenericTreeNode] = Tree.Path.empty[GenericTreeNode]
+  val RootPath:  Tree.Path[GenericTreeNode] = Tree.Path.empty[GenericTreeNode]
   val treeModel: InternalTreeModel[GenericTreeNode] = InternalTreeModel.empty[GenericTreeNode]
 
-  var scale: Double = 2
+  var scale:             Double = 2
   var minorTickInterval: Long = 1
 
   var clkMinorTickInterval: Long = 1
-  var useClock: Boolean = false
-  var clock: Option[ClockInfo] = None
+  var useClock:             Boolean = false
+  var clock:                Option[ClockInfo] = None
 
   // initial/constructor
   setScale(10, null)
@@ -54,10 +54,10 @@ class SelectedSignalModel extends Publisher {
     publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
   }
 
-  def addNodes(addDirection: AddDirection,
+  def addNodes(addDirection:    AddDirection,
                genericTreeNode: GenericTreeNode,
-               source: Component,
-               targetPathOpt: Option[Path[GenericTreeNode]] = None): Path[GenericTreeNode] = {
+               source:          Component,
+               targetPathOpt:   Option[Path[GenericTreeNode]] = None): Path[GenericTreeNode] = {
 
     val tree = ChiselGUI.mainWindow.signalAndWavePanel.tree
 
@@ -67,9 +67,9 @@ class SelectedSignalModel extends Publisher {
       } else {
         addDirection match {
           case InsertBefore => tree.selection.paths.headOption
-          case InsertInto => tree.selection.paths.headOption
-          case InsertAfter => tree.selection.paths.lastOption
-          case _ => Some(RootPath)
+          case InsertInto   => tree.selection.paths.headOption
+          case InsertAfter  => tree.selection.paths.lastOption
+          case _            => Some(RootPath)
         }
       }
 
@@ -248,7 +248,7 @@ class SelectedSignalModel extends Publisher {
   def getMarkerAtTime(timestamp: Long): Int = {
     markers.reverse.indexWhere(timestamp >= _.timestamp) match {
       case i if i >= 0 => markers.size - 1 - i
-      case _ => 0
+      case _           => 0
     }
   }
 
@@ -349,11 +349,11 @@ object Format {
 
   def deserialize(string: String): Format = {
     string match {
-      case "BinForma" => BinFormat
-      case "HexFormat" => HexFormat
-      case "DecFormat" => DecFormat
+      case "BinForma"   => BinFormat
+      case "HexFormat"  => HexFormat
+      case "DecFormat"  => DecFormat
       case "PlotFormat" => PlotFormat
-      case _ => DecFormat
+      case _            => DecFormat
     }
   }
 }

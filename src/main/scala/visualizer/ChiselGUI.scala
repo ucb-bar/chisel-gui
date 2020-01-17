@@ -32,9 +32,9 @@ object ChiselGUI extends SwingApplication with Publisher {
   val saveFileSuffix = ".txt"
 
   var testerOpt: Option[TreadleTester] = None
-  var vcdOpt: Option[treadle.vcd.VCD] = None
+  var vcdOpt:    Option[treadle.vcd.VCD] = None
 
-  val dataModel: DataModel = new DataModel
+  val dataModel:           DataModel = new DataModel
   val signalSelectorModel: SignalSelectorModel = new SignalSelectorModel
   val selectedSignalModel: SelectedSignalModel = new SelectedSignalModel
 
@@ -44,10 +44,10 @@ object ChiselGUI extends SwingApplication with Publisher {
   var mainWindowSize = new Dimension(1000, 600)
   var startupMarkers = new mutable.ArrayBuffer[Marker]()
   var startupCursorPosition: Long = 0L
-  var startupScale: Double = 10.0
-  var startupVisibleX: Int = -1
-  var startUpColorScheme: String = "default"
-  var startupWarnings: mutable.ArrayBuffer[String] = new mutable.ArrayBuffer()
+  var startupScale:          Double = 10.0
+  var startupVisibleX:       Int = -1
+  var startUpColorScheme:    String = "default"
+  var startupWarnings:       mutable.ArrayBuffer[String] = new mutable.ArrayBuffer()
 
   override def startup(args: Array[String]): Unit = {
     val startAnnotations = shell.parse(args)
@@ -82,11 +82,9 @@ object ChiselGUI extends SwingApplication with Publisher {
         "ChiselGUI"
     }
 
-    loadSaveFileOnStartUp()
+    addDecoupledSignals()
 
-    testerOpt.foreach { tester =>
-      DecoupledHandler.lookForReadyValidBundles(tester)
-    }
+    loadSaveFileOnStartUp()
 
     mainWindow = new MainWindow(dataModel, signalSelectorModel, selectedSignalModel)
     if (mainWindow.size == new Dimension(0, 0)) mainWindow.pack()
@@ -101,6 +99,12 @@ object ChiselGUI extends SwingApplication with Publisher {
     mainWindow.title = headerBarTitle
 
     populateWaveForms()
+    dataModel.nameToSignal.values.foreach {
+      case decoupledSignalGroup: DecoupledSignalGroup =>
+        decoupledSignalGroup.updateValues()
+      case _ =>
+    }
+
     signalSelectorModel.updateTreeModel()
     mainWindow.signalSelectorPanel.updateModel()
 
@@ -126,6 +130,24 @@ object ChiselGUI extends SwingApplication with Publisher {
     mainWindow.signalSelectorPanel.tree.requestFocusInWindow()
 
     setApplicationIcon()
+  }
+
+  def addDecoupledSignals(): Unit = {
+    DecoupledHandler.signalNameToDecouple.foreach {
+      case (name, decoupledHandler) =>
+        val decoupledSignal = new DecoupledSignalGroup(
+          decoupledHandler.fullName,
+          None,
+          Some(new Waveform[BigInt](new mutable.ArrayBuffer[Transition[BigInt]]())),
+          0,
+          dataModel.nameToSignal(decoupledHandler.readyNameOpt.get).asInstanceOf[PureSignal],
+          dataModel.nameToSignal(decoupledHandler.validNameOpt.get).asInstanceOf[PureSignal],
+          decoupledHandler.bits.map { bitsName =>
+            dataModel.nameToSignal(bitsName).asInstanceOf[PureSignal]
+          }
+        )
+        dataModel.addSignal(decoupledSignal.name, decoupledSignal)
+    }
   }
 
   def seedFromVcd(vcd: treadle.vcd.VCD, stopAtTime: Long = Long.MaxValue): Unit = {
@@ -288,6 +310,8 @@ object ChiselGUI extends SwingApplication with Publisher {
           annotations
       )
       testerOpt = Some(treadleTester)
+
+      DecoupledHandler.lookForReadyValidBundles(treadleTester.engine.symbolTable.nameToSymbol.keys.toSeq)
       setupSignalsFromTreadle()
       setupClock(treadleTester)
     } else {
@@ -315,6 +339,7 @@ object ChiselGUI extends SwingApplication with Publisher {
           dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
           vcdOpt = tester.engine.vcdOption
         case _ =>
+          DecoupledHandler.lookForReadyValidBundles(vcd.wires.keys.toSeq)
           setupSignalsFromVcd(vcd)
           vcdOpt = Some(vcd)
       }

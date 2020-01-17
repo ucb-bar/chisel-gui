@@ -18,7 +18,7 @@ class SignalSelectorModel extends Publisher {
   // Directory Tree Model and Pure Signals
   ///////////////////////////////////////////////////////////////////////////
   var directoryTreeModel: InternalTreeModel[GenericTreeNode] = InternalTreeModel.empty[GenericTreeNode]
-  val RootPath: Tree.Path[GenericTreeNode] = Tree.Path.empty[GenericTreeNode]
+  val RootPath:           Tree.Path[GenericTreeNode] = Tree.Path.empty[GenericTreeNode]
 
   var dataModelFilter: SelectionModelFilter = SelectionModelFilter()
 
@@ -40,7 +40,7 @@ class SignalSelectorModel extends Publisher {
         DirectoryNodeOrdering.compare(newValue, children(mid)) match {
           case i if i > 0 => search(mid + 1, high)
           case i if i < 0 => search(low, mid - 1)
-          case _ =>
+          case _          =>
             //            throw new Exception("Duplicate node cannot be added to the directory tree model")
             dup = true
             0
@@ -116,18 +116,18 @@ object DirectoryNodeOrdering extends Ordering[GenericTreeNode] {
   * @param pattern           add a search pattern
   */
 case class SelectionModelFilter(
-                                 showTempVariables: Boolean = false,
-                                 showGenVariables: Boolean = false,
-                                 showOnlyRegisters: Boolean = false,
-                                 pattern: String = ".*"
-                               ) {
+  showTempVariables: Boolean = false,
+  showGenVariables:  Boolean = false,
+  showOnlyRegisters: Boolean = false,
+  pattern:           String = ".*"
+) {
   val patternRegex: Regex = pattern.r
 
   def allow(s: String): Boolean = {
     val isAllowed = {
       patternRegex.findFirstIn(s).isDefined &&
-        (!(s.endsWith("_T") || s.contains("_T_")) || showTempVariables) &&
-        (!(s.endsWith("_GEN") || s.contains("_GEN_")) || showGenVariables)
+      (!(s.endsWith("_T") || s.contains("_T_")) || showTempVariables) &&
+      (!(s.endsWith("_GEN") || s.contains("_GEN_")) || showGenVariables)
     }
     isAllowed
   }

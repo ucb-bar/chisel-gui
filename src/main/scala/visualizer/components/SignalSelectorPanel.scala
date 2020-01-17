@@ -21,10 +21,10 @@ import scala.swing.event._
   * @param selectedSignalModel underlying model for signals that have been selected for viewing
   */
 class SignalSelectorPanel(
-                           dataModel: DataModel,
-                           signalSelectorModel: SignalSelectorModel,
-                           selectedSignalModel: SelectedSignalModel
-                         ) extends BoxPanel(Orientation.Vertical) {
+  dataModel:           DataModel,
+  signalSelectorModel: SignalSelectorModel,
+  selectedSignalModel: SelectedSignalModel
+) extends BoxPanel(Orientation.Vertical) {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -77,8 +77,8 @@ class SignalSelectorPanel(
     */
   def addToSelectedSignalsModel(addDirection: AddDirection): Unit = {
 
-    def addPath(path: Path[GenericTreeNode],
-                addDirection: AddDirection,
+    def addPath(path:          Path[GenericTreeNode],
+                addDirection:  AddDirection,
                 targetPathOpt: Option[Path[GenericTreeNode]] = None) {
       path.last match {
         case directoryNode: DirectoryNode =>

@@ -1,4 +1,3 @@
 package visualizer.config
 
-object RunTimeConfig {
-}
+object RunTimeConfig {}

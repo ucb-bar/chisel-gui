@@ -1,7 +1,7 @@
 package visualizer.models
 
 import visualizer.ChiselGUI.dataModel
-import visualizer.{MaxTimestampChanged, ChiselGUI, Util}
+import visualizer.{ChiselGUI, MaxTimestampChanged, Util}
 
 import scala.collection.mutable
 import scala.swing.Publisher
@@ -43,6 +43,11 @@ class DataModel extends Publisher {
           case _ =>
         }
       case None =>
+    }
+    dataModel.nameToSignal.values.foreach {
+      case decoupledSignalGroup: DecoupledSignalGroup =>
+        decoupledSignalGroup.updateValues()
+      case _ =>
     }
   }
 

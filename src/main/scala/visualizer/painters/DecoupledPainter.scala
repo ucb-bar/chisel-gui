@@ -7,7 +7,7 @@ import visualizer.models._
 
 import scala.swing.Graphics2D
 
-class ReadyValidPainter(selectedSignalModel: SelectedSignalModel) extends Painter(selectedSignalModel) {
+class DecoupledPainter(selectedSignalModel: SelectedSignalModel) extends Painter(selectedSignalModel) {
   def paintWaveform(g:            Graphics2D,
                     visibleRect:  Rectangle,
                     top:          Int,
@@ -16,30 +16,25 @@ class ReadyValidPainter(selectedSignalModel: SelectedSignalModel) extends Painte
     node match {
       case waveFormNode: WaveFormNode =>
         waveFormNode.signal match {
-          case combinedSignal: CombinedSignal =>
+          case decoupledSignalGroup: DecoupledSignalGroup =>
             val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
 
             try {
-              combinedSignal.waveform.get
+              decoupledSignalGroup.waveform.get
                 .findTransition(startTimestamp)
                 .sliding(2)
                 .takeWhile { transitionPair =>
                   selectedSignalModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
                 }
-                .foreach { transitionPair =>
-                  // length could be 1 if findTransition(startTimestamp) has length 1
-                  if (transitionPair.length == 2) {
-                    val left:  Int = selectedSignalModel.timestampToXCoordinate(transitionPair.head.timestamp)
-                    val right: Int = selectedSignalModel.timestampToXCoordinate(transitionPair.last.timestamp)
+                .foreach {
+                  case t1 :: t2 :: Nil =>
+                    // length could be 1 if findTransition(startTimestamp) has length 1
+                    val left:  Int = selectedSignalModel.timestampToXCoordinate(t1.timestamp)
+                    val right: Int = selectedSignalModel.timestampToXCoordinate(t2.timestamp)
 
-                    assert(transitionPair.head.value.length == 2)
-                    drawSegment(g,
-                                left,
-                                right,
-                                top,
-                                transitionPair.head.value(0) == 1,
-                                transitionPair.head.value(1) == 1)
-                  }
+                    drawSegment(g, left, right, top, t1.value)
+                  case t1 :: Nil =>
+                  case _         =>
                 }
             } catch {
               // If there's only 1 transition in the iterator returned by findTransition,
@@ -50,18 +45,21 @@ class ReadyValidPainter(selectedSignalModel: SelectedSignalModel) extends Painte
     }
   }
 
-  def drawSegment(g: Graphics2D, left: Int, right: Int, top: Int, ready: Boolean, valid: Boolean): Unit = {
-    (ready, valid) match {
-      case (true, true) =>
+  def drawSegment(g: Graphics2D, left: Int, right: Int, top: Int, state: BigInt): Unit = {
+    state match {
+      case DecoupledSignalGroup.Fired =>
         g.setColor(FireColor)
         g.fillPolygon(Painter.hexagon(left, right, top))
-      case (true, false) =>
+      case DecoupledSignalGroup.Ready =>
         g.setColor(ReadySetColor)
         g.fillPolygon(Painter.hexagon(left, right, top))
-      case (false, true) =>
+      case DecoupledSignalGroup.Valid =>
         g.setColor(ValidSetColor)
         g.fillPolygon(Painter.hexagon(left, right, top))
-      case (false, false) =>
+      case DecoupledSignalGroup.Busy =>
+        g.setColor(Color.gray)
+        g.drawLine(left, top + WaveformHeight / 2, right, top + WaveformHeight / 2)
+      case _ =>
         g.setColor(Color.gray)
         g.drawLine(left, top + WaveformHeight / 2, right, top + WaveformHeight / 2)
     }

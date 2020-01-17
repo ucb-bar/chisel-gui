@@ -6,19 +6,20 @@ import scalaswingcontrib.tree.Tree
 import visualizer._
 import visualizer.config.{ColorTable, DrawMetrics}
 import visualizer.models._
-import visualizer.painters.{MultiBitPainter, ReadyValidPainter, SingleBitPainter}
+import visualizer.painters.{DecoupledPainter, MultiBitPainter, ReadyValidPainter, SingleBitPainter}
 
 import scala.swing._
 import scala.swing.event._
 
 class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, tree: Tree[GenericTreeNode])
-  extends BorderPanel {
+    extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
   private val multiBitPainter = new MultiBitPainter(selectedSignalModel)
   private val singleBitPainter = new SingleBitPainter(selectedSignalModel)
+  private val decoupledPainter = new DecoupledPainter(selectedSignalModel)
   private val readyValidPainter = new ReadyValidPainter(selectedSignalModel)
 
   override def paintComponent(g: Graphics2D): Unit = {
@@ -49,6 +50,8 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
                 else
                   multiBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
             }
+          case _: DecoupledSignalGroup =>
+            decoupledPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
           case _: CombinedSignal =>
             readyValidPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
         }
@@ -78,8 +81,8 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
       val x = selectedSignalModel.timestampToXCoordinate(marker.timestamp)
       g.drawLine(x, 0, x, visibleRect.y + visibleRect.height)
       g.drawString(marker.description,
-        x + DrawMetrics.MarkerNameXOffset,
-        visibleRect.y + visibleRect.height + DrawMetrics.MarkerNameYOffset)
+                   x + DrawMetrics.MarkerNameXOffset,
+                   visibleRect.y + visibleRect.height + DrawMetrics.MarkerNameYOffset)
 
     }
   }
@@ -89,7 +92,7 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
     val endTime = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x + visibleRect.width)
     val clockPeriod: Long = ChiselGUI.testerOpt match {
       case Some(tester) => tester.clockInfoList.head.period * 10
-      case _ => 10L
+      case _            => 10L
     }
 
     val startGridLineX = (startTime / clockPeriod) * clockPeriod

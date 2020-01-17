@@ -121,29 +121,35 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
         case signalTreeNode: SignalTreeNode =>
           dataModel.nameToSignal.get(signalTreeNode.name) match {
             case Some(signal) if signal.waveform.isDefined =>
-              val value = signal.waveform.get.findTransition(selectedSignalModel.cursorPosition).next().value
-              val txt = signal match {
-                case pureSignal: PureSignal if value.asInstanceOf[BigInt] != null =>
-                  selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
-                    case Some(setting) =>
-                      setting.dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
-                    case _ =>
-                      value.asInstanceOf[BigInt]
-                  }
-                case _: CombinedSignal =>
-                  val pair = value.asInstanceOf[Array[BigInt]]
-                  if (pair != null) {
-                    (pair(0).toInt, pair(1).toInt) match {
-                      case (0, 0) => ":Not ready"
-                      case (1, 1) => ":Ready"
-                      case _ => ":Waiting"
+              val iterator = signal.waveform.get.findTransition(selectedSignalModel.cursorPosition)
+              if (iterator.hasNext) {
+                val value = iterator.next().value
+
+                val txt = signal match {
+                  case pureSignal: PureSignal if value.asInstanceOf[BigInt] != null =>
+                    selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
+                      case Some(setting) =>
+                        setting.dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
+                      case _ =>
+                        value.asInstanceOf[BigInt]
                     }
-                  } else {
-                    ""
-                  }
-                case _ => ""
+                  case _: CombinedSignal =>
+                    val pair = value.asInstanceOf[Array[BigInt]]
+                    if (pair != null) {
+                      (pair(0).toInt, pair(1).toInt) match {
+                        case (0, 0) => ":Not ready"
+                        case (1, 1) => ":Ready"
+                        case _      => ":Waiting"
+                      }
+                    } else {
+                      ""
+                    }
+                  case _ => ""
+                }
+                s"${hasFileInfoGlyph(signal)}${a.name} = $txt"
+              } else {
+                a.name
               }
-              s"${hasFileInfoGlyph(signal)}${a.name} = $txt"
             case _ =>
               a.name
           }

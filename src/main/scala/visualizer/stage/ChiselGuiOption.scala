@@ -56,3 +56,12 @@ object PrimaryClockName extends HasShellOptions {
 
 case class PrimaryClockName(primaryClockName: String) extends NoTargetAnnotation with ChiselGuiOption
 
+case object AggegrateReadyValid extends HasShellOptions with NoTargetAnnotation with ChiselGuiOption {
+  override def options: Seq[ShellOption[_]] = Seq(
+    new ShellOption[String](
+      longOption = "dont-ready-valid",
+      toAnnotationSeq = a => Seq(AggegrateReadyValid),
+      helpText = "defeats default aggregation of decoupled bundles",
+    )
+  )
+}
