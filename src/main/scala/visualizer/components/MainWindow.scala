@@ -212,6 +212,18 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
                       writer.println(s"signal_node,$depth,$index,${waveFormNode.name},${pureSignal.name},$dataFormat")
                     case _ =>
                   }
+                case decoupledSignalGroup: DecoupledSignalGroup =>
+                  selectedSignalModel.waveDisplaySettings.get(decoupledSignalGroup.name) match {
+                    case Some(waveDisplaySetting: WaveDisplaySetting) =>
+                      val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
+                      writer.println(
+                        s"decoupled_node,$depth,$index,${waveFormNode.name},${decoupledSignalGroup.name},$dataFormat"
+                      )
+                    case _ =>
+                      writer.println(
+                        s"decoupled_node,$depth,$index,${waveFormNode.name},${decoupledSignalGroup.name},none"
+                      )
+                  }
                 case _ =>
               }
             case _ =>

@@ -242,6 +242,18 @@ object ChiselGUI extends SwingApplication with Publisher {
                 case _ =>
               }
 
+            case "decoupled_node" :: depthString :: indexString :: nodeName :: signalName :: formatString :: Nil =>
+              dataModel.nameToSignal.get(signalName) match {
+                case Some(decoupledSignalGroup: DecoupledSignalGroup) =>
+                  val node = WaveFormNode(nodeName, decoupledSignalGroup)
+                  selectedSignalModel.waveDisplaySettings(signalName) = {
+                    WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
+                  }
+                  addNode(depthString, indexString, node)
+                case Some(_: CombinedSignal) =>
+                case _ =>
+              }
+
             case "node" :: depthString :: indexString :: nodeName :: Nil =>
               val node = DirectoryNode(nodeName)
               addNode(depthString, indexString, node)
