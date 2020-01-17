@@ -91,7 +91,6 @@ class SignalSelectorPanel(
               addPath(child_path, InsertInto, Some(lastTarget))
             }
           }
-        //          selectedSignalModel.addNodes(addDirection, directoryNode, source = this, targetPathOpt)
         case otherNode =>
           if (tree.isExpanded(path)) {
             selectedSignalModel.addNodes(addDirection, otherNode, source = this, targetPathOpt)

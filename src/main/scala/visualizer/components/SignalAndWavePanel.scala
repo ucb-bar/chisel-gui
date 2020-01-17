@@ -133,13 +133,20 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
                       case _ =>
                         value.asInstanceOf[BigInt]
                     }
+                  case _: DecoupledSignalGroup =>
+                    value match {
+                      case DecoupledSignalGroup.Fired => "Fired"
+                      case DecoupledSignalGroup.Ready => "Ready"
+                      case DecoupledSignalGroup.Valid => "Wait"
+                      case DecoupledSignalGroup.Busy => "Busy"
+                    }
                   case _: CombinedSignal =>
                     val pair = value.asInstanceOf[Array[BigInt]]
                     if (pair != null) {
                       (pair(0).toInt, pair(1).toInt) match {
                         case (0, 0) => ":Not ready"
                         case (1, 1) => ":Ready"
-                        case _      => ":Waiting"
+                        case _ => ":Waiting"
                       }
                     } else {
                       ""
