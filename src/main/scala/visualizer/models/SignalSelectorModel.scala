@@ -71,6 +71,15 @@ class SignalSelectorModel extends Publisher {
       }
       val node = WaveFormNode(signalName, signal)
       insertUnderSorted(parentPath, node)
+
+      node.signal match {
+        case decoupledSignalGroup: DecoupledSignalGroup =>
+          val decoupledPath = parentPath ++ Seq(node)
+          decoupledSignalGroup.bitsSignals.foreach { bitSignal =>
+            insertUnderSorted(decoupledPath, WaveFormNode(bitSignal.name, bitSignal))
+          }
+        case _ =>
+      }
     }
   }
 
@@ -116,18 +125,21 @@ object DirectoryNodeOrdering extends Ordering[GenericTreeNode] {
   * @param pattern           add a search pattern
   */
 case class SelectionModelFilter(
-  showTempVariables: Boolean = false,
-  showGenVariables:  Boolean = false,
-  showOnlyRegisters: Boolean = false,
-  pattern:           String = ".*"
-) {
+                                 showTempVariables: Boolean = false,
+                                 showGenVariables: Boolean = false,
+                                 showOnlyRegisters: Boolean = false,
+                                 rollupDecoupled: Boolean = false,
+                                 hiddenDecoupled: Seq[String] = Seq.empty,
+                                 pattern: String = ".*"
+                               ) {
   val patternRegex: Regex = pattern.r
 
   def allow(s: String): Boolean = {
     val isAllowed = {
       patternRegex.findFirstIn(s).isDefined &&
-      (!(s.endsWith("_T") || s.contains("_T_")) || showTempVariables) &&
-      (!(s.endsWith("_GEN") || s.contains("_GEN_")) || showGenVariables)
+        (!(s.endsWith("_T") || s.contains("_T_")) || showTempVariables) &&
+        (!(s.endsWith("_GEN") || s.contains("_GEN_")) || showGenVariables) &&
+        (!s.endsWith("DECOUPLED"))
     }
     isAllowed
   }

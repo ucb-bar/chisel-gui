@@ -93,7 +93,15 @@ class SignalSelectorPanel(
           }
         //          selectedSignalModel.addNodes(addDirection, directoryNode, source = this, targetPathOpt)
         case otherNode =>
-          selectedSignalModel.addNodes(addDirection, otherNode, source = this, targetPathOpt)
+          if (tree.isExpanded(path)) {
+            selectedSignalModel.addNodes(addDirection, otherNode, source = this, targetPathOpt)
+          } else {
+            val lastTarget = selectedSignalModel.addNodes(addDirection, otherNode, source = this, targetPathOpt)
+            val childPaths = tree.model.getChildPathsOf(path).toArray
+            childPaths.foreach { child_path =>
+              addPath(child_path, InsertInto, Some(lastTarget))
+            }
+          }
       }
     }
 
