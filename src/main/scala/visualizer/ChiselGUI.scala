@@ -3,6 +3,7 @@ package visualizer
 import java.awt.TrayIcon
 import java.io.File
 
+import com.apple.eawt.Application
 import firrtl.ir.ClockType
 import firrtl.options.{ProgramArgsAnnotation, Shell}
 import firrtl.stage.FirrtlSourceAnnotation
@@ -24,8 +25,6 @@ import scala.swing.{Dialog, Dimension, Publisher, SwingApplication}
 
 object ChiselGUI extends SwingApplication with Publisher {
   System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
-
-  setApplicationIcon()
 
   val shell: Shell = new Shell("chisel-gui") with ChiselGuiCli
 
@@ -144,24 +143,30 @@ object ChiselGUI extends SwingApplication with Publisher {
     mainWindow.signalSelectorPanel.tree.requestFocus()
     mainWindow.signalSelectorPanel.tree.requestFocusInWindow()
 
-    setApplicationIcon()
+    setDockIcon()
   }
 
   def addDecoupledSignals(): Unit = {
     DecoupledHandler.signalNameToDecouple.foreach {
       case (name, decoupledHandler) =>
-        val decoupledSignal = new DecoupledSignalGroup(
-          decoupledHandler.fullName,
-          None,
-          Some(new Waveform[BigInt](new mutable.ArrayBuffer[Transition[BigInt]]())),
-          0,
-          dataModel.nameToSignal(decoupledHandler.readyNameOpt.get).asInstanceOf[PureSignal],
-          dataModel.nameToSignal(decoupledHandler.validNameOpt.get).asInstanceOf[PureSignal],
-          decoupledHandler.bits.map { bitsName =>
-            dataModel.nameToSignal(bitsName).asInstanceOf[PureSignal]
-          }
-        )
-        dataModel.addSignal(decoupledSignal.name, decoupledSignal)
+        try {
+          val decoupledSignal = new DecoupledSignalGroup(
+            decoupledHandler.fullName,
+            None,
+            Some(new Waveform[BigInt](new mutable.ArrayBuffer[Transition[BigInt]]())),
+            0,
+            dataModel.nameToSignal(decoupledHandler.readyNameOpt.get).asInstanceOf[PureSignal],
+            dataModel.nameToSignal(decoupledHandler.validNameOpt.get).asInstanceOf[PureSignal],
+            decoupledHandler.bits.map { bitsName =>
+              dataModel.nameToSignal(bitsName).asInstanceOf[PureSignal]
+            }
+          )
+
+          dataModel.addSignal(decoupledSignal.name, decoupledSignal)
+        } catch {
+          case t: Throwable =>
+            println(s"Unable to add $decoupledHandler")
+        }
     }
   }
 
@@ -500,18 +505,30 @@ object ChiselGUI extends SwingApplication with Publisher {
     }
   }
 
-  /** Try to change the system icon for the application
-    * This is a noble effort but does not seem to work
-    * no complaints from system but no change either
+  /** This changes the dock and the command-tab and has been tested on osx
     */
-  def setApplicationIcon(): Unit = {
+  //TODO: Test this on other systems
+  def setDockIcon(): Unit = {
+    try {
+      val application = Application.getApplication
+      val r = ImageIO.read(getClass.getResource("/images/chisel-gui-icon.png"))
+      application.setDockIconImage(r)
+    } catch {
+      case t: Throwable =>
+        println(t.getMessage)
+    }
+  }
+
+  /** This adds an icon to the top menu bar tray on osx, no real reason to use it at this time
+    */
+  def addTrayIcon(): Unit = {
     import java.awt.SystemTray
 
     if (!SystemTray.isSupported) {
       println("SystemTray is not supported")
     } else {
       println("SystemTray IS supported")
-      val r = ImageIO.read(getClass.getResource("/images/bulb.gif"))
+      val r = ImageIO.read(getClass.getResource("/images/chisel-gui-icon.png"))
       val tray = SystemTray.getSystemTray
 
       val trayIcon = new TrayIcon(r)

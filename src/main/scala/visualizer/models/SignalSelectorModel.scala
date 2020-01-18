@@ -59,7 +59,7 @@ class SignalSelectorModel extends Publisher {
     val signalName = fullPath.last
     val modules = fullPath.init
 
-    if (dataModelFilter.allow(fullPath)) {
+    if (dataModelFilter.allow(fullName)) {
       val parentPath = modules.foldLeft(RootPath) { (pathAccumulator, module) =>
         val children = directoryTreeModel.getChildrenOf(pathAccumulator)
         val dirNode = children.find(child => child.name == module).getOrElse {
