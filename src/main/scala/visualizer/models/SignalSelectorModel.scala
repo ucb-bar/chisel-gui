@@ -18,7 +18,7 @@ class SignalSelectorModel extends Publisher {
   // Directory Tree Model and Pure Signals
   ///////////////////////////////////////////////////////////////////////////
   var directoryTreeModel: InternalTreeModel[GenericTreeNode] = InternalTreeModel.empty[GenericTreeNode]
-  val RootPath: Tree.Path[GenericTreeNode] = Tree.Path.empty[GenericTreeNode]
+  val RootPath:           Tree.Path[GenericTreeNode] = Tree.Path.empty[GenericTreeNode]
 
   var dataModelFilter: SelectionModelFilter = SelectionModelFilter()
 
@@ -40,7 +40,7 @@ class SignalSelectorModel extends Publisher {
         DirectoryNodeOrdering.compare(newValue, children(mid)) match {
           case i if i > 0 => search(mid + 1, high)
           case i if i < 0 => search(low, mid - 1)
-          case _ =>
+          case _          =>
             //            throw new Exception("Duplicate node cannot be added to the directory tree model")
             dup = true
             0
@@ -71,7 +71,20 @@ class SignalSelectorModel extends Publisher {
       }
       val node = WaveFormNode(signalName, signal)
       insertUnderSorted(parentPath, node)
+
+      node.signal match {
+        case decoupledSignalGroup: DecoupledSignalGroup =>
+          val decoupledPath = parentPath ++ Seq(node)
+          decoupledSignalGroup.bitsSignals.foreach { bitSignal =>
+            insertUnderSorted(decoupledPath, WaveFormNode(bitSignal.name, bitSignal))
+          }
+        case _ =>
+      }
     }
+  }
+
+  def setRollupDecoupled(value: Boolean): Unit = {
+    dataModelFilter = dataModelFilter.copy(rollupDecoupled = value)
   }
 
   def updateTreeModel(): Unit = {
@@ -113,21 +126,32 @@ object DirectoryNodeOrdering extends Ordering[GenericTreeNode] {
   * @param showTempVariables show _T temp wires
   * @param showGenVariables  show _GEN generated wires
   * @param showOnlyRegisters only show registers
+  * @param rollupDecoupled   don't show field as is fields that are part of decoupleds
+  * @param hiddenDecoupled   list of fields not to show when rolling up
   * @param pattern           add a search pattern
   */
 case class SelectionModelFilter(
                                  showTempVariables: Boolean = false,
                                  showGenVariables: Boolean = false,
                                  showOnlyRegisters: Boolean = false,
+                                 rollupDecoupled: Boolean = true,
+                                 hiddenDecoupled: Seq[String] = Seq.empty,
                                  pattern: String = ".*"
                                ) {
   val patternRegex: Regex = pattern.r
 
   def allow(s: String): Boolean = {
+    val isHiddenDecoupledSignal = if (rollupDecoupled) {
+      hiddenDecoupled.contains(s)
+    } else {
+      s.endsWith("Decoupled")
+    }
+
     val isAllowed = {
       patternRegex.findFirstIn(s).isDefined &&
         (!(s.endsWith("_T") || s.contains("_T_")) || showTempVariables) &&
-        (!(s.endsWith("_GEN") || s.contains("_GEN_")) || showGenVariables)
+        (!(s.endsWith("_GEN") || s.contains("_GEN_")) || showGenVariables) &&
+        (!isHiddenDecoupledSignal)
     }
     isAllowed
   }

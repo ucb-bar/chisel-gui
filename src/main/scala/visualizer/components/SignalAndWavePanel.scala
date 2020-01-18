@@ -91,9 +91,6 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
   val tree: Tree[GenericTreeNode] = new Tree[GenericTreeNode] {
 
     model = selectedSignalModel.treeModel
-    //TODO: Remove thie following commented line at some point
-    //      the old way was more awkward and relied on us to do more tree rendereing.
-    //    renderer = new SignalNameRenderer(dataModel, selectedSignalModel)  // THIS THE OLD WAY
     renderer = Tree.Renderer(show)
     showsRootHandles = true
 
@@ -121,29 +118,42 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
         case signalTreeNode: SignalTreeNode =>
           dataModel.nameToSignal.get(signalTreeNode.name) match {
             case Some(signal) if signal.waveform.isDefined =>
-              val value = signal.waveform.get.findTransition(selectedSignalModel.cursorPosition).next().value
-              val txt = signal match {
-                case pureSignal: PureSignal if value.asInstanceOf[BigInt] != null =>
-                  selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
-                    case Some(setting) =>
-                      setting.dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
-                    case _ =>
-                      value.asInstanceOf[BigInt]
-                  }
-                case _: CombinedSignal =>
-                  val pair = value.asInstanceOf[Array[BigInt]]
-                  if (pair != null) {
-                    (pair(0).toInt, pair(1).toInt) match {
-                      case (0, 0) => ":Not ready"
-                      case (1, 1) => ":Ready"
-                      case _ => ":Waiting"
+              val iterator = signal.waveform.get.findTransition(selectedSignalModel.cursorPosition)
+              if (iterator.hasNext) {
+                val value = iterator.next().value
+
+                val txt = signal match {
+                  case pureSignal: PureSignal if value.asInstanceOf[BigInt] != null =>
+                    selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
+                      case Some(setting) =>
+                        setting.dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
+                      case _ =>
+                        value.asInstanceOf[BigInt]
                     }
-                  } else {
-                    ""
-                  }
-                case _ => ""
+                  case _: DecoupledSignalGroup =>
+                    value match {
+                      case DecoupledSignalGroup.Fired => "Fired"
+                      case DecoupledSignalGroup.Ready => "Ready"
+                      case DecoupledSignalGroup.Valid => "Wait"
+                      case DecoupledSignalGroup.Busy => "Busy"
+                    }
+                  case _: CombinedSignal =>
+                    val pair = value.asInstanceOf[Array[BigInt]]
+                    if (pair != null) {
+                      (pair(0).toInt, pair(1).toInt) match {
+                        case (0, 0) => ":Not ready"
+                        case (1, 1) => ":Ready"
+                        case _ => ":Waiting"
+                      }
+                    } else {
+                      ""
+                    }
+                  case _ => ""
+                }
+                s"${hasFileInfoGlyph(signal)}${a.name} = $txt"
+              } else {
+                a.name
               }
-              s"${hasFileInfoGlyph(signal)}${a.name} = $txt"
             case _ =>
               a.name
           }
@@ -189,15 +199,6 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
       if (SwingUtilities.isRightMouseButton(e.peer)) {
         println("It was a right click")
         if (isPointInNode(e.point)) {
-          //          val row = getClosestRowForLocation(e.point.x, e.point.y)
-          //
-          //          if (!selection.rows.contains(row)) {
-          //            // Right clicked in a node that isn't selected
-          //            // Then select only the node that was right clicked
-          //            selectRows(getClosestRowForLocation(e.point.x, e.point.y))
-          //          }
-          //          repaint()
-
           val path = tree.peer.getClosestPathForLocation(e.point.x, e.point.y)
           val peerNode = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
           val node = peerNode.getUserObject.asInstanceOf[GenericTreeNode]

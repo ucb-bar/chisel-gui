@@ -12,7 +12,7 @@ class DecoupledHandlerSpec extends FreeSpec with Matchers {
 
     val t = treadle.TreadleTester(Seq(FirrtlSourceAnnotation(f)))
 
-    DecoupledHandler.lookForReadyValidBundles(t)
+    DecoupledHandler.lookForReadyValidBundles(t.engine.symbolTable.keys.toSeq)
 
     DecoupledHandler.signalNameToDecouple.size should be(2)
   }

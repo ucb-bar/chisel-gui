@@ -132,10 +132,19 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
           signalAndWavePanel.updateWaveView()
         }
       }
+      contents += new MenuItem("") {
+        action = Action("Toggle Aggregating decoupled bundles") {
+          ChiselGUI.signalSelectorModel.setRollupDecoupled(
+            !ChiselGUI.signalSelectorModel.dataModelFilter.rollupDecoupled
+          )
+          ChiselGUI.signalSelectorModel.updateTreeModel()
+          ChiselGUI.mainWindow.signalSelectorPanel.tree.model = ChiselGUI.signalSelectorModel.directoryTreeModel
+        }
+      }
     }
     contents += new Menu("Help") {
       contents += new MenuItem(Action("Show Version") {
-        Dialog.showMessage(this, "Version 0.1 01/12/2020")
+        Dialog.showMessage(this, "Version 0.4 01/12/2020")
       })
     }
   }
@@ -199,18 +208,36 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
           val pathString = path.map { node =>
             node.name
           }.mkString(",")
+
+          val expand = if (signalAndWavePanel.tree.isExpanded(path)) "expand" else "close"
+
           val node = path.last
           node match {
             case directoryNode: DirectoryNode =>
-              writer.println(s"node,$depth,$index,${directoryNode.name}")
+              writer.println(s"node,$depth,$index,${directoryNode.name},$expand")
             case waveFormNode: WaveFormNode =>
               waveFormNode.signal match {
                 case pureSignal: PureSignal =>
                   selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
                     case Some(waveDisplaySetting: WaveDisplaySetting) =>
                       val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
-                      writer.println(s"signal_node,$depth,$index,${waveFormNode.name},${pureSignal.name},$dataFormat")
+                      writer.println(
+                        s"signal_node,$depth,$index,${waveFormNode.name},${pureSignal.name},$dataFormat,$expand"
+                      )
                     case _ =>
+                  }
+                case decoupledSignalGroup: DecoupledSignalGroup =>
+                  selectedSignalModel.waveDisplaySettings.get(decoupledSignalGroup.name) match {
+                    case Some(waveDisplaySetting: WaveDisplaySetting) =>
+                      val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
+                      writer.println(
+                        s"decoupled_node,$depth,$index,${waveFormNode.name}," +
+                          s"${decoupledSignalGroup.name},$dataFormat,$expand"
+                      )
+                    case _ =>
+                      writer.println(
+                        s"decoupled_node,$depth,$index,${waveFormNode.name},${decoupledSignalGroup.name},none,$expand"
+                      )
                   }
                 case _ =>
               }
@@ -233,6 +260,8 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     val visibleRect = signalAndWavePanel.wavePanel.peer.getVisibleRect
     writer.println(s"scale-and-window,${selectedSignalModel.scale},${visibleRect.x}")
+
+    writer.println(s"aggregate_decoupled,${selectionModel.dataModelFilter.rollupDecoupled.toString}")
 
     writer.close()
   }
@@ -269,7 +298,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
       case e: DependencyComponentRequested =>
         showDependenciesPanel.textComponent.text = ChiselGUI.testerOpt match {
           case Some(t) => t.dependencyInfo(e.pureSignalName)
-          case None => ""
+          case None    => ""
         }
       case e: CursorSet =>
         setMarkerLabel(selectedSignalModel.cursorPosition)

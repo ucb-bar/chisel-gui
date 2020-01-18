@@ -4,9 +4,7 @@ package visualizer
 
 import java.io.File
 
-class SourceFinder(paths: Seq[File]) {
-
-}
+class SourceFinder(paths: Seq[File]) {}
 
 object SourceFinder {
   def walk(f: File): Seq[File] = {
@@ -32,6 +30,8 @@ object SourceFinder {
       walk(f)
     }
 
-    scalaFiles.foreach { f => println(f.getName -> f.getAbsolutePath) }
+    scalaFiles.foreach { f =>
+      println(f.getName -> f.getAbsolutePath)
+    }
   }
 }

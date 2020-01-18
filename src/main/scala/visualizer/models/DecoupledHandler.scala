@@ -7,16 +7,22 @@ import treadle.executable.Symbol
 
 import scala.collection.mutable
 
+/** This builds a global list of groups of signal names that seem to be part
+  * of a DecoupledBundle
+  *
+  */
 object DecoupledHandler {
   val ReadyName = "_ready"
   val ValidName = "_valid"
   val BitsName = "_bits_"
 
-  case class Updater(pattern: String, f: (DecoupledHandler, Symbol) => Unit)
+  val decoupledNames = new mutable.HashSet[String]
+
+  case class Updater(pattern: String, f: (DecoupledHandler, String) => Unit)
 
   val updaters = Seq(
-    Updater(ReadyName, (d, s) => d.readySymbolOpt = Some(s)),
-    Updater(ValidName, (d, s) => d.validSymbolOpt = Some(s)),
+    Updater(ReadyName, (d, s) => d.readyNameOpt = Some(s)),
+    Updater(ValidName, (d, s) => d.validNameOpt = Some(s)),
     Updater(BitsName, (d, s) => d.bits += s)
   )
 
@@ -33,20 +39,17 @@ object DecoupledHandler {
     s.take(index)
   }
 
-  def lookForReadyValidBundles(tester: TreadleTester): Unit = {
-    val engine = tester.engine
-    val symbolTable = engine.symbolTable
-    symbolTable.nameToSymbol.keys.toSeq.sorted.foreach { symbolName =>
+  def lookForReadyValidBundles(names: Seq[String]): Unit = {
+
+    names.sorted.foreach { symbolName =>
       for (updater <- updaters) {
         val index = symbolName.indexOf(updater.pattern)
         if (index > 0) {
           val prefix = symbolName.take(index)
 
           val decoupledHandler = signalNameToDecouple.getOrElseUpdate(prefix, apply(prefix))
-          updater.f(
-            decoupledHandler,
-            symbolTable(symbolName)
-          )
+          updater.f(decoupledHandler, symbolName)
+          decoupledNames += symbolName
         }
       }
     }
@@ -58,7 +61,13 @@ object DecoupledHandler {
 }
 
 case class DecoupledHandler(indexId: Long, prefix: String) {
-  var readySymbolOpt: Option[Symbol] = None
-  var validSymbolOpt: Option[Symbol] = None
-  val bits: mutable.ArrayBuffer[Symbol] = new mutable.ArrayBuffer()
+  var readyNameOpt: Option[String] = None
+  var validNameOpt: Option[String] = None
+  val bits: mutable.ArrayBuffer[String] = new mutable.ArrayBuffer()
+
+  def fullName: String = s"${prefix}Decoupled"
+
+  def getChildNames: Seq[String] = {
+    bits ++ readyNameOpt ++ validNameOpt
+  }
 }

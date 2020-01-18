@@ -1,7 +1,7 @@
 package visualizer.components
 
 import treadle.executable.StopException
-import visualizer.{PureSignalsChanged, ChiselGUI}
+import visualizer.{ChiselGUI, PureSignalsChanged}
 import visualizer.models.{DataModel, SelectedSignalModel}
 
 import scala.swing._

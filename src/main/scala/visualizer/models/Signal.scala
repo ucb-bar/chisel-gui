@@ -4,6 +4,7 @@ import firrtl.ir.SIntType
 import treadle.executable.{SignedInt, Symbol}
 import treadle.{extremaOfSIntOfWidth, extremaOfUIntOfWidth}
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 ///////////////////////////////////////////////////////////////////////////
@@ -87,12 +88,12 @@ abstract class Signal[T] {
   * @param sortGroup ordering of this against others, currently not supported
   * @param width     bitwidth of signal, could come from treadle or vcd
   */
-class PureSignal(var name: String,
+class PureSignal(var name:      String,
                  var symbolOpt: Option[Symbol],
-                 var waveform: Option[Waveform[BigInt]],
+                 var waveform:  Option[Waveform[BigInt]],
                  val sortGroup: Int,
-                 width: Int = 1)
-  extends Signal[BigInt] {
+                 width:         Int = 1)
+    extends Signal[BigInt] {
   //
   // This block is to help with showing signal as xy plot
   //
@@ -109,17 +110,90 @@ class PureSignal(var name: String,
   }
 }
 
-class DecoupledSignal(
-                       var name: String,
-                       var symbolOpt: Option[Symbol],
-                       var waveform: Option[Waveform[BigInt]],
-                       val sortGroup: Int // (IOs, registers, other, Ts and Gens)
-                     ) extends Signal[BigInt]
+/** Aggregates the read and valid signals and the wires under bits
+  *
+  * @param name       Name of this group
+  * @param symbolOpt  //TODO: Does this need to be present
+  * @param waveform   //TODO: Do I need this?
+  * @param sortGroup  //TODO: Unused, should it be resuscitated
+  */
+class DecoupledSignalGroup(
+  var name:        String,
+  var symbolOpt:   Option[Symbol],
+  var waveform:    Option[Waveform[BigInt]],
+  val sortGroup:   Int, // (IOs, registers, other, Ts and Gens)
+  val readySignal: PureSignal,
+  val validSignal: PureSignal,
+  val bitsSignals: Seq[PureSignal]
+) extends Signal[BigInt] {
+
+  def updateValues(): Unit = {
+    val combinedTransitions =
+      DecoupledSignalGroup.combineReadyValid(readySignal.waveform.get.transitions, validSignal.waveform.get.transitions)
+
+    waveform match {
+      case Some(w) =>
+        w.addNewValues(combinedTransitions)
+      case None =>
+        waveform = Some(new Waveform(combinedTransitions))
+    }
+  }
+}
+
+object DecoupledSignalGroup {
+  val Fired: BigInt = BigInt(3)
+  val Ready: BigInt = BigInt(2)
+  val Valid: BigInt = BigInt(1)
+  val Busy:  BigInt = BigInt(0)
+
+  def combineReadyValid(a: Seq[Transition[BigInt]], b: Seq[Transition[BigInt]]) = {
+    def combinedValue(value1: BigInt, value2: BigInt): BigInt = {
+      (value1 > 0, value2 > 0) match {
+        case (true, true)   => Fired
+        case (true, false)  => Ready
+        case (false, true)  => Valid
+        case (false, false) => Busy
+      }
+    }
+
+    val transitions = new mutable.ArrayBuffer[Transition[BigInt]]
+
+    var index1 = 0
+    var index2 = 0
+    var currentT1: Transition[BigInt] = a.headOption.getOrElse(Transition(0L, 0))
+    var currentT2: Transition[BigInt] = b.headOption.getOrElse(Transition(0L, 0))
+    var lastT1:    Transition[BigInt] = currentT1
+    var lastT2:    Transition[BigInt] = currentT2
+
+    while (index1 < a.length || index2 < b.length) {
+      if (currentT1.timestamp == currentT2.timestamp) {
+        transitions += Transition(currentT1.timestamp, combinedValue(currentT1.value, currentT2.value))
+        index1 += 1
+        lastT1 = currentT1
+        currentT1 = if (index1 < a.length) a(index1) else Transition(Long.MaxValue, currentT1.value)
+        index2 += 1
+        lastT2 = currentT2
+        currentT2 = if (index2 < b.length) b(index2) else Transition(Long.MaxValue, currentT2.value)
+      } else if (currentT1.timestamp < currentT2.timestamp) {
+        transitions += Transition(currentT1.timestamp, combinedValue(currentT1.value, lastT2.value))
+        index1 += 1
+        lastT1 = currentT1
+        currentT1 = if (index1 < a.length) a(index1) else Transition(Long.MaxValue, currentT1.value)
+      } else {
+        transitions += Transition(currentT2.timestamp, combinedValue(lastT1.value, currentT2.value))
+        index2 += 1
+        lastT2 = currentT2
+        currentT2 = if (index2 < b.length) b(index2) else Transition(Long.MaxValue, currentT2.value)
+      }
+    }
+    transitions
+  }
+}
 
 class CombinedSignal(
-                      val pureSignals: Array[PureSignal],
-                      var waveform: Option[Waveform[Array[BigInt]]]
-                    ) extends Signal[Array[BigInt]]
+  val pureSignals: Array[PureSignal],
+  var waveform:    Option[Waveform[Array[BigInt]]]
+) extends Signal[Array[BigInt]]
 
 ///////////////////////////////////////////////////////////////////////////
 // Ready Valid Combiner

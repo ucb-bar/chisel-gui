@@ -14,8 +14,8 @@ import scala.collection.mutable.ArrayBuffer
 class TreeTransferHandler(selectedSignalModel: SelectedSignalModel) extends TransferHandler {
   val mimeType: String = DataFlavor.javaJVMLocalObjectMimeType + ";class=\"" +
     classOf[Array[DefaultMutableTreeNode]].toString.drop(6) + "\""
-  val nodesFlavor: DataFlavor = new DataFlavor(mimeType)
-  val flavors: Array[DataFlavor] = Array[DataFlavor](nodesFlavor)
+  val nodesFlavor:   DataFlavor = new DataFlavor(mimeType)
+  val flavors:       Array[DataFlavor] = Array[DataFlavor](nodesFlavor)
   var nodesToRemove: Array[DefaultMutableTreeNode] = Array[DefaultMutableTreeNode]()
 
   override def canImport(support: TransferSupport): Boolean = {

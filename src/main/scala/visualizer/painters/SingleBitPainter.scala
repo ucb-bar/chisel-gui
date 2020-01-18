@@ -8,10 +8,10 @@ import visualizer.models._
 import scala.swing.Graphics2D
 
 class SingleBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter(selectedSignalModel) {
-  def paintWaveform(g: Graphics2D,
-                    visibleRect: Rectangle,
-                    top: Int,
-                    node: GenericTreeNode,
+  def paintWaveform(g:            Graphics2D,
+                    visibleRect:  Rectangle,
+                    top:          Int,
+                    node:         GenericTreeNode,
                     maxTimestamp: Long): Unit = {
     node match {
       case waveFormNode: WaveFormNode =>
@@ -31,7 +31,7 @@ class SingleBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter
                 }
                 .foreach {
                   case transition1 :: transition2 :: Nil =>
-                    val left: Int = selectedSignalModel.timestampToXCoordinate(transition1.timestamp)
+                    val left:  Int = selectedSignalModel.timestampToXCoordinate(transition1.timestamp)
                     val right: Int = selectedSignalModel.timestampToXCoordinate(transition2.timestamp)
                     val z = if (transition1.value == 0) DrawMetrics.WaveformHeight else 0
 
@@ -43,7 +43,7 @@ class SingleBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter
                       g.drawLine(left, top, left, top + DrawMetrics.WaveformHeight)
                     }
                   case transition :: Nil =>
-                    val left: Int = selectedSignalModel.timestampToXCoordinate(0L)
+                    val left:  Int = selectedSignalModel.timestampToXCoordinate(0L)
                     val right: Int = selectedSignalModel.timestampToXCoordinate(transition.timestamp)
                     val z = if (transition.value == 0) DrawMetrics.WaveformHeight else 0
 
@@ -59,7 +59,7 @@ class SingleBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter
               pureSignal.waveform.get.transitions.lastOption match {
                 case Some(lastTransition) =>
                   if (lastTransition.timestamp < maxTimestamp) {
-                    val left: Int = selectedSignalModel.timestampToXCoordinate(lastTransition.timestamp)
+                    val left:  Int = selectedSignalModel.timestampToXCoordinate(lastTransition.timestamp)
                     val right: Int = selectedSignalModel.timestampToXCoordinate(maxTimestamp)
                     val z = if (lastTransition.value == 0L) DrawMetrics.WaveformHeight else 0
 
