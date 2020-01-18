@@ -132,10 +132,19 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
           signalAndWavePanel.updateWaveView()
         }
       }
+      contents += new MenuItem("") {
+        action = Action("Toggle Aggregating decoupled bundles") {
+          ChiselGUI.signalSelectorModel.setRollupDecoupled(
+            !ChiselGUI.signalSelectorModel.dataModelFilter.rollupDecoupled
+          )
+          ChiselGUI.signalSelectorModel.updateTreeModel()
+          ChiselGUI.mainWindow.signalSelectorPanel.tree.model = ChiselGUI.signalSelectorModel.directoryTreeModel
+        }
+      }
     }
     contents += new Menu("Help") {
       contents += new MenuItem(Action("Show Version") {
-        Dialog.showMessage(this, "Version 0.1 01/12/2020")
+        Dialog.showMessage(this, "Version 0.4 01/12/2020")
       })
     }
   }
@@ -251,6 +260,8 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     val visibleRect = signalAndWavePanel.wavePanel.peer.getVisibleRect
     writer.println(s"scale-and-window,${selectedSignalModel.scale},${visibleRect.x}")
+
+    writer.println(s"aggregate_decoupled,${selectionModel.dataModelFilter.rollupDecoupled.toString}")
 
     writer.close()
   }

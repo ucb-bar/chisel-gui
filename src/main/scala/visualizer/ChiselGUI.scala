@@ -33,9 +33,10 @@ object ChiselGUI extends SwingApplication with Publisher {
   val saveFileSuffix = ".txt"
 
   var testerOpt: Option[TreadleTester] = None
-  var vcdOpt:    Option[treadle.vcd.VCD] = None
+  var vcdOpt: Option[treadle.vcd.VCD] = None
+  var rollupDecoupled: Boolean = true
 
-  val dataModel:           DataModel = new DataModel
+  val dataModel: DataModel = new DataModel
   val signalSelectorModel: SignalSelectorModel = new SignalSelectorModel
   val selectedSignalModel: SelectedSignalModel = new SelectedSignalModel
 
@@ -44,10 +45,13 @@ object ChiselGUI extends SwingApplication with Publisher {
   var mainWindow: MainWindow = _
   var mainWindowSize = new Dimension(1000, 600)
   var startupMarkers = new mutable.ArrayBuffer[Marker]()
+
   var startupCursorPosition: Long = 0L
   var startupScale: Double = 10.0
   var startupVisibleX: Int = -1
   var startUpColorScheme: String = "default"
+  var startupAggregateDecoupledFlag: Boolean = true
+
   var toExpand = new mutable.ArrayBuffer[Tree.Path[GenericTreeNode]]()
 
   var startupWarnings: mutable.ArrayBuffer[String] = new mutable.ArrayBuffer()
@@ -98,15 +102,21 @@ object ChiselGUI extends SwingApplication with Publisher {
     startupMarkers.foreach { markerValue =>
       selectedSignalModel.markers += markerValue
     }
+    ChiselGUI.signalSelectorModel.setRollupDecoupled(startupAggregateDecoupledFlag)
 
     mainWindow.title = headerBarTitle
 
     populateWaveForms()
+
     dataModel.nameToSignal.values.foreach {
       case decoupledSignalGroup: DecoupledSignalGroup =>
         decoupledSignalGroup.updateValues()
       case _ =>
     }
+
+    signalSelectorModel.dataModelFilter = signalSelectorModel.dataModelFilter.copy(
+      hiddenDecoupled = DecoupledHandler.signalNameToDecouple.values.flatMap(_.getChildNames).toSeq
+    )
 
     signalSelectorModel.updateTreeModel()
     mainWindow.signalSelectorPanel.updateModel()
@@ -300,6 +310,9 @@ object ChiselGUI extends SwingApplication with Publisher {
                 case _: Throwable =>
                   println(s"Cannot parse line $line from ${fileNameGuess.getName}")
               }
+
+            case "aggregate_decoupled" :: boolString :: Nil =>
+              startupAggregateDecoupledFlag = boolString.toBoolean
 
             case _ =>
               println(s"Invalid line $line in save file")

@@ -91,9 +91,6 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
   val tree: Tree[GenericTreeNode] = new Tree[GenericTreeNode] {
 
     model = selectedSignalModel.treeModel
-    //TODO: Remove thie following commented line at some point
-    //      the old way was more awkward and relied on us to do more tree rendereing.
-    //    renderer = new SignalNameRenderer(dataModel, selectedSignalModel)  // THIS THE OLD WAY
     renderer = Tree.Renderer(show)
     showsRootHandles = true
 
@@ -202,15 +199,6 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
       if (SwingUtilities.isRightMouseButton(e.peer)) {
         println("It was a right click")
         if (isPointInNode(e.point)) {
-          //          val row = getClosestRowForLocation(e.point.x, e.point.y)
-          //
-          //          if (!selection.rows.contains(row)) {
-          //            // Right clicked in a node that isn't selected
-          //            // Then select only the node that was right clicked
-          //            selectRows(getClosestRowForLocation(e.point.x, e.point.y))
-          //          }
-          //          repaint()
-
           val path = tree.peer.getClosestPathForLocation(e.point.x, e.point.y)
           val peerNode = path.getLastPathComponent.asInstanceOf[DefaultMutableTreeNode]
           val node = peerNode.getUserObject.asInstanceOf[GenericTreeNode]

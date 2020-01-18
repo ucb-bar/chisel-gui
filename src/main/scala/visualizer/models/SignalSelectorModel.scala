@@ -83,6 +83,10 @@ class SignalSelectorModel extends Publisher {
     }
   }
 
+  def setRollupDecoupled(value: Boolean): Unit = {
+    dataModelFilter = dataModelFilter.copy(rollupDecoupled = value)
+  }
+
   def updateTreeModel(): Unit = {
     directoryTreeModel = InternalTreeModel.empty[GenericTreeNode]
 
@@ -122,24 +126,32 @@ object DirectoryNodeOrdering extends Ordering[GenericTreeNode] {
   * @param showTempVariables show _T temp wires
   * @param showGenVariables  show _GEN generated wires
   * @param showOnlyRegisters only show registers
+  * @param rollupDecoupled   don't show field as is fields that are part of decoupleds
+  * @param hiddenDecoupled   list of fields not to show when rolling up
   * @param pattern           add a search pattern
   */
 case class SelectionModelFilter(
                                  showTempVariables: Boolean = false,
                                  showGenVariables: Boolean = false,
                                  showOnlyRegisters: Boolean = false,
-                                 rollupDecoupled: Boolean = false,
+                                 rollupDecoupled: Boolean = true,
                                  hiddenDecoupled: Seq[String] = Seq.empty,
                                  pattern: String = ".*"
                                ) {
   val patternRegex: Regex = pattern.r
 
   def allow(s: String): Boolean = {
+    val isHiddenDecoupledSignal = if (rollupDecoupled) {
+      hiddenDecoupled.contains(s)
+    } else {
+      s.endsWith("Decoupled")
+    }
+
     val isAllowed = {
       patternRegex.findFirstIn(s).isDefined &&
         (!(s.endsWith("_T") || s.contains("_T_")) || showTempVariables) &&
         (!(s.endsWith("_GEN") || s.contains("_GEN_")) || showGenVariables) &&
-        (!s.endsWith("DECOUPLED"))
+        (!isHiddenDecoupledSignal)
     }
     isAllowed
   }
