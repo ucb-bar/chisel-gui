@@ -16,5 +16,6 @@ case class TimeUnitsChanged(override val source:  Component) extends ActionEvent
 case class DependencyComponentRequested(pureSignalName: String, override val source: Component)
     extends ActionEvent(source)
 
+case object PanelsChanged extends Event
 class MaxTimestampChanged extends Event
 class PureSignalsChanged extends Event

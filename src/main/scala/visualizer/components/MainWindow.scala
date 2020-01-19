@@ -20,6 +20,8 @@ import scala.swing._
 class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, selectedSignalModel: SelectedSignalModel)
     extends MainFrame {
 
+  val mainWindowRef: MainWindow = this
+
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
@@ -30,10 +32,10 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
   peer.setDefaultCloseOperation(DISPOSE_ON_CLOSE)
 
-  val markerTimeLabel: Label = new Label(s"Cursor: 0 ")
+  val markerCursorLabel: Label = new Label(s"Cursor: 0 ")
 
   def setMarkerLabel(time: Long): Unit = {
-    markerTimeLabel.text = s"Cursor: $time "
+    markerCursorLabel.text = s"Cursor: $time "
   }
 
   private val toolbar = new ToolBar() {
@@ -83,12 +85,12 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     contents += HStrut(400)
 
-    contents += markerTimeLabel
-
+    contents += markerCursorLabel
   }
 
   title = "Chisel Visualizer"
   var isAltColorScheme = false
+  var inputPanelVisible = false
 
   menuBar = new MenuBar {
     contents += new Menu("File") {
@@ -121,6 +123,21 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
       }
     }
     contents += new Menu("View") {
+      contents += new MenuItem("") {
+        action = Action("Show Signal Selector") {
+          waveAndSignalContainer.signalSelectorContainer.visible =
+            !waveAndSignalContainer.signalSelectorContainer.visible
+        }
+      }
+      contents += new MenuItem("") {
+        action = Action("Show Input Panel") {
+          inputControlPanel.visible = !inputControlPanel.visible
+          //          signalAndWavePanel.updateWaveView()
+        }
+      }
+
+      contents += VStrut(20)
+
       contents += new MenuItem("") {
         action = Action("Toggle Wave Colors") {
           isAltColorScheme = !isAltColorScheme
@@ -205,10 +222,6 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     def walkNodes(path: Tree.Path[GenericTreeNode], depth: Int = 1): Unit = {
       selectedSignalModel.treeModel.getChildPathsOf(path).toArray.zipWithIndex.foreach {
         case (path, index) =>
-          val pathString = path.map { node =>
-            node.name
-          }.mkString(",")
-
           val expand = if (signalAndWavePanel.tree.isExpanded(path)) "expand" else "close"
 
           val node = path.last
@@ -266,7 +279,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     writer.close()
   }
 
-  contents = new BorderPanel {
+  val waveAndSignalContainer = new BorderPanel {
 
     import BorderPanel.Position._
 
@@ -276,13 +289,15 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     layout(toolbar) = North
 
+    val signalSelectorContainer: ScrollPane = new ScrollPane(signalSelectorPanel) {
+      preferredSize = new Dimension(150, 700)
+      minimumSize = new Dimension(150, 300)
+      border = BorderFactory.createEmptyBorder()
+    }
+
     val splitPane: SplitPane = new SplitPane(
       Orientation.Vertical,
-      new ScrollPane(signalSelectorPanel) {
-        preferredSize = new Dimension(150, 700)
-        minimumSize = new Dimension(150, 300)
-        border = BorderFactory.createEmptyBorder()
-      },
+      signalSelectorContainer,
       signalAndWavePanel
     ) {
       border = BorderFactory.createEmptyBorder()
@@ -294,11 +309,13 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     listenTo(selectedSignalModel)
     listenTo(dataModel)
+    listenTo(mainWindowRef)
+
     reactions += {
       case e: DependencyComponentRequested =>
         showDependenciesPanel.textComponent.text = ChiselGUI.testerOpt match {
           case Some(t) => t.dependencyInfo(e.pureSignalName)
-          case None    => ""
+          case None => ""
         }
       case e: CursorSet =>
         setMarkerLabel(selectedSignalModel.cursorPosition)
@@ -306,4 +323,5 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
         signalAndWavePanel.zoomToEnd(this)
     }
   }
+  contents = waveAndSignalContainer
 }

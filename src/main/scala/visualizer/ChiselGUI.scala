@@ -505,7 +505,7 @@ object ChiselGUI extends SwingApplication with Publisher {
     }
   }
 
-  /** This changes the dock and the command-tab and has been tested on osx
+  /** This changes the dock and the command-tab and has been tested on osx 🚩
     */
   //TODO: Test this on other systems
   def setDockIcon(): Unit = {
