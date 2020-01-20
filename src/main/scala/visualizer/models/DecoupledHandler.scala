@@ -55,7 +55,8 @@ object DecoupledHandler {
       }
     }
 
-    signalNameToDecouple.retain { case (key, d) => d.readyNameOpt.isDefined && d.validNameOpt.isDefined }
+    //    signalNameToDecouple.retain { case (key, d) => d.readyNameOpt.isDefined && d.validNameOpt.isDefined }
+    signalNameToDecouple.retain { case (key, d) => d.validNameOpt.isDefined }
   }
 
   def apply(prefix: String): DecoupledHandler = {
@@ -67,8 +68,6 @@ case class DecoupledHandler(indexId: Long, prefix: String) {
   var readyNameOpt: Option[String] = None
   var validNameOpt: Option[String] = None
   val bits: mutable.ArrayBuffer[String] = new mutable.ArrayBuffer()
-
-  def fullName: String = s"${prefix}Decoupled"
 
   def getChildNames: Seq[String] = {
     bits ++ readyNameOpt ++ validNameOpt

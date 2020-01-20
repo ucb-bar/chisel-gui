@@ -52,6 +52,8 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
             }
           case _: DecoupledSignalGroup =>
             decoupledPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
+          case _: ValidSignalGroup =>
+            decoupledPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
           case _: CombinedSignal =>
             readyValidPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
         }

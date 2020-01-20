@@ -47,6 +47,8 @@ class DataModel extends Publisher {
     dataModel.nameToSignal.values.foreach {
       case decoupledSignalGroup: DecoupledSignalGroup =>
         decoupledSignalGroup.updateValues()
+      case validSignalGroup: ValidSignalGroup =>
+        validSignalGroup.updateValues()
       case _ =>
     }
   }

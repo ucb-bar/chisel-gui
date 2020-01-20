@@ -78,6 +78,11 @@ class SignalSelectorModel extends Publisher {
           decoupledSignalGroup.bitsSignals.foreach { bitSignal =>
             insertUnderSorted(decoupledPath, WaveFormNode(bitSignal.name, bitSignal))
           }
+        case validSignalGroup: ValidSignalGroup =>
+          val decoupledPath = parentPath ++ Seq(node)
+          validSignalGroup.bitsSignals.foreach { bitSignal =>
+            insertUnderSorted(decoupledPath, WaveFormNode(bitSignal.name, bitSignal))
+          }
         case _ =>
       }
     }

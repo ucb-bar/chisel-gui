@@ -29,16 +29,16 @@ object ChiselGUI extends SwingApplication with Publisher {
     System.setProperty("com.apple.mrj.application.apple.menu.about.name", "ChiselGUI")
     System.setProperty("apple.laf.useScreenMenuBar", "true")
     System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
-    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
-  }
-  catch {
-    case _: Throwable =>
-    // Failed to setup OS-X keep going
+    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName)
+  } catch {
+    case t: Throwable =>
+      // Failed to setup OS-X keep going
+      println(s"Startup complaint:${t.getMessage}")
   }
   val shell: Shell = new Shell("chisel-gui") with ChiselGuiCli
 
-  val saveFilePrefix = ".chiselgui."
-  val saveFileSuffix = ".txt"
+  val saveFilePrefix = "."
+  val saveFileSuffix = ".chiselgui"
 
   var testerOpt: Option[TreadleTester] = None
   var vcdOpt: Option[treadle.vcd.VCD] = None
@@ -160,19 +160,34 @@ object ChiselGUI extends SwingApplication with Publisher {
     DecoupledHandler.signalNameToDecouple.foreach {
       case (name, decoupledHandler) =>
         try {
-          val decoupledSignal = new DecoupledSignalGroup(
-            decoupledHandler.fullName,
-            None,
-            Some(new Waveform[BigInt](new mutable.ArrayBuffer[Transition[BigInt]]())),
-            0,
-            dataModel.nameToSignal(decoupledHandler.readyNameOpt.get).asInstanceOf[PureSignal],
-            dataModel.nameToSignal(decoupledHandler.validNameOpt.get).asInstanceOf[PureSignal],
-            decoupledHandler.bits.map { bitsName =>
-              dataModel.nameToSignal(bitsName).asInstanceOf[PureSignal]
-            }
-          )
+          (decoupledHandler.readyNameOpt, decoupledHandler.validNameOpt) match {
+            case (Some(readyName), Some(validName)) =>
+              val decoupledSignal = new DecoupledSignalGroup(
+                s"${decoupledHandler.prefix}/RV",
+                None,
+                Some(new Waveform[BigInt](new mutable.ArrayBuffer[Transition[BigInt]]())),
+                0,
+                dataModel.nameToSignal(readyName).asInstanceOf[PureSignal],
+                dataModel.nameToSignal(validName).asInstanceOf[PureSignal],
+                decoupledHandler.bits.map { bitsName =>
+                  dataModel.nameToSignal(bitsName).asInstanceOf[PureSignal]
+                }
+              )
+              dataModel.addSignal(decoupledSignal.name, decoupledSignal)
+            case (None, Some(validName)) =>
+              val validSignal = new ValidSignalGroup(
+                s"${decoupledHandler.prefix}/V",
+                None,
+                Some(new Waveform[BigInt](new mutable.ArrayBuffer[Transition[BigInt]]())),
+                0,
+                dataModel.nameToSignal(validName).asInstanceOf[PureSignal],
+                decoupledHandler.bits.map { bitsName =>
+                  dataModel.nameToSignal(bitsName).asInstanceOf[PureSignal]
+                }
+              )
+              dataModel.addSignal(validSignal.name, validSignal)
+          }
 
-          dataModel.addSignal(decoupledSignal.name, decoupledSignal)
         } catch {
           case t: Throwable =>
             println(s"Unable to add $decoupledHandler")
@@ -246,7 +261,7 @@ object ChiselGUI extends SwingApplication with Publisher {
         case t: Throwable =>
           println(t.getMessage)
           println(s"depthString $depthString indexString $indexString $node")
-          throw t
+        //          throw t
       }
       lastNode = node
     }
@@ -281,6 +296,22 @@ object ChiselGUI extends SwingApplication with Publisher {
               dataModel.nameToSignal.get(signalName) match {
                 case Some(decoupledSignalGroup: DecoupledSignalGroup) =>
                   val node = WaveFormNode(nodeName, decoupledSignalGroup)
+                  selectedSignalModel.waveDisplaySettings(signalName) = {
+                    WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
+                  }
+                  if (expand == "expand") {
+                    toExpand += currentPath ++ Seq(node)
+                  }
+                  addNode(depthString, indexString, node)
+                case Some(_: CombinedSignal) =>
+                case _ =>
+              }
+
+            case "valid_node" :: depthString :: indexString ::
+              nodeName :: signalName :: formatString :: expand :: Nil =>
+              dataModel.nameToSignal.get(signalName) match {
+                case Some(validSignalGroup: ValidSignalGroup) =>
+                  val node = WaveFormNode(nodeName, validSignalGroup)
                   selectedSignalModel.waveDisplaySettings(signalName) = {
                     WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
                   }

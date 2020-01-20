@@ -257,6 +257,19 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
                         s"decoupled_node,$depth,$index,${waveFormNode.name},${decoupledSignalGroup.name},none,$expand"
                       )
                   }
+                case validSignalGroup: ValidSignalGroup =>
+                  selectedSignalModel.waveDisplaySettings.get(validSignalGroup.name) match {
+                    case Some(waveDisplaySetting: WaveDisplaySetting) =>
+                      val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
+                      writer.println(
+                        s"valid_node,$depth,$index,${waveFormNode.name}," +
+                          s"${validSignalGroup.name},$dataFormat,$expand"
+                      )
+                    case _ =>
+                      writer.println(
+                        s"valid_node,$depth,$index,${waveFormNode.name},${validSignalGroup.name},none,$expand"
+                      )
+                  }
                 case _ =>
               }
             case _ =>
@@ -281,7 +294,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     writer.println(s"aggregate_decoupled,${selectionModel.dataModelFilter.rollupDecoupled.toString}")
 
-    writer.println(s"show_signal_selector,${isSignalSelectorVisible}")
+    writer.println(s"show_signal_selector,$isSignalSelectorVisible")
 
     writer.close()
   }
@@ -333,9 +346,10 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
   }
   contents = mainContainer
 
+  System.setProperty("com.apple.mrj.application.apple.menu.about.name", "ChiselGUI")
+
   def toggleSignalSelector(): Unit = {
-    mainContainer.signalSelectorContainer.visible =
-      !mainContainer.signalSelectorContainer.visible
+    mainContainer.signalSelectorContainer.visible = !mainContainer.signalSelectorContainer.visible
   }
 
   def isSignalSelectorVisible: Boolean = mainContainer.signalSelectorContainer.visible
