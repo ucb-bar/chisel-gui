@@ -2,12 +2,12 @@ package visualizer.components
 
 import java.io.{File, PrintWriter}
 
-import javax.swing.BorderFactory
+import javax.swing.{BorderFactory, SwingUtilities}
 import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 import scalaswingcontrib.tree.Tree
 import visualizer.config.ColorTable
 import visualizer.models._
-import visualizer.{ChiselGUI, CursorSet, DependencyComponentRequested, MaxTimestampChanged}
+import visualizer.{ChiselGUI, CursorSet, DependencyComponentRequested, MaxTimestampChanged, PanelsChanged}
 
 import scala.swing.Swing._
 import scala.swing._
@@ -20,6 +20,8 @@ import scala.swing._
 class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, selectedSignalModel: SelectedSignalModel)
     extends MainFrame {
 
+  val mainWindowRef: MainWindow = this
+
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
@@ -30,10 +32,10 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
   peer.setDefaultCloseOperation(DISPOSE_ON_CLOSE)
 
-  val markerTimeLabel: Label = new Label(s"Cursor: 0 ")
+  val markerCursorLabel: Label = new Label(s"Cursor: 0 ")
 
   def setMarkerLabel(time: Long): Unit = {
-    markerTimeLabel.text = s"Cursor: $time "
+    markerCursorLabel.text = s"Cursor: $time "
   }
 
   private val toolbar = new ToolBar() {
@@ -83,12 +85,13 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     contents += HStrut(400)
 
-    contents += markerTimeLabel
-
+    contents += markerCursorLabel
   }
 
   title = "Chisel Visualizer"
   var isAltColorScheme = false
+  var inputPanelVisible = false
+  var saveSplitPaneDividerLocation: Int = 150
 
   menuBar = new MenuBar {
     contents += new Menu("File") {
@@ -121,8 +124,28 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
       }
     }
     contents += new Menu("View") {
-      contents += new MenuItem("") {
-        action = Action("Toggle Wave Colors") {
+      contents += new CheckMenuItem("") {
+        selected = ChiselGUI.startupShowSignalSelector
+        action = Action("Show Signal Selector") {
+          toggleSignalSelector()
+          pingSplitPane()
+        }
+      }
+
+      if (ChiselGUI.testerOpt.isDefined) {
+        contents += new CheckMenuItem("") {
+          selected = true
+          action = Action("Show Input Panel") {
+            inputControlPanel.visible = !inputControlPanel.visible
+          }
+        }
+      }
+
+      contents += VStrut(20)
+
+      contents += new CheckMenuItem("") {
+        selected = ChiselGUI.startUpColorScheme != "default"
+        action = Action("Use Dark Wave Colors") {
           isAltColorScheme = !isAltColorScheme
           if (isAltColorScheme) {
             ColorTable.setAltWaveColors()
@@ -132,8 +155,9 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
           signalAndWavePanel.updateWaveView()
         }
       }
-      contents += new MenuItem("") {
-        action = Action("Toggle Aggregating decoupled bundles") {
+      contents += new CheckMenuItem("") {
+        this.selected = ChiselGUI.startupAggregateDecoupledFlag
+        action = Action("RollUp Decoupled Bundles") {
           ChiselGUI.signalSelectorModel.setRollupDecoupled(
             !ChiselGUI.signalSelectorModel.dataModelFilter.rollupDecoupled
           )
@@ -205,10 +229,6 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     def walkNodes(path: Tree.Path[GenericTreeNode], depth: Int = 1): Unit = {
       selectedSignalModel.treeModel.getChildPathsOf(path).toArray.zipWithIndex.foreach {
         case (path, index) =>
-          val pathString = path.map { node =>
-            node.name
-          }.mkString(",")
-
           val expand = if (signalAndWavePanel.tree.isExpanded(path)) "expand" else "close"
 
           val node = path.last
@@ -239,6 +259,19 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
                         s"decoupled_node,$depth,$index,${waveFormNode.name},${decoupledSignalGroup.name},none,$expand"
                       )
                   }
+                case validSignalGroup: ValidSignalGroup =>
+                  selectedSignalModel.waveDisplaySettings.get(validSignalGroup.name) match {
+                    case Some(waveDisplaySetting: WaveDisplaySetting) =>
+                      val dataFormat = Format.serialize(waveDisplaySetting.dataFormat)
+                      writer.println(
+                        s"valid_node,$depth,$index,${waveFormNode.name}," +
+                          s"${validSignalGroup.name},$dataFormat,$expand"
+                      )
+                    case _ =>
+                      writer.println(
+                        s"valid_node,$depth,$index,${waveFormNode.name},${validSignalGroup.name},none,$expand"
+                      )
+                  }
                 case _ =>
               }
             case _ =>
@@ -263,10 +296,12 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     writer.println(s"aggregate_decoupled,${selectionModel.dataModelFilter.rollupDecoupled.toString}")
 
+    writer.println(s"show_signal_selector,$isSignalSelectorVisible")
+
     writer.close()
   }
 
-  contents = new BorderPanel {
+  val mainContainer = new BorderPanel {
 
     import BorderPanel.Position._
 
@@ -276,13 +311,16 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     layout(toolbar) = North
 
+    val signalSelectorContainer: ScrollPane = new ScrollPane(signalSelectorPanel) {
+      preferredSize = new Dimension(150, 700)
+      minimumSize = new Dimension(150, 300)
+      border = BorderFactory.createEmptyBorder()
+      visible = ChiselGUI.startupShowSignalSelector
+    }
+
     val splitPane: SplitPane = new SplitPane(
       Orientation.Vertical,
-      new ScrollPane(signalSelectorPanel) {
-        preferredSize = new Dimension(150, 700)
-        minimumSize = new Dimension(150, 300)
-        border = BorderFactory.createEmptyBorder()
-      },
+      signalSelectorContainer,
       signalAndWavePanel
     ) {
       border = BorderFactory.createEmptyBorder()
@@ -294,16 +332,52 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     listenTo(selectedSignalModel)
     listenTo(dataModel)
+
     reactions += {
       case e: DependencyComponentRequested =>
         showDependenciesPanel.textComponent.text = ChiselGUI.testerOpt match {
           case Some(t) => t.dependencyInfo(e.pureSignalName)
-          case None    => ""
+          case None => ""
         }
       case e: CursorSet =>
         setMarkerLabel(selectedSignalModel.cursorPosition)
       case _: MaxTimestampChanged =>
         signalAndWavePanel.zoomToEnd(this)
     }
+  }
+  contents = mainContainer
+
+  System.setProperty("com.apple.mrj.application.apple.menu.about.name", "ChiselGUI")
+
+  def toggleSignalSelector(): Unit = {
+    mainContainer.signalSelectorContainer.visible = if (mainContainer.signalSelectorContainer.visible) {
+      saveSplitPaneDividerLocation = mainContainer.splitPane.dividerLocation
+      false
+    } else {
+      mainContainer.signalSelectorContainer.visible = !mainContainer.signalSelectorContainer.visible
+      mainContainer.splitPane.dividerLocation = saveSplitPaneDividerLocation
+      true
+    }
+  }
+
+  def isSignalSelectorVisible: Boolean = mainContainer.signalSelectorContainer.visible
+
+
+  def pingSplitPane(): Unit = {
+    // The blasted remains of shotgun technique to get SignalSelectorPanel to re-display after hiding
+    SwingUtilities.invokeLater(() => {
+      if (mainContainer.signalSelectorContainer.visible) {
+        mainContainer.splitPane.peer.revalidate()
+        mainContainer.splitPane.peer.repaint()
+      } else {
+        //        mainContainer.signalSelectorContainer.peer.setSize(new Dimension(150,800))
+        signalSelectorPanel.peer.revalidate()
+        signalSelectorPanel.peer.repaint()
+        //        mainContainer.signalSelectorContainer.peer.revalidate()
+        //        mainContainer.signalSelectorContainer.peer.repaint()
+      }
+      mainContainer.peer.revalidate()
+      mainContainer.repaint()
+    })
   }
 }

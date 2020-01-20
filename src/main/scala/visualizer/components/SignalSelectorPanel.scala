@@ -9,8 +9,9 @@ import visualizer.config.DrawMetrics
 import visualizer.models._
 import visualizer.{ChiselGUI, SignalsChanged}
 
-import scala.swing._
+import scala.swing.{BorderPanel, _}
 import scala.swing.event._
+import BorderPanel.Position._
 
 /**
   * Offers all signals in the design to be selected for viewing in
@@ -21,10 +22,10 @@ import scala.swing.event._
   * @param selectedSignalModel underlying model for signals that have been selected for viewing
   */
 class SignalSelectorPanel(
-  dataModel:           DataModel,
-  signalSelectorModel: SignalSelectorModel,
-  selectedSignalModel: SelectedSignalModel
-) extends BoxPanel(Orientation.Vertical) {
+                           dataModel: DataModel,
+                           signalSelectorModel: SignalSelectorModel,
+                           selectedSignalModel: SelectedSignalModel
+                         ) extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View
@@ -141,7 +142,8 @@ class SignalSelectorPanel(
     contents += signalPatternText
   }
 
-  contents += toolBar
+  layout(toolBar) = North
+  //  contents += toolBar
 
   val insertSignalBeforeButton = new Button("↑")
   val insertSignalAfterButton = new Button("↓")
@@ -149,12 +151,13 @@ class SignalSelectorPanel(
   val appendSignalButton = new Button("⤓")
 
   val symbolList: ScrollPane = new ScrollPane(tree) {
+    preferredSize = new Dimension(200, 1000)
+
     border = BorderFactory.createEmptyBorder()
   }
 
-  contents += symbolList
-
-  contents += Swing.Glue
+  layout(symbolList) = Center
+  //  contents += symbolList
 
   private val lowerToolbar = new ToolBar {
     peer.setFloatable(false)
@@ -164,10 +167,10 @@ class SignalSelectorPanel(
     contents += insertSignalAfterButton
     contents += insertSignalIntoButton
     contents += appendSignalButton
-    // contents += Swing.Glue
   }
 
-  contents += lowerToolbar
+  layout(lowerToolbar) = South
+  //  contents += lowerToolbar
 
   ///////////////////////////////////////////////////////////////////////////
   // Controller

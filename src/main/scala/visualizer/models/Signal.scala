@@ -1,6 +1,5 @@
 package visualizer.models
 
-import firrtl.ir.SIntType
 import treadle.executable.{SignedInt, Symbol}
 import treadle.{extremaOfSIntOfWidth, extremaOfUIntOfWidth}
 
@@ -146,12 +145,12 @@ object DecoupledSignalGroup {
   val Valid: BigInt = BigInt(1)
   val Busy:  BigInt = BigInt(0)
 
-  def combineReadyValid(a: Seq[Transition[BigInt]], b: Seq[Transition[BigInt]]) = {
+  def combineReadyValid(a: Seq[Transition[BigInt]], b: Seq[Transition[BigInt]]): ArrayBuffer[Transition[BigInt]] = {
     def combinedValue(value1: BigInt, value2: BigInt): BigInt = {
       (value1 > 0, value2 > 0) match {
-        case (true, true)   => Fired
-        case (true, false)  => Ready
-        case (false, true)  => Valid
+        case (true, true) => Fired
+        case (true, false) => Ready
+        case (false, true) => Valid
         case (false, false) => Busy
       }
     }
@@ -190,10 +189,38 @@ object DecoupledSignalGroup {
   }
 }
 
+/** Aggregates the signals moderated by a valid signal
+  *
+  * @param name      Name of this group
+  * @param symbolOpt //TODO: Does this need to be present
+  * @param waveform  //TODO: Do I need this?
+  * @param sortGroup //TODO: Unused, should it be resuscitated
+  */
+class ValidSignalGroup(
+                        var name: String,
+                        var symbolOpt: Option[Symbol],
+                        var waveform: Option[Waveform[BigInt]],
+                        val sortGroup: Int, // (IOs, registers, other, Ts and Gens)
+                        val validSignal: PureSignal,
+                        val bitsSignals: Seq[PureSignal]
+                      ) extends Signal[BigInt] {
+
+  def updateValues(): Unit = {
+    val combinedTransitions = validSignal.waveform.get.transitions
+
+    waveform match {
+      case Some(w) =>
+        w.addNewValues(combinedTransitions)
+      case None =>
+        waveform = Some(new Waveform(combinedTransitions))
+    }
+  }
+}
+
 class CombinedSignal(
-  val pureSignals: Array[PureSignal],
-  var waveform:    Option[Waveform[Array[BigInt]]]
-) extends Signal[Array[BigInt]]
+                      val pureSignals: Array[PureSignal],
+                      var waveform: Option[Waveform[Array[BigInt]]]
+                    ) extends Signal[Array[BigInt]]
 
 ///////////////////////////////////////////////////////////////////////////
 // Ready Valid Combiner

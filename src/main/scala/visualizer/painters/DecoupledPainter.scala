@@ -13,33 +13,44 @@ class DecoupledPainter(selectedSignalModel: SelectedSignalModel) extends Painter
                     top:          Int,
                     node:         GenericTreeNode,
                     maxTimestamp: Long): Unit = {
+
+    def paintSignal(waveform: Waveform[BigInt], startTimestamp: Long): Unit = {
+      try {
+        waveform
+          .findTransition(startTimestamp)
+          .sliding(2)
+          .takeWhile { transitionPair =>
+            selectedSignalModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
+          }
+          .foreach {
+            case t1 :: t2 :: Nil =>
+              val left: Int = selectedSignalModel.timestampToXCoordinate(t1.timestamp)
+              val right: Int = selectedSignalModel.timestampToXCoordinate(t2.timestamp)
+
+              drawSegment(g, left, right, top, t1.value)
+            case t1 :: Nil =>
+            case _ =>
+          }
+      } catch {
+        // If there's only 1 transition in the iterator returned by findTransition,
+        // sliding will throw IndexOutOfBoundsException
+        case _: IndexOutOfBoundsException =>
+      }
+    }
+
     node match {
       case waveFormNode: WaveFormNode =>
         waveFormNode.signal match {
           case decoupledSignalGroup: DecoupledSignalGroup =>
             val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
+            decoupledSignalGroup.waveform.foreach { waveForm =>
+              paintSignal(waveForm, startTimestamp)
+            }
 
-            try {
-              decoupledSignalGroup.waveform.get
-                .findTransition(startTimestamp)
-                .sliding(2)
-                .takeWhile { transitionPair =>
-                  selectedSignalModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
-                }
-                .foreach {
-                  case t1 :: t2 :: Nil =>
-                    // length could be 1 if findTransition(startTimestamp) has length 1
-                    val left:  Int = selectedSignalModel.timestampToXCoordinate(t1.timestamp)
-                    val right: Int = selectedSignalModel.timestampToXCoordinate(t2.timestamp)
-
-                    drawSegment(g, left, right, top, t1.value)
-                  case t1 :: Nil =>
-                  case _         =>
-                }
-            } catch {
-              // If there's only 1 transition in the iterator returned by findTransition,
-              // sliding will throw IndexOutOfBoundsException
-              case _: IndexOutOfBoundsException =>
+          case validSignalGroup: ValidSignalGroup =>
+            val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
+            validSignalGroup.waveform.foreach { waveForm =>
+              paintSignal(waveForm, startTimestamp)
             }
         }
     }
