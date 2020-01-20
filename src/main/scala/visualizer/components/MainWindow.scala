@@ -2,12 +2,12 @@ package visualizer.components
 
 import java.io.{File, PrintWriter}
 
-import javax.swing.BorderFactory
+import javax.swing.{BorderFactory, SwingUtilities}
 import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 import scalaswingcontrib.tree.Tree
 import visualizer.config.ColorTable
 import visualizer.models._
-import visualizer.{ChiselGUI, CursorSet, DependencyComponentRequested, MaxTimestampChanged}
+import visualizer.{ChiselGUI, CursorSet, DependencyComponentRequested, MaxTimestampChanged, PanelsChanged}
 
 import scala.swing.Swing._
 import scala.swing._
@@ -91,6 +91,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
   title = "Chisel Visualizer"
   var isAltColorScheme = false
   var inputPanelVisible = false
+  var saveSplitPaneDividerLocation: Int = 150
 
   menuBar = new MenuBar {
     contents += new Menu("File") {
@@ -127,6 +128,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
         selected = ChiselGUI.startupShowSignalSelector
         action = Action("Show Signal Selector") {
           toggleSignalSelector()
+          pingSplitPane()
         }
       }
 
@@ -330,7 +332,6 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     listenTo(selectedSignalModel)
     listenTo(dataModel)
-    listenTo(mainWindowRef)
 
     reactions += {
       case e: DependencyComponentRequested =>
@@ -349,8 +350,34 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
   System.setProperty("com.apple.mrj.application.apple.menu.about.name", "ChiselGUI")
 
   def toggleSignalSelector(): Unit = {
-    mainContainer.signalSelectorContainer.visible = !mainContainer.signalSelectorContainer.visible
+    mainContainer.signalSelectorContainer.visible = if (mainContainer.signalSelectorContainer.visible) {
+      saveSplitPaneDividerLocation = mainContainer.splitPane.dividerLocation
+      false
+    } else {
+      mainContainer.signalSelectorContainer.visible = !mainContainer.signalSelectorContainer.visible
+      mainContainer.splitPane.dividerLocation = saveSplitPaneDividerLocation
+      true
+    }
   }
 
   def isSignalSelectorVisible: Boolean = mainContainer.signalSelectorContainer.visible
+
+
+  def pingSplitPane(): Unit = {
+    // The blasted remains of shotgun technique to get SignalSelectorPanel to re-display after hiding
+    SwingUtilities.invokeLater(() => {
+      if (mainContainer.signalSelectorContainer.visible) {
+        mainContainer.splitPane.peer.revalidate()
+        mainContainer.splitPane.peer.repaint()
+      } else {
+        //        mainContainer.signalSelectorContainer.peer.setSize(new Dimension(150,800))
+        signalSelectorPanel.peer.revalidate()
+        signalSelectorPanel.peer.repaint()
+        //        mainContainer.signalSelectorContainer.peer.revalidate()
+        //        mainContainer.signalSelectorContainer.peer.repaint()
+      }
+      mainContainer.peer.revalidate()
+      mainContainer.repaint()
+    })
+  }
 }
