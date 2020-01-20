@@ -123,23 +123,27 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
       }
     }
     contents += new Menu("View") {
-      contents += new MenuItem("") {
+      contents += new CheckMenuItem("") {
+        selected = ChiselGUI.startupShowSignalSelector
         action = Action("Show Signal Selector") {
-          waveAndSignalContainer.signalSelectorContainer.visible =
-            !waveAndSignalContainer.signalSelectorContainer.visible
+          toggleSignalSelector()
         }
       }
-      contents += new MenuItem("") {
-        action = Action("Show Input Panel") {
-          inputControlPanel.visible = !inputControlPanel.visible
-          //          signalAndWavePanel.updateWaveView()
+
+      if (ChiselGUI.testerOpt.isDefined) {
+        contents += new CheckMenuItem("") {
+          selected = true
+          action = Action("Show Input Panel") {
+            inputControlPanel.visible = !inputControlPanel.visible
+          }
         }
       }
 
       contents += VStrut(20)
 
-      contents += new MenuItem("") {
-        action = Action("Toggle Wave Colors") {
+      contents += new CheckMenuItem("") {
+        selected = ChiselGUI.startUpColorScheme != "default"
+        action = Action("Use Dark Wave Colors") {
           isAltColorScheme = !isAltColorScheme
           if (isAltColorScheme) {
             ColorTable.setAltWaveColors()
@@ -149,8 +153,9 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
           signalAndWavePanel.updateWaveView()
         }
       }
-      contents += new MenuItem("") {
-        action = Action("Toggle Aggregating decoupled bundles") {
+      contents += new CheckMenuItem("") {
+        this.selected = ChiselGUI.startupAggregateDecoupledFlag
+        action = Action("RollUp Decoupled Bundles") {
           ChiselGUI.signalSelectorModel.setRollupDecoupled(
             !ChiselGUI.signalSelectorModel.dataModelFilter.rollupDecoupled
           )
@@ -276,10 +281,12 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     writer.println(s"aggregate_decoupled,${selectionModel.dataModelFilter.rollupDecoupled.toString}")
 
+    writer.println(s"show_signal_selector,${isSignalSelectorVisible}")
+
     writer.close()
   }
 
-  val waveAndSignalContainer = new BorderPanel {
+  val mainContainer = new BorderPanel {
 
     import BorderPanel.Position._
 
@@ -293,6 +300,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
       preferredSize = new Dimension(150, 700)
       minimumSize = new Dimension(150, 300)
       border = BorderFactory.createEmptyBorder()
+      visible = ChiselGUI.startupShowSignalSelector
     }
 
     val splitPane: SplitPane = new SplitPane(
@@ -323,5 +331,12 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
         signalAndWavePanel.zoomToEnd(this)
     }
   }
-  contents = waveAndSignalContainer
+  contents = mainContainer
+
+  def toggleSignalSelector(): Unit = {
+    mainContainer.signalSelectorContainer.visible =
+      !mainContainer.signalSelectorContainer.visible
+  }
+
+  def isSignalSelectorVisible: Boolean = mainContainer.signalSelectorContainer.visible
 }

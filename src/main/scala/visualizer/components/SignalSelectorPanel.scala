@@ -149,12 +149,12 @@ class SignalSelectorPanel(
   val appendSignalButton = new Button("⤓")
 
   val symbolList: ScrollPane = new ScrollPane(tree) {
+    preferredSize = new Dimension(200, 1000)
+
     border = BorderFactory.createEmptyBorder()
   }
 
   contents += symbolList
-
-  contents += Swing.Glue
 
   private val lowerToolbar = new ToolBar {
     peer.setFloatable(false)

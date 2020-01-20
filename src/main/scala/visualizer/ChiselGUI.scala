@@ -9,6 +9,7 @@ import firrtl.options.{ProgramArgsAnnotation, Shell}
 import firrtl.stage.FirrtlSourceAnnotation
 import firrtl.{AnnotationSeq, FileUtils, InstanceKind, MemKind}
 import javax.imageio.ImageIO
+import javax.swing.UIManager
 import scalaswingcontrib.tree.Tree
 import treadle.executable.{Symbol, SymbolTable}
 import treadle.vcd.VCD
@@ -24,8 +25,16 @@ import scala.swing.Dialog.Result
 import scala.swing.{Dialog, Dimension, Publisher, SwingApplication}
 
 object ChiselGUI extends SwingApplication with Publisher {
-  System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
-
+  try {
+    System.setProperty("com.apple.mrj.application.apple.menu.about.name", "ChiselGUI")
+    System.setProperty("apple.laf.useScreenMenuBar", "true")
+    System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
+    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
+  }
+  catch {
+    case _: Throwable =>
+    // Failed to setup OS-X keep going
+  }
   val shell: Shell = new Shell("chisel-gui") with ChiselGuiCli
 
   val saveFilePrefix = ".chiselgui."
@@ -50,6 +59,7 @@ object ChiselGUI extends SwingApplication with Publisher {
   var startupVisibleX: Int = -1
   var startUpColorScheme: String = "default"
   var startupAggregateDecoupledFlag: Boolean = true
+  var startupShowSignalSelector: Boolean = true
 
   var toExpand = new mutable.ArrayBuffer[Tree.Path[GenericTreeNode]]()
 
@@ -318,6 +328,9 @@ object ChiselGUI extends SwingApplication with Publisher {
 
             case "aggregate_decoupled" :: boolString :: Nil =>
               startupAggregateDecoupledFlag = boolString.toBoolean
+
+            case "show_signal_selector" :: boolString :: Nil =>
+              startupShowSignalSelector = boolString.toBoolean
 
             case _ =>
               println(s"Invalid line $line in save file")
