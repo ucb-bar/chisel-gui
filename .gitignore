@@ -17,5 +17,5 @@ dist
 /RUNNING_PID
 /project/*-shim.sbt
 /activator-sbt-*-shim.sbt
-bin/chisel-gui.jar
+chisel-gui.jar
 *.chiselgui

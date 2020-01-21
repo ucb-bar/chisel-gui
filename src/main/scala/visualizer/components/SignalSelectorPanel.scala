@@ -128,11 +128,13 @@ class SignalSelectorPanel(
   }
 
   val showTempSignalsButton = new ToggleButton("_T")
+  showTempSignalsButton.tooltip = "Toggle display of Temporary wires"
   val showGenSignalsButton = new ToggleButton("_Gen")
+  showGenSignalsButton.tooltip = "Toggle display of Generated Wires"
 
   val signalPatternText = new TextField("")
-  signalPatternText.preferredSize = new Dimension(100, 20)
-  signalPatternText.peer.setMaximumSize(signalPatternText.peer.getPreferredSize)
+  //  signalPatternText.preferredSize = new Dimension(100, 20)
+  //  signalPatternText.peer.setMaximumSize(signalPatternText.peer.getPreferredSize)
 
   private val toolBar = new ToolBar() {
     peer.setFloatable(false)
@@ -146,18 +148,19 @@ class SignalSelectorPanel(
   //  contents += toolBar
 
   val insertSignalBeforeButton = new Button("↑")
+  insertSignalBeforeButton.tooltip = "Insert Signal Before Selected"
   val insertSignalAfterButton = new Button("↓")
+  insertSignalAfterButton.tooltip = "Insert Signal After Selected"
   val insertSignalIntoButton = new Button("→")
+  insertSignalIntoButton.tooltip = "Insert Signal Into Selected"
   val appendSignalButton = new Button("⤓")
+  appendSignalButton.tooltip = "Append Signal to End"
 
   val symbolList: ScrollPane = new ScrollPane(tree) {
-    preferredSize = new Dimension(200, 1000)
-
     border = BorderFactory.createEmptyBorder()
   }
 
   layout(symbolList) = Center
-  //  contents += symbolList
 
   private val lowerToolbar = new ToolBar {
     peer.setFloatable(false)
@@ -170,7 +173,6 @@ class SignalSelectorPanel(
   }
 
   layout(lowerToolbar) = South
-  //  contents += lowerToolbar
 
   ///////////////////////////////////////////////////////////////////////////
   // Controller
