@@ -27,22 +27,22 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
 
   // Popup menu when a signal name is right-clicked
   private def popupMenu(signal: Option[Signal[_]]): PopupMenu = new PopupMenu {
-    contents += new Menu("Data Format") {
-      contents += new MenuItem(Action("Binary") {
-        selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, BinFormat)
-      })
-      contents += new MenuItem(Action("Decimal") {
-        selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, DecFormat)
-      })
-      contents += new MenuItem(Action("Hexadecimal") {
-        selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, HexFormat)
-      })
-      contents += new MenuItem(Action("X/Y Plot") {
-        selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, PlotFormat)
-      })
-    }
     signal match {
       case Some(pureSignal: PureSignal) =>
+        contents += new Menu("Data Format") {
+          contents += new MenuItem(Action("Binary") {
+            selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, BinFormat)
+          })
+          contents += new MenuItem(Action("Decimal") {
+            selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, DecFormat)
+          })
+          contents += new MenuItem(Action("Hexadecimal") {
+            selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, HexFormat)
+          })
+          contents += new MenuItem(Action("X/Y Plot") {
+            selectedSignalModel.setWaveFormat(this, tree.selection.cellValues, PlotFormat)
+          })
+        }
         contents += new MenuItem(Action("Add Driving Signals") {
           Dialog.showInput(
             this,
@@ -62,6 +62,17 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
         })
 
         pureSignal.symbolOpt.foreach { symbol =>
+          ChiselGUI.testerOpt.foreach { tester =>
+            val dataFormat = selectedSignalModel.waveDisplaySettings.getOrElse(pureSignal.name, WaveDisplaySetting())
+            contents += new MenuItem(Action("Show driving logic") {
+              val logic = tester.engine.expressionViewRenderer.render(symbol,
+                ChiselGUI.selectedSignalModel.cursorPosition,
+                dataFormat.dataFormat.getOrElse(DecFormat).radixChar,
+                showValues = false)
+              Dialog.showMessage(this, logic, s"Logic for ${symbol.name}")
+            })
+          }
+
           symbol.info match {
             case s: FileInfo =>
               s.info.string match {
