@@ -336,6 +336,10 @@ case class WaveDisplaySetting(var painter: Option[Int] = None, var dataFormat: O
 // May want to consider size of the wire
 sealed trait Format {
   def apply(num: BigInt): String
+
+  def radix: Int
+
+  def radixChar: String
 }
 
 object Format {
@@ -362,22 +366,38 @@ case object BinFormat extends Format {
   def apply(num: BigInt): String = {
     "0b" + num.toString(2)
   }
+
+  def radix: Int = 2
+
+  def radixChar: String = "b"
 }
 
 case object DecFormat extends Format {
   def apply(num: BigInt): String = {
     num.toString(10)
   }
+
+  def radix: Int = 10
+
+  def radixChar: String = "b"
 }
 
 case object HexFormat extends Format {
   def apply(num: BigInt): String = {
     "0x" + num.toString(16)
   }
+
+  def radix: Int = 16
+
+  def radixChar: String = "b"
 }
 
 case object PlotFormat extends Format {
   def apply(num: BigInt): String = {
     num.toString(10)
   }
+
+  def radix: Int = 10
+
+  def radixChar: String = "d"
 }

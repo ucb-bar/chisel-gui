@@ -22,6 +22,22 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
   val mainWindowRef: MainWindow = this
 
+  // import java.awt.Desktop
+  // This is supposed to work on Java 9+
+  //  val desktop = Desktop.getDesktop()
+  //  desktop.setAboutHandler(e ->
+  //    JOptionPane.showMessageDialog(null, "About dialog")
+  //  );
+  //  desktop.setPreferencesHandler(e ->
+  //    JOptionPane.showMessageDialog(null, "Preferences dialog")
+  //  );
+  //  desktop.setQuitHandler((e,r) -> {
+  //    JOptionPane.showMessageDialog(null, "Quit dialog");
+  //    System.exit(0);
+  //  }
+  //  );
+
+
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
@@ -45,18 +61,26 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     contents += new Label("Zoom")
 
-    contents += Button("⇤") {
+    val zoomToStart = Button("⇤") {
       signalAndWavePanel.zoomToStart(this)
     }
-    contents += Button("⇥ ⇤") {
+    zoomToStart.tooltip = "Zoom to Start"
+    contents += zoomToStart
+    val zoomIn = Button("⇥ ⇤") {
       signalAndWavePanel.zoomIn(this)
     }
-    contents += Button("⇤ ⇥") {
+    zoomIn.tooltip = "Zoom In"
+    contents += zoomIn
+    val zoomOut = Button("⇤ ⇥") {
       signalAndWavePanel.zoomOut(this)
     }
-    contents += Button("⇥") {
+    zoomOut.tooltip = "Zoom Out"
+    contents += zoomOut
+    val zoomEnd = Button("⇥") {
       signalAndWavePanel.zoomToEnd(this)
     }
+    zoomEnd.tooltip = "Zoom to End"
+    contents += zoomEnd
 
     contents += HStrut(20)
 
@@ -361,7 +385,6 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
   }
 
   def isSignalSelectorVisible: Boolean = mainContainer.signalSelectorContainer.visible
-
 
   def pingSplitPane(): Unit = {
     // The blasted remains of shotgun technique to get SignalSelectorPanel to re-display after hiding
