@@ -10,7 +10,7 @@ object DecoupledFireRestrictor {
 
   case class Interval(start: Long, end: Long, value: BigInt)
 
-  def buildTimeVector(buffer: mutable.ArrayBuffer[Transition[BigInt]]): List[Interval] = {
+  def buildTimeVector(buffer: mutable.ArrayBuffer[Transition]): List[Interval] = {
     val b = buffer.toList.sliding(2)
     val newList = b.flatMap {
       case transition1 :: transition2 :: Nil =>

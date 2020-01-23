@@ -134,6 +134,12 @@ object ChiselGUI extends SwingApplication with Publisher {
       mainWindow.signalAndWavePanel.setScaleAndVisible(startupScale, startupVisibleX)
     }
 
+    testerOpt.foreach { t =>
+      t.engine.vcdOption.foreach { vcd =>
+        Waves.refreshWaves(vcd)
+      }
+    }
+
     if (startUpColorScheme != "default") {
       ColorTable.setAltWaveColors()
     }
@@ -164,9 +170,6 @@ object ChiselGUI extends SwingApplication with Publisher {
             case (Some(readyName), Some(validName)) =>
               val decoupledSignal = new DecoupledSignalGroup(
                 s"${decoupledHandler.prefix}/RV",
-                None,
-                Some(new Waveform[BigInt](new mutable.ArrayBuffer[Transition[BigInt]]())),
-                0,
                 dataModel.nameToSignal(readyName).asInstanceOf[PureSignal],
                 dataModel.nameToSignal(validName).asInstanceOf[PureSignal],
                 decoupledHandler.bits.map { bitsName =>
@@ -177,9 +180,6 @@ object ChiselGUI extends SwingApplication with Publisher {
             case (None, Some(validName)) =>
               val validSignal = new ValidSignalGroup(
                 s"${decoupledHandler.prefix}/V",
-                None,
-                Some(new Waveform[BigInt](new mutable.ArrayBuffer[Transition[BigInt]]())),
-                0,
                 dataModel.nameToSignal(validName).asInstanceOf[PureSignal],
                 decoupledHandler.bits.map { bitsName =>
                   dataModel.nameToSignal(bitsName).asInstanceOf[PureSignal]
@@ -257,6 +257,10 @@ object ChiselGUI extends SwingApplication with Publisher {
 
       try {
         selectedSignalModel.treeModel.insertUnder(currentPath, node, index)
+        node match {
+          case w: WaveFormNode => Waves.updateWave(w.name)
+          case _ =>
+        }
       } catch {
         case t: Throwable =>
           println(t.getMessage)
@@ -287,7 +291,6 @@ object ChiselGUI extends SwingApplication with Publisher {
                     toExpand += currentPath ++ Seq(node)
                   }
                   addNode(depthString, indexString, node)
-                case Some(_: CombinedSignal) =>
                 case _ =>
               }
 
@@ -303,7 +306,6 @@ object ChiselGUI extends SwingApplication with Publisher {
                     toExpand += currentPath ++ Seq(node)
                   }
                   addNode(depthString, indexString, node)
-                case Some(_: CombinedSignal) =>
                 case _ =>
               }
 
@@ -319,7 +321,6 @@ object ChiselGUI extends SwingApplication with Publisher {
                     toExpand += currentPath ++ Seq(node)
                   }
                   addNode(depthString, indexString, node)
-                case Some(_: CombinedSignal) =>
                 case _ =>
               }
 
@@ -434,10 +435,12 @@ object ChiselGUI extends SwingApplication with Publisher {
           seedFromVcd(vcd, stopAtTime = Long.MaxValue)
           dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
           vcdOpt = tester.engine.vcdOption
+          Waves.setVcd(vcdOpt.get)
         case _ =>
           DecoupledHandler.lookForReadyValidBundles(vcd.wires.keys.toSeq)
           setupSignalsFromVcd(vcd)
           vcdOpt = Some(vcd)
+          Waves.setVcd(vcd)
       }
     } else {
       val warning = s"Could not open VCD file $vcdFileName"
@@ -458,11 +461,7 @@ object ChiselGUI extends SwingApplication with Publisher {
       tester.engine.symbolTable.nameToSymbol.foreach {
         case (name, symbol) if symbol.dataKind != InstanceKind && symbol.dataKind != MemKind =>
           if (!name.contains("/")) {
-            val sortGroup = Util.sortGroup(name, testerOpt)
-            val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
-            arrayBuffer += Transition(0L, BigInt(0))
-            val signal = new PureSignal(name, Some(symbol), Some(new Waveform(arrayBuffer)), sortGroup, symbol.bitWidth)
-
+            val signal = PureSignal(name, Some(symbol), symbol.bitWidth)
             dataModel.addSignal(name, signal)
           }
         case _ =>
@@ -473,31 +472,16 @@ object ChiselGUI extends SwingApplication with Publisher {
   def setupSignalsFromVcd(vcd: VCD): Unit = {
     vcd.wires.values.foreach { wire =>
       val name = wire.fullName
-      val sortGroup = Util.sortGroup(name, testerOpt)
-      val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
-      arrayBuffer += Transition(0L, BigInt(0))
-      val signal = new PureSignal(name, None, Some(new Waveform(arrayBuffer)), sortGroup, wire.width)
+      val signal = PureSignal(name, None, wire.width)
 
       dataModel.addSignal(name, signal)
     }
   }
 
   def populateWaveForms(): Unit = {
-    vcdOpt match {
-      case Some(vcd) =>
-        Util.vcdToTransitions(vcd, initializing = true).foreach {
-          case (fullName, transitions) =>
-            dataModel.nameToSignal.get(fullName) match {
-              case Some(pureSignal: PureSignal) =>
-                pureSignal.addNewValues(transitions)
-              case Some(_: CombinedSignal) =>
-              //TODO: figure out if anything needs to happen here
-              case _ =>
-            }
-        }
-        val newMaxTimestamp = if (vcd.valuesAtTime.nonEmpty) vcd.valuesAtTime.keys.max else 0L
-        dataModel.setMaxTimestamp(newMaxTimestamp)
-      case _ =>
+    vcdOpt.foreach { vcd =>
+      Waves.refreshWaves(vcd)
+      dataModel.setMaxTimestamp(vcd.events.lastOption.getOrElse(0L))
     }
   }
 

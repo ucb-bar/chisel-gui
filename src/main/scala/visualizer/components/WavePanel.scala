@@ -6,7 +6,7 @@ import scalaswingcontrib.tree.Tree
 import visualizer._
 import visualizer.config.{ColorTable, DrawMetrics}
 import visualizer.models._
-import visualizer.painters.{DecoupledPainter, MultiBitPainter, ReadyValidPainter, SingleBitPainter}
+import visualizer.painters.{DecoupledPainter, MultiBitPainter, SingleBitPainter}
 
 import scala.swing._
 import scala.swing.event._
@@ -20,7 +20,6 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
   private val multiBitPainter = new MultiBitPainter(selectedSignalModel)
   private val singleBitPainter = new SingleBitPainter(selectedSignalModel)
   private val decoupledPainter = new DecoupledPainter(selectedSignalModel)
-  private val readyValidPainter = new ReadyValidPainter(selectedSignalModel)
 
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)
@@ -32,30 +31,20 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
 
     // Draw waveforms
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach {
-      case (node: DirectoryNode, row) =>
+      case (_: DirectoryNode, _) =>
       case (node: SignalTreeNode, row) =>
         val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
         node.signal match {
           case signal: PureSignal =>
-            val isBinary = signal.symbolOpt match {
-              case Some(symbol) =>
-                symbol.bitWidth == 1
-              case None =>
-                signal.waveform.get.isBinary
-            }
-            selectedSignalModel.waveDisplaySettings(signal.name).painter match {
-              case _ =>
-                if (isBinary)
-                  singleBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
-                else
-                  multiBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
+            if (signal.isBinary) {
+              singleBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
+            } else {
+              multiBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
             }
           case _: DecoupledSignalGroup =>
             decoupledPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
           case _: ValidSignalGroup =>
             decoupledPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
-          case _: CombinedSignal =>
-            readyValidPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
         }
       case _ =>
     }

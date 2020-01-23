@@ -2,10 +2,10 @@
 
 package visualizer.models
 
-import treadle.vcd.{Change, VCD}
+import treadle.vcd.VCD
 
-import scala.collection.mutable
 import scala.collection.Searching._
+import scala.collection.mutable
 
 /** Represents the segments of a wave. Each segment has a start, an end and a value
   * starts and ends must be in strictly increasing order
@@ -44,35 +44,52 @@ class Wave {
 
   def length: Int = starts.length
 
+  def toTransitions: Seq[Transition] = {
+    starts.indices.map { index =>
+      Transition(starts(index), value(index))
+    }
+  }
+
+  def clear(): Unit = {
+    starts.clear()
+    ends.clear()
+    values.clear()
+    starts += 0L
+    ends += Long.MaxValue
+    values += BigInt(0)
+  }
+
   /** Adds a series of changes to this Wave
     *
     * @param transitions list of transitions for this wave
     */
-  def addChanges(transitions: Seq[Transition[BigInt]]): Unit = {
+  def addChanges(transitions: Seq[Transition]): Unit = {
     val newLength = transitions.length
     val lengthDelta = transitions.length - length
 
-    if (lengthDelta < 0) { // data has been shortened, truncate things
-      starts.remove(newLength, -lengthDelta)
-      ends.remove(newLength, -lengthDelta)
-      values.remove(newLength, -lengthDelta)
-    } else if (lengthDelta > 0) {
-      starts ++= Seq.fill(lengthDelta)(0L)
-      ends ++= Seq.fill(lengthDelta)(0L)
-      values ++= Seq.fill(lengthDelta)(BigInt(0))
-    }
+    if (newLength > 0) {
+      if (lengthDelta < 0) { // data has been shortened, truncate things
+        starts.remove(newLength, -lengthDelta)
+        ends.remove(newLength, -lengthDelta)
+        values.remove(newLength, -lengthDelta)
+      } else if (lengthDelta > 0) {
+        starts ++= Seq.fill(lengthDelta)(0L)
+        ends ++= Seq.fill(lengthDelta)(0L)
+        values ++= Seq.fill(lengthDelta)(BigInt(0))
+      }
 
-    var index = 0
-    while (index < transitions.length) {
-      val transition = transitions(index)
-      starts(index) = if (index == 0) 0L else transition.timestamp
-      ends(index) = if (index < length - 1) transitions(index + 1).timestamp else Long.MaxValue
-      values(index) = transition.value
-      index += 1
+      var index = 0
+      while (index < transitions.length) {
+        val transition = transitions(index)
+        starts(index) = if (index == 0) 0L else transition.timestamp
+        ends(index) = if (index < length - 1) transitions(index + 1).timestamp else Long.MaxValue
+        values(index) = transition.value
+        index += 1
+      }
     }
   }
 
-  def addOneTransition(transition: Transition[BigInt]): Unit = {
+  def addOneTransition(transition: Transition): Unit = {
     val lastIndex = length - 1
     assert(ends(lastIndex) == Long.MaxValue)
     ends(lastIndex) = transition.timestamp
@@ -92,6 +109,12 @@ object Waves {
       this (key) = new Wave()
       this (key)
     }
+  }
+
+  def get(name: String): Option[Wave] = nameToWave.get(name)
+
+  def exists(name: String): Boolean = {
+    nameToWave.contains(name)
   }
 
   def apply(name: String): Wave = {
@@ -126,7 +149,7 @@ object Waves {
     * relevant values in the VCD
     *
     */
-  def refreshWaves(): Unit = {
+  def refreshWaves(vcd: VCD): Unit = {
     vcd.events.foreach { time =>
       vcd.valuesAtTime(time).foreach { change =>
         nameToWave.get(change.wire.fullName).foreach { wave =>

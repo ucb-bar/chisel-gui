@@ -53,7 +53,7 @@ class SignalSelectorModel extends Publisher {
     !dup
   }
 
-  def addSignalToSelectionList(fullName: String, signal: Signal[_ <: Any]): Unit = {
+  def addSignalToSelectionList(fullName: String, signal: Signal): Unit = {
     // the full name of the signal (from treadle) uses periods to separate modules
     val fullPath = fullName.split("\\.")
     val signalName = fullPath.last

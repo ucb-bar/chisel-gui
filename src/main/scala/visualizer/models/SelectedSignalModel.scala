@@ -122,6 +122,7 @@ class SelectedSignalModel extends Publisher {
               waveDisplaySettings.getOrElseUpdate(p.name, WaveDisplaySetting())
             case _ =>
           }
+          Waves.updateWave(waveFormNode.signal.name)
         case _ =>
       }
 
@@ -207,7 +208,7 @@ class SelectedSignalModel extends Publisher {
     }
   }
 
-  var restrictedTransitionTimes: mutable.ArrayBuffer[Transition[BigInt]] = new mutable.ArrayBuffer()
+  var restrictedTransitionTimes: mutable.ArrayBuffer[Transition] = new mutable.ArrayBuffer()
 
   /** Currently only works on [[DecoupledSignalGroup]] will only show time on
     * wave view where fired is true for the given symbol

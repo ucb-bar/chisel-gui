@@ -5,7 +5,7 @@ package visualizer.models
 import org.scalatest.{FreeSpec, Matchers}
 
 class WaveSpec extends FreeSpec with Matchers {
-  def makeTransitions(seq: (Long, BigInt)*): Seq[Transition[BigInt]] = {
+  def makeTransitions(seq: (Long, BigInt)*): Seq[Transition] = {
     seq.map { case (t, v) => Transition(t, v) }
   }
 
