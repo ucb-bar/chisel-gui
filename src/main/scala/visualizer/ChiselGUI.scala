@@ -258,7 +258,7 @@ object ChiselGUI extends SwingApplication with Publisher {
       try {
         selectedSignalModel.treeModel.insertUnder(currentPath, node, index)
         node match {
-          case w: WaveFormNode => Waves.updateWave(w.name)
+          case w: WaveFormNode => Waves.addEntryFor(w.name)
           case _ =>
         }
       } catch {
@@ -435,7 +435,7 @@ object ChiselGUI extends SwingApplication with Publisher {
           seedFromVcd(vcd, stopAtTime = Long.MaxValue)
           dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
           vcdOpt = tester.engine.vcdOption
-          Waves.setVcd(vcdOpt.get)
+          Waves.setVcd(vcd)
         case _ =>
           DecoupledHandler.lookForReadyValidBundles(vcd.wires.keys.toSeq)
           setupSignalsFromVcd(vcd)

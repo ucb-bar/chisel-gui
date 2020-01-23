@@ -22,14 +22,9 @@ class SingleBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter
 
             // Only paint from first transition at or before the start timestamp
             // up until the first transition after the end timestamp
-            try {
-              val wave = Waves(pureSignal.name)
+            val wave = Waves(pureSignal.name)
+            if (wave.length > 0) {
               var index = wave.findStartIndex(startTimestamp)
-              //              // skip until we are at the last transition at or before the time of the start of the view
-              //              while (index < wave.length &&
-              //                selectedSignalModel.timestampToXCoordinate(wave.starts(index)) < visibleRect.x + visibleRect.width) {
-              //                index += 1
-              //              }
 
               while (index < wave.length) {
                 val left: Int = selectedSignalModel.timestampToXCoordinate(wave.start(index))

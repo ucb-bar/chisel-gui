@@ -92,12 +92,15 @@ class SignalSelectorModel extends Publisher {
     dataModelFilter = dataModelFilter.copy(rollupDecoupled = value)
   }
 
+  /** Add all the names in te data model as a candidate for the
+    * select list, names may get filtered in addSignalToSelectionList
+    */
+  //TODO: Not right if not sorted first, this should get fixed, it ought to work unsorted, which would be quicker
   def updateTreeModel(): Unit = {
     directoryTreeModel = InternalTreeModel.empty[GenericTreeNode]
 
-    ChiselGUI.dataModel.nameToSignal.foreach {
-      case (name, signal) =>
-        addSignalToSelectionList(name, signal)
+    ChiselGUI.dataModel.nameToSignal.keys.toSeq.sorted.foreach { name =>
+      addSignalToSelectionList(name, ChiselGUI.dataModel.nameToSignal(name))
     }
   }
 }

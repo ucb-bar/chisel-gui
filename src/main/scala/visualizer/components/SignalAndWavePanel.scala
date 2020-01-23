@@ -142,7 +142,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
           dataModel.nameToSignal.get(signalTreeNode.name) match {
             case Some(signal) =>
               Waves.get(signal.name) match {
-                case Some(wave) =>
+                case Some(wave) if wave.length > 0 =>
                   val time = selectedSignalModel.cursorPosition
                   val index = wave.findStartIndex(time)
                   val value = wave.value(index)

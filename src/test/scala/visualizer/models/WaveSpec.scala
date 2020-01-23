@@ -29,15 +29,14 @@ class WaveSpec extends FreeSpec with Matchers {
 
     wave.length should be(2)
     wave.start(0) should be(0)
-    wave.ends(0) should be(10)
+    wave.end(0) should be(10)
     wave.value(0) should be(BigInt(50))
 
     wave.start(1) should be(10)
-    wave.ends(1) should be(Long.MaxValue)
+    wave.end(1) should be(Long.MaxValue)
     wave.value(1) should be(BigInt(40))
 
     println(s"starts: ${wave.starts}")
-    println(s"ends: ${wave.ends}")
     println(s"values: ${wave.values}")
 
     transitions = makeTransitions((0, 12), (10, 40), (15, 20))
@@ -45,19 +44,18 @@ class WaveSpec extends FreeSpec with Matchers {
 
     wave.length should be(3)
     wave.start(0) should be(0)
-    wave.ends(0) should be(10)
+    wave.end(0) should be(10)
     wave.value(0) should be(BigInt(12))
 
     wave.start(1) should be(10)
-    wave.ends(1) should be(15)
+    wave.end(1) should be(15)
     wave.value(1) should be(BigInt(40))
 
     wave.start(2) should be(15)
-    wave.ends(2) should be(Long.MaxValue)
+    wave.end(2) should be(Long.MaxValue)
     wave.value(2) should be(BigInt(20))
 
     println(s"starts: ${wave.starts}")
-    println(s"ends: ${wave.ends}")
     println(s"values: ${wave.values}")
 
     //
@@ -68,15 +66,14 @@ class WaveSpec extends FreeSpec with Matchers {
     wave.length should be(2)
 
     wave.start(0) should be(0)
-    wave.ends(0) should be(2)
+    wave.end(0) should be(2)
     wave.value(0) should be(BigInt(7))
 
     wave.start(1) should be(2)
-    wave.ends(1) should be(Long.MaxValue)
+    wave.end(1) should be(Long.MaxValue)
     wave.value(1) should be(BigInt(4))
 
     println(s"starts: ${wave.starts}")
-    println(s"ends: ${wave.ends}")
     println(s"values: ${wave.values}")
   }
 

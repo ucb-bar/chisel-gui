@@ -15,12 +15,7 @@ import scala.collection.mutable
   */
 class Wave {
   val starts: mutable.ArrayBuffer[Long] = new mutable.ArrayBuffer()
-  val ends: mutable.ArrayBuffer[Long] = new mutable.ArrayBuffer()
   val values: mutable.ArrayBuffer[BigInt] = new mutable.ArrayBuffer()
-
-  starts += 0L
-  ends += Long.MaxValue
-  values += BigInt(0)
 
   /** Use system binary search to find index of start time less than or equal to time
     *
@@ -29,16 +24,30 @@ class Wave {
   def findStartIndex(time: Long): Int = {
     assert(time >= 0)
     starts.search(time) match {
-      case InsertionPoint(insertionPointIndex) => insertionPointIndex - 1
+      case InsertionPoint(insertionPointIndex) =>
+        if (insertionPointIndex > 0) {
+          insertionPointIndex - 1
+        } else {
+          0
+        }
       case Found(index) => index
       case _ =>
         throw new Exception(s"Searching for time $time, could not find index")
     }
   }
 
+  def add(time: Long, value: BigInt): Unit = {
+    if (starts.isEmpty && time > 0) {
+      starts += 0L
+      values += BigInt(0)
+    }
+    starts += time
+    values += value
+  }
+
   def start(index: Int): Long = starts(index)
 
-  def end(index: Int): Long = ends(index)
+  def end(index: Int): Long = if (index < length - 1) starts(index + 1) else starts(index) + 1
 
   def value(index: Int): BigInt = values(index)
 
@@ -52,11 +61,7 @@ class Wave {
 
   def clear(): Unit = {
     starts.clear()
-    ends.clear()
     values.clear()
-    starts += 0L
-    ends += Long.MaxValue
-    values += BigInt(0)
   }
 
   /** Adds a series of changes to this Wave
@@ -64,45 +69,22 @@ class Wave {
     * @param transitions list of transitions for this wave
     */
   def addChanges(transitions: Seq[Transition]): Unit = {
-    val newLength = transitions.length
-    val lengthDelta = transitions.length - length
+    clear()
 
-    if (newLength > 0) {
-      if (lengthDelta < 0) { // data has been shortened, truncate things
-        starts.remove(newLength, -lengthDelta)
-        ends.remove(newLength, -lengthDelta)
-        values.remove(newLength, -lengthDelta)
-      } else if (lengthDelta > 0) {
-        starts ++= Seq.fill(lengthDelta)(0L)
-        ends ++= Seq.fill(lengthDelta)(0L)
-        values ++= Seq.fill(lengthDelta)(BigInt(0))
-      }
-
-      var index = 0
-      while (index < transitions.length) {
-        val transition = transitions(index)
-        starts(index) = if (index == 0) 0L else transition.timestamp
-        ends(index) = if (index < length - 1) transitions(index + 1).timestamp else Long.MaxValue
-        values(index) = transition.value
-        index += 1
-      }
+    var index = 0
+    while (index < transitions.length) {
+      add(transitions(index).timestamp, transitions(index).value)
+      index += 1
     }
   }
 
   def addOneTransition(transition: Transition): Unit = {
-    val lastIndex = length - 1
-    assert(ends(lastIndex) == Long.MaxValue)
-    ends(lastIndex) = transition.timestamp
-
-    starts += transition.timestamp
-    ends += Long.MaxValue
-    values += transition.value
+    add(transition.timestamp, transition.value)
   }
 }
 
 object Waves {
   var vcd: VCD = new VCD("", "", "", "", "", false)
-  private var times = vcd.valuesAtTime.keys.toSeq.sorted
 
   val nameToWave: mutable.HashMap[String, Wave] = new mutable.HashMap[String, Wave]() {
     override def default(key: String): Wave = {
@@ -121,8 +103,13 @@ object Waves {
     nameToWave(name)
   }
 
-  def setVcd(vcd: VCD): Unit = {
+  def setVcd(newVcd: VCD): Unit = {
     nameToWave.clear()
+    vcd = newVcd
+  }
+
+  def addEntryFor(name: String): Unit = {
+    if (!nameToWave.contains(name)) nameToWave(name) = new Wave
   }
 
   /** This will scan the VCD for all change events associated with name
@@ -149,7 +136,8 @@ object Waves {
     * relevant values in the VCD
     *
     */
-  def refreshWaves(vcd: VCD): Unit = {
+  def refreshWaves(altVcd: VCD): Unit = {
+    nameToWave.values.foreach(_.clear())
     vcd.events.foreach { time =>
       vcd.valuesAtTime(time).foreach { change =>
         nameToWave.get(change.wire.fullName).foreach { wave =>
