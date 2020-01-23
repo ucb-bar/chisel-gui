@@ -207,10 +207,29 @@ class SelectedSignalModel extends Publisher {
     }
   }
 
+  var restrictedTransitionTimes: mutable.ArrayBuffer[Transition[BigInt]] = new mutable.ArrayBuffer()
+
+  /** Currently only works on [[DecoupledSignalGroup]] will only show time on
+    * wave view where fired is true for the given symbol
+    *
+    * @param genericTreeNode the managing nodes
+    */
+  def restrictTime(genericTreeNode: GenericTreeNode): Unit = {
+    //    genericTreeNode match {
+    //      case decoupledSignalGroup: DecoupledSignalGroup =>
+    //        decoupledSignalGroup.waveform.foreach { case waveform: Waveform[Transition[BigInt]] =>
+    //          var startTime = 0
+    //        }
+    //      case _ =>
+    //        restrictedTransitionTimes.clear()
+    //    }
+  }
+
   ///////////////////////////////////////////////////////////////////////////
   // Cursor
   ///////////////////////////////////////////////////////////////////////////
   var cursorPosition: Long = 0
+
   def setCursorPosition(timestamp: Long): Unit = {
     cursorPosition = timestamp
     publish(CursorSet(null))

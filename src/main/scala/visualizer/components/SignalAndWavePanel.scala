@@ -95,6 +95,17 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
             case _ =>
           }
         }
+      case Some(decoupledSignalGroup: DecoupledSignalGroup) =>
+        contents += new MenuItem(Action("Fire Time Only") {
+          val result = Dialog.showConfirmation(
+            this,
+            "Only show time during FIRE for this group?",
+            title = "Time Compress",
+          )
+          if (result == Dialog.Result.Ok) {
+            println("Git fired up")
+          }
+        })
       case _ =>
     }
   }
