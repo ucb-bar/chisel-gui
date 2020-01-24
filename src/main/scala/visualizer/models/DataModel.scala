@@ -42,16 +42,6 @@ class DataModel extends Publisher {
         case _ =>
       }
     }
-
-    // This updates the signals that are combinations of pure signals
-    // Todo: Make this more general
-    dataModel.nameToSignal.values.foreach {
-      case decoupledSignalGroup: DecoupledSignalGroup =>
-        decoupledSignalGroup.updateValues()
-      case validSignalGroup: ValidSignalGroup =>
-        validSignalGroup.updateValues()
-      case _ =>
-    }
   }
 
   ///////////////////////////////////////////////////////////////////////////

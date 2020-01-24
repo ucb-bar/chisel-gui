@@ -20,7 +20,6 @@ import visualizer.models._
 import visualizer.stage.{ChiselGuiCli, ChiselSourcePaths, VcdFile}
 
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 import scala.swing.Dialog.Result
 import scala.swing.{Dialog, Dimension, Publisher, SwingApplication}
 
@@ -129,17 +128,6 @@ object ChiselGUI extends SwingApplication with Publisher {
 
     if (startupScale > 0.0 && startupVisibleX >= 0) {
       mainWindow.signalAndWavePanel.setScaleAndVisible(startupScale, startupVisibleX)
-    }
-
-    testerOpt.foreach { t =>
-      t.engine.vcdOption.foreach { vcd =>
-        dataModel.nameToSignal.values.foreach {
-          case p: PureSignal =>
-            if (Waves.exists(p.name)) Waves(p.name).clear()
-          case _ =>
-        }
-        Waves.refreshWaves(vcd)
-      }
     }
 
     if (startUpColorScheme != "default") {

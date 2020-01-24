@@ -1,6 +1,6 @@
 package visualizer.painters
 
-import java.awt.{Color, Rectangle}
+import java.awt.Rectangle
 
 import visualizer.config.{ColorTable, DrawMetrics}
 import visualizer.models._
@@ -18,6 +18,8 @@ class SingleBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter
         waveFormNode.signal match {
           case pureSignal: PureSignal =>
             val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
+            val minLastEndTimestamp =
+              maxTimestamp.min(selectedSignalModel.xCoordinateToTimestamp(visibleRect.x + visibleRect.width))
             g.setColor(ColorTable(ColorTable.waveSignal))
 
             // Only paint from first transition at or before the start timestamp
@@ -27,8 +29,12 @@ class SingleBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter
               var index = wave.findStartIndex(startTimestamp)
 
               while (index < wave.length) {
-                val left:  Int = selectedSignalModel.timestampToXCoordinate(wave.start(index))
-                val right: Int = selectedSignalModel.timestampToXCoordinate(wave.end(index))
+                val left: Int = selectedSignalModel.timestampToXCoordinate(wave.start(index))
+                val right: Int = if (index < wave.length - 1) {
+                  selectedSignalModel.timestampToXCoordinate(wave.end(index))
+                } else {
+                  selectedSignalModel.timestampToXCoordinate(minLastEndTimestamp.max(wave.end(index)))
+                }
                 val value = wave.value(index)
                 val z = if (value == 0) DrawMetrics.WaveformHeight else 0
 
