@@ -105,6 +105,16 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
           )
           if (result == Dialog.Result.Ok) {
             println("Git fired up")
+            val timeSieveModel = new TimeSieveModel
+            selectedSignalModel.timeSieveOpt = Some(timeSieveModel)
+            Waves.get(decoupledSignalGroup.name).foreach { wave =>
+              timeSieveModel ++= wave.indices.flatMap {
+                case index if wave.value(index) == DecoupledSignalGroup.Fired =>
+                  Some(TimeSegment(wave.start(index), wave.end(index)))
+                case _ => None
+              }
+            }
+            println(s"TimeSieve: $timeSieveModel")
           }
         })
       case _ =>

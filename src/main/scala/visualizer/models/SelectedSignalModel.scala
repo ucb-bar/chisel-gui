@@ -29,6 +29,8 @@ class SelectedSignalModel extends Publisher {
   var useClock:             Boolean = false
   var clock:                Option[ClockInfo] = None
 
+  var timeSieveOpt: Option[TimeSieveModel] = None
+
   // initial/constructor
   setScale(10, null)
 
@@ -48,7 +50,6 @@ class SelectedSignalModel extends Publisher {
     * @param index       index within the parent children
     */
   def insertUnder(parentPath: Path[GenericTreeNode], nodeToAdd: GenericTreeNode, index: Int): Unit = {
-    println(s"SelectedSignalModel: Adding ${nodeToAdd.nodeId} : ${nodeToAdd.name} at ${parentPath} ${nodeToAdd}")
     treeModel.insertUnder(parentPath, nodeToAdd, index)
     nodeToAdd match {
       case WaveFormNode(_, signal, _) => signal.makeWaves()

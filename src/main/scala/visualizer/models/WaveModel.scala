@@ -54,6 +54,7 @@ class Wave {
   def length:   Int = starts.length
   def nonEmpty: Boolean = starts.nonEmpty
   def isEmpty:  Boolean = starts.isEmpty
+  def indices:  Range = starts.indices
 
   def toTransitions: Seq[Transition] = {
     starts.indices.map { index =>
