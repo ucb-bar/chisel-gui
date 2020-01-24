@@ -193,6 +193,8 @@ object ChiselGUI extends SwingApplication with Publisher {
     var clockHalfPeriodGuess = 0L
     var lastClockValue = 0L
 
+    engine.vcdOption = None
+
     vcd.valuesAtTime.keys.toSeq.sorted.foreach { time =>
       for (change <- vcd.valuesAtTime(time)) {
         if (time <= stopAtTime) {
@@ -200,6 +202,9 @@ object ChiselGUI extends SwingApplication with Publisher {
 
           engine.symbolTable.get(change.wire.fullName) match {
             case Some(symbol) =>
+              if (change.wire.fullName == "rDone") {
+                println(s"seed treadle time: $time change: $change")
+              }
               engine.setValue(symbol.name, change.value, force = true)
               if (symbol.firrtlType == ClockType) {
                 clockHalfPeriodGuess = time - lastClockTransitionTime
@@ -215,6 +220,8 @@ object ChiselGUI extends SwingApplication with Publisher {
         }
       }
     }
+    engine.vcdOption = Some(vcd)
+
     if (lastClockValue == 0L) {
       testerOpt.get.advanceTime(clockHalfPeriodGuess)
     }
