@@ -20,7 +20,6 @@ import visualizer.models._
 import visualizer.stage.{ChiselGuiCli, ChiselSourcePaths, VcdFile}
 
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 import scala.swing.Dialog.Result
 import scala.swing.{Dialog, Dimension, Publisher, SwingApplication}
 
@@ -40,11 +39,11 @@ object ChiselGUI extends SwingApplication with Publisher {
   val saveFilePrefix = "."
   val saveFileSuffix = ".chiselgui"
 
-  var testerOpt: Option[TreadleTester] = None
-  var vcdOpt: Option[treadle.vcd.VCD] = None
+  var testerOpt:       Option[TreadleTester] = None
+  var vcdOpt:          Option[treadle.vcd.VCD] = None
   var rollupDecoupled: Boolean = true
 
-  val dataModel: DataModel = new DataModel
+  val dataModel:           DataModel = new DataModel
   val signalSelectorModel: SignalSelectorModel = new SignalSelectorModel
   val selectedSignalModel: SelectedSignalModel = new SelectedSignalModel
 
@@ -54,12 +53,12 @@ object ChiselGUI extends SwingApplication with Publisher {
   var mainWindowSize = new Dimension(1000, 600)
   var startupMarkers = new mutable.ArrayBuffer[Marker]()
 
-  var startupCursorPosition: Long = 0L
-  var startupScale: Double = 10.0
-  var startupVisibleX: Int = -1
-  var startUpColorScheme: String = "default"
+  var startupCursorPosition:         Long = 0L
+  var startupScale:                  Double = 10.0
+  var startupVisibleX:               Int = -1
+  var startUpColorScheme:            String = "default"
   var startupAggregateDecoupledFlag: Boolean = true
-  var startupShowSignalSelector: Boolean = true
+  var startupShowSignalSelector:     Boolean = true
 
   var toExpand = new mutable.ArrayBuffer[Tree.Path[GenericTreeNode]]()
 
@@ -82,20 +81,23 @@ object ChiselGUI extends SwingApplication with Publisher {
       }
     }
 
-    val headerBarTitle = (firrtlFileNameOpt, vcdFileNameOpt) match {
+    var headerBarTitle: String = "ChiselGUI"
+
+    //
+    // firrtl and vcd resources are read in here and dataModel is populated
+    //
+    (firrtlFileNameOpt, vcdFileNameOpt) match {
       case (Some(firrtlFileName), Some(vcdFile)) =>
         setupTreadle(firrtlFileName, startAnnotations)
         setupVcdInput(vcdFile)
-        s"$firrtlFileName - $vcdFile"
+        headerBarTitle = s"$firrtlFileName - $vcdFile"
       case (Some(firrtlFileName), None) =>
         setupTreadle(firrtlFileName, startAnnotations)
-        s"$firrtlFileName"
+        headerBarTitle = s"$firrtlFileName"
       case (None, Some(vcdFile)) =>
         setupVcdInput(vcdFile)
-        s"$vcdFile"
+        headerBarTitle = s"$vcdFile"
       case _ =>
-        // Cannot get here. Should be trapped by shell.parse
-        "ChiselGUI"
     }
 
     addDecoupledSignals()
@@ -115,20 +117,14 @@ object ChiselGUI extends SwingApplication with Publisher {
 
     mainWindow.title = headerBarTitle
 
-    populateWaveForms()
-
-    dataModel.nameToSignal.values.foreach {
-      case decoupledSignalGroup: DecoupledSignalGroup =>
-        decoupledSignalGroup.updateValues()
-      case _ =>
-    }
-
     signalSelectorModel.dataModelFilter = signalSelectorModel.dataModelFilter.copy(
       hiddenDecoupled = DecoupledHandler.signalNameToDecouple.values.flatMap(_.getChildNames).toSeq
     )
 
     signalSelectorModel.updateTreeModel()
     mainWindow.signalSelectorPanel.updateModel()
+
+    populateWaveForms()
 
     if (startupScale > 0.0 && startupVisibleX >= 0) {
       mainWindow.signalAndWavePanel.setScaleAndVisible(startupScale, startupVisibleX)
@@ -164,9 +160,6 @@ object ChiselGUI extends SwingApplication with Publisher {
             case (Some(readyName), Some(validName)) =>
               val decoupledSignal = new DecoupledSignalGroup(
                 s"${decoupledHandler.prefix}/RV",
-                None,
-                Some(new Waveform[BigInt](new mutable.ArrayBuffer[Transition[BigInt]]())),
-                0,
                 dataModel.nameToSignal(readyName).asInstanceOf[PureSignal],
                 dataModel.nameToSignal(validName).asInstanceOf[PureSignal],
                 decoupledHandler.bits.map { bitsName =>
@@ -177,9 +170,6 @@ object ChiselGUI extends SwingApplication with Publisher {
             case (None, Some(validName)) =>
               val validSignal = new ValidSignalGroup(
                 s"${decoupledHandler.prefix}/V",
-                None,
-                Some(new Waveform[BigInt](new mutable.ArrayBuffer[Transition[BigInt]]())),
-                0,
                 dataModel.nameToSignal(validName).asInstanceOf[PureSignal],
                 decoupledHandler.bits.map { bitsName =>
                   dataModel.nameToSignal(bitsName).asInstanceOf[PureSignal]
@@ -203,6 +193,8 @@ object ChiselGUI extends SwingApplication with Publisher {
     var clockHalfPeriodGuess = 0L
     var lastClockValue = 0L
 
+    engine.vcdOption = None
+
     vcd.valuesAtTime.keys.toSeq.sorted.foreach { time =>
       for (change <- vcd.valuesAtTime(time)) {
         if (time <= stopAtTime) {
@@ -210,6 +202,9 @@ object ChiselGUI extends SwingApplication with Publisher {
 
           engine.symbolTable.get(change.wire.fullName) match {
             case Some(symbol) =>
+              if (change.wire.fullName == "rDone") {
+                println(s"seed treadle time: $time change: $change")
+              }
               engine.setValue(symbol.name, change.value, force = true)
               if (symbol.firrtlType == ClockType) {
                 clockHalfPeriodGuess = time - lastClockTransitionTime
@@ -225,6 +220,8 @@ object ChiselGUI extends SwingApplication with Publisher {
         }
       }
     }
+    engine.vcdOption = Some(vcd)
+
     if (lastClockValue == 0L) {
       testerOpt.get.advanceTime(clockHalfPeriodGuess)
     }
@@ -256,7 +253,11 @@ object ChiselGUI extends SwingApplication with Publisher {
       }
 
       try {
-        selectedSignalModel.treeModel.insertUnder(currentPath, node, index)
+        selectedSignalModel.insertUnder(currentPath, node, index)
+        node match {
+          case w: WaveFormNode => Waves.addEntryFor(w.name)
+          case _ =>
+        }
       } catch {
         case t: Throwable =>
           println(t.getMessage)
@@ -276,59 +277,56 @@ object ChiselGUI extends SwingApplication with Publisher {
               mainWindowSize = new Dimension(widthString.toInt, heightString.toInt)
 
             case "signal_node" :: depthString :: indexString ::
-              nodeName :: signalName :: formatString :: expand :: Nil =>
+                  nodeName :: signalName :: formatString :: expand :: Nil =>
               dataModel.nameToSignal.get(signalName) match {
                 case Some(pureSignal: PureSignal) =>
                   val node = WaveFormNode(nodeName, pureSignal)
                   selectedSignalModel.waveDisplaySettings(signalName) = {
                     WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
                   }
+                  addNode(depthString, indexString, node)
                   if (expand == "expand") {
                     toExpand += currentPath ++ Seq(node)
                   }
-                  addNode(depthString, indexString, node)
-                case Some(_: CombinedSignal) =>
                 case _ =>
               }
 
             case "decoupled_node" :: depthString :: indexString ::
-              nodeName :: signalName :: formatString :: expand :: Nil =>
+                  nodeName :: signalName :: formatString :: expand :: Nil =>
               dataModel.nameToSignal.get(signalName) match {
                 case Some(decoupledSignalGroup: DecoupledSignalGroup) =>
                   val node = WaveFormNode(nodeName, decoupledSignalGroup)
                   selectedSignalModel.waveDisplaySettings(signalName) = {
                     WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
                   }
+                  addNode(depthString, indexString, node)
                   if (expand == "expand") {
                     toExpand += currentPath ++ Seq(node)
                   }
-                  addNode(depthString, indexString, node)
-                case Some(_: CombinedSignal) =>
                 case _ =>
               }
 
             case "valid_node" :: depthString :: indexString ::
-              nodeName :: signalName :: formatString :: expand :: Nil =>
+                  nodeName :: signalName :: formatString :: expand :: Nil =>
               dataModel.nameToSignal.get(signalName) match {
                 case Some(validSignalGroup: ValidSignalGroup) =>
                   val node = WaveFormNode(nodeName, validSignalGroup)
                   selectedSignalModel.waveDisplaySettings(signalName) = {
                     WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
                   }
+                  addNode(depthString, indexString, node)
                   if (expand == "expand") {
                     toExpand += currentPath ++ Seq(node)
                   }
-                  addNode(depthString, indexString, node)
-                case Some(_: CombinedSignal) =>
                 case _ =>
               }
 
             case "node" :: depthString :: indexString :: nodeName :: expand :: Nil =>
               val node = DirectoryNode(nodeName)
+              addNode(depthString, indexString, node)
               if (expand == "expand") {
                 toExpand += currentPath ++ Seq(node)
               }
-              addNode(depthString, indexString, node)
 
             case "cursor-position" :: positionString :: Nil =>
               try {
@@ -434,10 +432,12 @@ object ChiselGUI extends SwingApplication with Publisher {
           seedFromVcd(vcd, stopAtTime = Long.MaxValue)
           dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
           vcdOpt = tester.engine.vcdOption
+          Waves.setVcd(tester.engine.vcdOption.get)
         case _ =>
           DecoupledHandler.lookForReadyValidBundles(vcd.wires.keys.toSeq)
           setupSignalsFromVcd(vcd)
           vcdOpt = Some(vcd)
+          Waves.setVcd(vcd)
       }
     } else {
       val warning = s"Could not open VCD file $vcdFileName"
@@ -458,11 +458,7 @@ object ChiselGUI extends SwingApplication with Publisher {
       tester.engine.symbolTable.nameToSymbol.foreach {
         case (name, symbol) if symbol.dataKind != InstanceKind && symbol.dataKind != MemKind =>
           if (!name.contains("/")) {
-            val sortGroup = Util.sortGroup(name, testerOpt)
-            val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
-            arrayBuffer += Transition(0L, BigInt(0))
-            val signal = new PureSignal(name, Some(symbol), Some(new Waveform(arrayBuffer)), sortGroup, symbol.bitWidth)
-
+            val signal = PureSignal(name, Some(symbol), symbol.bitWidth)
             dataModel.addSignal(name, signal)
           }
         case _ =>
@@ -473,32 +469,14 @@ object ChiselGUI extends SwingApplication with Publisher {
   def setupSignalsFromVcd(vcd: VCD): Unit = {
     vcd.wires.values.foreach { wire =>
       val name = wire.fullName
-      val sortGroup = Util.sortGroup(name, testerOpt)
-      val arrayBuffer = new ArrayBuffer[Transition[BigInt]]()
-      arrayBuffer += Transition(0L, BigInt(0))
-      val signal = new PureSignal(name, None, Some(new Waveform(arrayBuffer)), sortGroup, wire.width)
+      val signal = PureSignal(name, None, wire.width)
 
       dataModel.addSignal(name, signal)
     }
   }
 
   def populateWaveForms(): Unit = {
-    vcdOpt match {
-      case Some(vcd) =>
-        Util.vcdToTransitions(vcd, initializing = true).foreach {
-          case (fullName, transitions) =>
-            dataModel.nameToSignal.get(fullName) match {
-              case Some(pureSignal: PureSignal) =>
-                pureSignal.addNewValues(transitions)
-              case Some(_: CombinedSignal) =>
-              //TODO: figure out if anything needs to happen here
-              case _ =>
-            }
-        }
-        val newMaxTimestamp = if (vcd.valuesAtTime.nonEmpty) vcd.valuesAtTime.keys.max else 0L
-        dataModel.setMaxTimestamp(newMaxTimestamp)
-      case _ =>
-    }
+    dataModel.loadMoreWaveformValues()
   }
 
   def loadDrivingSignals(signal: PureSignal, maxDepth: Int): Unit = {

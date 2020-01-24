@@ -25,10 +25,10 @@ trait GenericTreeNode {
 }
 
 trait SignalTreeNode extends GenericTreeNode {
-  def signal: Signal[_]
+  def signal: Signal
 }
 
-case class WaveFormNode(name: String, signal: Signal[_], nodeId: Long) extends SignalTreeNode {
+case class WaveFormNode(name: String, signal: Signal, nodeId: Long) extends SignalTreeNode {
   override def serialize: String = {
     signal match {
       case p: PureSignal =>
@@ -40,7 +40,7 @@ case class WaveFormNode(name: String, signal: Signal[_], nodeId: Long) extends S
 }
 
 object WaveFormNode {
-  def apply(name: String, signal: Signal[_]): WaveFormNode = {
+  def apply(name: String, signal: Signal): WaveFormNode = {
     WaveFormNode(name, signal, GenericTreeNode.assignNodeId())
   }
 }

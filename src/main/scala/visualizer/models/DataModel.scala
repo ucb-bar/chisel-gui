@@ -1,5 +1,6 @@
 package visualizer.models
 
+import treadle.vcd.VCD
 import visualizer.ChiselGUI.dataModel
 import visualizer.{ChiselGUI, MaxTimestampChanged, Util}
 
@@ -15,9 +16,9 @@ class DataModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Directory Tree Model manages the list of signals
   ///////////////////////////////////////////////////////////////////////////
-  val nameToSignal = new mutable.HashMap[String, Signal[_]]
+  val nameToSignal = new mutable.HashMap[String, Signal]
 
-  def addSignal(fullName: String, signal: Signal[_ <: Any]): Unit = {
+  def addSignal(fullName: String, signal: Signal): Unit = {
     dataModel.nameToSignal(fullName) = signal
   }
 
@@ -25,31 +26,21 @@ class DataModel extends Publisher {
     *
     */
   def loadMoreWaveformValues(): Unit = {
-    ChiselGUI.testerOpt match {
-      case Some(t) =>
-        t.engine.vcdOption match {
-          case Some(vcd) =>
-            Util.vcdToTransitions(vcd, initializing = true).foreach {
-              case (fullName, transitions) =>
-                nameToSignal.get(fullName) match {
-                  case Some(pureSignal: PureSignal) =>
-                    pureSignal.addNewValues(transitions)
-                  case Some(combinedSignal: CombinedSignal) =>
-                  //TODO: figure out if anything needs to happen here
-                  case _ =>
-                }
-            }
-            dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
-          case _ =>
-        }
-      case None =>
-    }
-    dataModel.nameToSignal.values.foreach {
-      case decoupledSignalGroup: DecoupledSignalGroup =>
-        decoupledSignalGroup.updateValues()
-      case validSignalGroup: ValidSignalGroup =>
-        validSignalGroup.updateValues()
-      case _ =>
+    ChiselGUI.testerOpt.foreach { t =>
+      t.engine.vcdOption.foreach {
+        case vcd: VCD =>
+          Waves.refreshWaves(vcd)
+          dataModel.setMaxTimestamp(vcd.events.last)
+
+          dataModel.nameToSignal.values.foreach {
+            case decoupledSignalGroup: DecoupledSignalGroup =>
+              decoupledSignalGroup.updateValues()
+            case validSignalGroup: ValidSignalGroup =>
+              validSignalGroup.updateValues()
+            case _ =>
+          }
+        case _ =>
+      }
     }
   }
 

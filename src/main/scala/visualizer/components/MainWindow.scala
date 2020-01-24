@@ -37,7 +37,6 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
   //  }
   //  );
 
-
   ///////////////////////////////////////////////////////////////////////////
   // View
   ///////////////////////////////////////////////////////////////////////////
@@ -361,7 +360,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
       case e: DependencyComponentRequested =>
         showDependenciesPanel.textComponent.text = ChiselGUI.testerOpt match {
           case Some(t) => t.dependencyInfo(e.pureSignalName)
-          case None => ""
+          case None    => ""
         }
       case e: CursorSet =>
         setMarkerLabel(selectedSignalModel.cursorPosition)

@@ -29,74 +29,45 @@ class MultiBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter(
               case None             => DecFormat
             }
             val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
+            val minLastEndTimestamp =
+              maxTimestamp.min(selectedSignalModel.xCoordinateToTimestamp(visibleRect.x + visibleRect.width))
+
             g.setColor(ColorTable(ColorTable.waveSignal))
 
             var lastTransitionValue = BigInt(0)
 
             // Only paint from first transition at or before the start timestamp
             // up until the first transition after the end timestamp
-            try {
-              pureSignal.waveform.get
-                .findTransition(startTimestamp)
-                .sliding(2)
-                .takeWhile { transitionPair =>
-                  selectedSignalModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
+            val wave = Waves(pureSignal.name)
+            var index = wave.findStartIndex(startTimestamp)
+            var useHalfHexagon = false
+            while (index < wave.length) {
+              val left: Int = selectedSignalModel.timestampToXCoordinate(wave.start(index))
+              val right: Int = if (index < wave.length - 1) {
+                selectedSignalModel.timestampToXCoordinate(wave.end(index))
+              } else {
+                val lastTime = minLastEndTimestamp.max(wave.end(index))
+                if (lastTime > wave.end(index)) useHalfHexagon = true
+                selectedSignalModel.timestampToXCoordinate(lastTime)
+              }
+              val value = wave.value(index)
+
+              if (formatter == PlotFormat) {
+                val nextValue = if (index < wave.length - 1) wave.value(index + 1) else value
+                Painter.drawPlotLine(g, left, value, right, nextValue, pureSignal, top)
+              } else {
+                if (useHalfHexagon) {
+                  Painter.drawHalfHexagon(g, left, right, top)
+                } else {
+                  g.drawPolygon(Painter.hexagon(left, right, top))
                 }
-                .foreach {
-                  case transition1 :: transition2 :: Nil =>
-                    val left:  Int = selectedSignalModel.timestampToXCoordinate(transition1.timestamp)
-                    val right: Int = selectedSignalModel.timestampToXCoordinate(transition2.timestamp)
-
-                    if (formatter == PlotFormat) {
-                      Painter.drawPlotLine(g, left, transition1.value, right, transition2.value, pureSignal, top)
-                    } else {
-                      g.drawPolygon(Painter.hexagon(left, right, top))
-                    }
-
-                    val labelLeft = math.max(visibleRect.x, left + DrawMetrics.Foo)
-                    val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
-                    drawLabel(g, labelLeft, labelRight, top, formatter(transition1.value))
-                    lastTransitionValue = transition2.value
-
-                  case transition :: Nil =>
-                    val left:  Int = selectedSignalModel.timestampToXCoordinate(0L)
-                    val right: Int = selectedSignalModel.timestampToXCoordinate(transition.timestamp)
-
-                    if (left < right) {
-                      g.drawPolygon(Painter.hexagon(left, right, top))
-                    }
-
-                    val labelLeft = math.max(visibleRect.x, left + DrawMetrics.Foo)
-                    val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
-                    drawLabel(g, labelLeft, labelRight, top, formatter(transition.value))
-                }
-
-              pureSignal.waveform.get.transitions.lastOption match {
-                case Some(lastTransition) =>
-                  if (lastTransition.timestamp < maxTimestamp) {
-                    val left:  Int = selectedSignalModel.timestampToXCoordinate(lastTransition.timestamp)
-                    val right: Int = selectedSignalModel.timestampToXCoordinate(maxTimestamp)
-                    val z = if (lastTransition.value == 0L) DrawMetrics.WaveformHeight else 0
-
-                    if (formatter == PlotFormat) {
-                      Painter.drawPlotLine(g, left, lastTransitionValue, right, lastTransition.value, pureSignal, top)
-                    } else {
-                      if (left < right) {
-                        Painter.drawHalfHexagon(g, left, right, top)
-                      }
-                    }
-
-                    val labelLeft = math.max(visibleRect.x, left + DrawMetrics.Foo)
-                    val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
-                    drawLabel(g, labelLeft, labelRight, top, formatter(lastTransition.value))
-                  }
-                case _ =>
               }
 
-            } catch {
-              // If there's only 1 transition in the iterator returned by findTransition,
-              // sliding will throw IndexOutOfBoundsException
-              case _: IndexOutOfBoundsException =>
+              val labelLeft = math.max(visibleRect.x, left + DrawMetrics.Foo)
+              val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
+              drawLabel(g, labelLeft, labelRight, top, formatter(value))
+              lastTransitionValue = value
+              index += 1
             }
         }
 

@@ -67,7 +67,7 @@ object DecoupledHandler {
 case class DecoupledHandler(indexId: Long, prefix: String) {
   var readyNameOpt: Option[String] = None
   var validNameOpt: Option[String] = None
-  val bits: mutable.ArrayBuffer[String] = new mutable.ArrayBuffer()
+  val bits:         mutable.ArrayBuffer[String] = new mutable.ArrayBuffer()
 
   def getChildNames: Seq[String] = {
     bits ++ readyNameOpt ++ validNameOpt

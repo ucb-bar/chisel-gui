@@ -14,27 +14,24 @@ class DecoupledPainter(selectedSignalModel: SelectedSignalModel) extends Painter
                     node:         GenericTreeNode,
                     maxTimestamp: Long): Unit = {
 
-    def paintSignal(waveform: Waveform[BigInt], startTimestamp: Long): Unit = {
-      try {
-        waveform
-          .findTransition(startTimestamp)
-          .sliding(2)
-          .takeWhile { transitionPair =>
-            selectedSignalModel.timestampToXCoordinate(transitionPair.head.timestamp) < visibleRect.x + visibleRect.width
-          }
-          .foreach {
-            case t1 :: t2 :: Nil =>
-              val left: Int = selectedSignalModel.timestampToXCoordinate(t1.timestamp)
-              val right: Int = selectedSignalModel.timestampToXCoordinate(t2.timestamp)
+    val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
+    val minLastEndTimestamp =
+      maxTimestamp.min(selectedSignalModel.xCoordinateToTimestamp(visibleRect.x + visibleRect.width))
 
-              drawSegment(g, left, right, top, t1.value)
-            case t1 :: Nil =>
-            case _ =>
-          }
-      } catch {
-        // If there's only 1 transition in the iterator returned by findTransition,
-        // sliding will throw IndexOutOfBoundsException
-        case _: IndexOutOfBoundsException =>
+    def paintSignal(wave: Wave, startTimestamp: Long): Unit = {
+      var index = wave.findStartIndex(startTimestamp)
+
+      while (index < wave.length) {
+        val left: Int = selectedSignalModel.timestampToXCoordinate(wave.start(index))
+        val right: Int = if (index < wave.length - 1) {
+          selectedSignalModel.timestampToXCoordinate(wave.end(index))
+        } else {
+          val lastTime = minLastEndTimestamp.max(wave.end(index))
+          selectedSignalModel.timestampToXCoordinate(lastTime)
+        }
+        val value = wave.value(index)
+        drawSegment(g, left, right, top, value)
+        index += 1
       }
     }
 
@@ -42,15 +39,14 @@ class DecoupledPainter(selectedSignalModel: SelectedSignalModel) extends Painter
       case waveFormNode: WaveFormNode =>
         waveFormNode.signal match {
           case decoupledSignalGroup: DecoupledSignalGroup =>
-            val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
-            decoupledSignalGroup.waveform.foreach { waveForm =>
-              paintSignal(waveForm, startTimestamp)
+            Waves.get(decoupledSignalGroup.name).foreach { wave =>
+              paintSignal(wave, startTimestamp)
             }
 
           case validSignalGroup: ValidSignalGroup =>
-            val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
-            validSignalGroup.waveform.foreach { waveForm =>
-              paintSignal(waveForm, startTimestamp)
+            Waves.get(validSignalGroup.name).foreach {
+              case wave if wave.nonEmpty =>
+                paintSignal(wave, startTimestamp)
             }
         }
     }

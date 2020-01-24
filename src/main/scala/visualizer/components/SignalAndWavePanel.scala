@@ -26,7 +26,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
   val SourceInfoPattern: Regex = """([^ ]*) (\d*).*""".r
 
   // Popup menu when a signal name is right-clicked
-  private def popupMenu(signal: Option[Signal[_]]): PopupMenu = new PopupMenu {
+  private def popupMenu(signal: Option[Signal]): PopupMenu = new PopupMenu {
     signal match {
       case Some(pureSignal: PureSignal) =>
         contents += new Menu("Data Format") {
@@ -65,10 +65,11 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
           ChiselGUI.testerOpt.foreach { tester =>
             val dataFormat = selectedSignalModel.waveDisplaySettings.getOrElse(pureSignal.name, WaveDisplaySetting())
             contents += new MenuItem(Action("Show driving logic") {
-              val logic = tester.engine.expressionViewRenderer.render(symbol,
-                ChiselGUI.selectedSignalModel.cursorPosition,
-                dataFormat.dataFormat.getOrElse(DecFormat).radixChar,
-                showValues = false)
+              val logic =
+                tester.engine.expressionViewRenderer.render(symbol,
+                                                            ChiselGUI.selectedSignalModel.cursorPosition,
+                                                            dataFormat.dataFormat.getOrElse(DecFormat).radixChar,
+                                                            showValues = false)
               Dialog.showMessage(this, logic, s"Logic for ${symbol.name}")
             })
           }
@@ -95,6 +96,17 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
             case _ =>
           }
         }
+      case Some(decoupledSignalGroup: DecoupledSignalGroup) =>
+        contents += new MenuItem(Action("Fire Time Only") {
+          val result = Dialog.showConfirmation(
+            this,
+            "Only show time during FIRE for this group?",
+            title = "Time Compress",
+          )
+          if (result == Dialog.Result.Ok) {
+            println("Git fired up")
+          }
+        })
       case _ =>
     }
   }
@@ -106,7 +118,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     showsRootHandles = true
 
     def show(a: GenericTreeNode): String = {
-      def hasFileInfoGlyph(signal: Signal[_]): String = {
+      def hasFileInfoGlyph(signal: Signal): String = {
         signal match {
           case pureSignal: PureSignal =>
             pureSignal.symbolOpt match {
@@ -128,50 +140,35 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
           a.name
         case signalTreeNode: SignalTreeNode =>
           dataModel.nameToSignal.get(signalTreeNode.name) match {
-            case Some(signal) if signal.waveform.isDefined =>
-              val iterator = signal.waveform.get.findTransition(selectedSignalModel.cursorPosition)
-              if (iterator.hasNext) {
-                val value = iterator.next().value
+            case Some(signal) =>
+              Waves.get(signal.name) match {
+                case Some(wave) if wave.length > 0 =>
+                  val time = selectedSignalModel.cursorPosition
+                  val index = wave.findStartIndex(time)
+                  val value = wave.value(index)
 
-                val txt = signal match {
-                  case pureSignal: PureSignal if value.asInstanceOf[BigInt] != null =>
-                    selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
-                      case Some(setting) =>
-                        setting.dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
-                      case _ =>
-                        value.asInstanceOf[BigInt]
-                    }
-                  case _: DecoupledSignalGroup =>
-                    value match {
-                      case DecoupledSignalGroup.Fired => "Fired"
-                      case DecoupledSignalGroup.Ready => "Ready"
-                      case DecoupledSignalGroup.Valid => "Wait"
-                      case DecoupledSignalGroup.Busy => "Busy"
-                    }
-                  case _: ValidSignalGroup =>
-                    value match {
-                      case DecoupledSignalGroup.Fired => "Fired"
-                      case DecoupledSignalGroup.Ready => "Ready"
-                      case DecoupledSignalGroup.Valid => "Wait"
-                      case DecoupledSignalGroup.Busy => "Busy"
-                    }
-                  case _: CombinedSignal =>
-                    val pair = value.asInstanceOf[Array[BigInt]]
-                    if (pair != null) {
-                      (pair(0).toInt, pair(1).toInt) match {
-                        case (0, 0) => ":Not ready"
-                        case (1, 1) => ":Ready"
-                        case _ => ":Waiting"
+                  val txt = signal match {
+                    case pureSignal: PureSignal if value.asInstanceOf[BigInt] != null =>
+                      selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
+                        case Some(setting) =>
+                          setting.dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
+                        case _ =>
+                          value.asInstanceOf[BigInt]
                       }
-                    } else {
-                      ""
-                    }
-                  case _ => ""
-                }
-                s"${hasFileInfoGlyph(signal)}${a.name} = $txt"
-              } else {
-                a.name
+                    case _: DecoupledSignalGroup | _: ValidSignalGroup =>
+                      value match {
+                        case DecoupledSignalGroup.Fired => "Fired"
+                        case DecoupledSignalGroup.Ready => "Ready"
+                        case DecoupledSignalGroup.Valid => "Wait"
+                        case DecoupledSignalGroup.Busy  => "Busy"
+                      }
+                    case _ => ""
+                  }
+                  s"${hasFileInfoGlyph(signal)}${a.name} = $txt"
+                case _ =>
+                  a.name
               }
+
             case _ =>
               a.name
           }

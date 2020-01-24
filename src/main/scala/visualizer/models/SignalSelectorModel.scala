@@ -53,7 +53,7 @@ class SignalSelectorModel extends Publisher {
     !dup
   }
 
-  def addSignalToSelectionList(fullName: String, signal: Signal[_ <: Any]): Unit = {
+  def addSignalToSelectionList(fullName: String, signal: Signal): Unit = {
     // the full name of the signal (from treadle) uses periods to separate modules
     val fullPath = fullName.split("\\.")
     val signalName = fullPath.last
@@ -70,6 +70,7 @@ class SignalSelectorModel extends Publisher {
         pathAccumulator :+ dirNode
       }
       val node = WaveFormNode(signalName, signal)
+
       insertUnderSorted(parentPath, node)
 
       node.signal match {
@@ -92,12 +93,15 @@ class SignalSelectorModel extends Publisher {
     dataModelFilter = dataModelFilter.copy(rollupDecoupled = value)
   }
 
+  /** Add all the names in te data model as a candidate for the
+    * select list, names may get filtered in addSignalToSelectionList
+    */
+  //TODO: Not right if not sorted first, this should get fixed, it ought to work unsorted, which would be quicker
   def updateTreeModel(): Unit = {
     directoryTreeModel = InternalTreeModel.empty[GenericTreeNode]
 
-    ChiselGUI.dataModel.nameToSignal.foreach {
-      case (name, signal) =>
-        addSignalToSelectionList(name, signal)
+    ChiselGUI.dataModel.nameToSignal.keys.toSeq.sorted.foreach { name =>
+      addSignalToSelectionList(name, ChiselGUI.dataModel.nameToSignal(name))
     }
   }
 }
@@ -136,13 +140,13 @@ object DirectoryNodeOrdering extends Ordering[GenericTreeNode] {
   * @param pattern           add a search pattern
   */
 case class SelectionModelFilter(
-                                 showTempVariables: Boolean = false,
-                                 showGenVariables: Boolean = false,
-                                 showOnlyRegisters: Boolean = false,
-                                 rollupDecoupled: Boolean = true,
-                                 hiddenDecoupled: Seq[String] = Seq.empty,
-                                 pattern: String = ".*"
-                               ) {
+  showTempVariables: Boolean = false,
+  showGenVariables:  Boolean = false,
+  showOnlyRegisters: Boolean = false,
+  rollupDecoupled:   Boolean = true,
+  hiddenDecoupled:   Seq[String] = Seq.empty,
+  pattern:           String = ".*"
+) {
   val patternRegex: Regex = pattern.r
 
   def allow(s: String): Boolean = {
@@ -154,9 +158,9 @@ case class SelectionModelFilter(
 
     val isAllowed = {
       patternRegex.findFirstIn(s).isDefined &&
-        (!(s.endsWith("_T") || s.contains("_T_")) || showTempVariables) &&
-        (!(s.endsWith("_GEN") || s.contains("_GEN_")) || showGenVariables) &&
-        (!isHiddenDecoupledSignal)
+      (!(s.endsWith("_T") || s.contains("_T_")) || showTempVariables) &&
+      (!(s.endsWith("_GEN") || s.contains("_GEN_")) || showGenVariables) &&
+      (!isHiddenDecoupledSignal)
     }
     isAllowed
   }
