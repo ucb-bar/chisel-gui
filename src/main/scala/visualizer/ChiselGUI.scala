@@ -277,10 +277,10 @@ object ChiselGUI extends SwingApplication with Publisher {
                   selectedSignalModel.waveDisplaySettings(signalName) = {
                     WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
                   }
+                  addNode(depthString, indexString, node)
                   if (expand == "expand") {
                     toExpand += currentPath ++ Seq(node)
                   }
-                  addNode(depthString, indexString, node)
                 case _ =>
               }
 
@@ -292,10 +292,10 @@ object ChiselGUI extends SwingApplication with Publisher {
                   selectedSignalModel.waveDisplaySettings(signalName) = {
                     WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
                   }
+                  addNode(depthString, indexString, node)
                   if (expand == "expand") {
                     toExpand += currentPath ++ Seq(node)
                   }
-                  addNode(depthString, indexString, node)
                 case _ =>
               }
 
@@ -307,19 +307,19 @@ object ChiselGUI extends SwingApplication with Publisher {
                   selectedSignalModel.waveDisplaySettings(signalName) = {
                     WaveDisplaySetting(None, Some(Format.deserialize(formatString)))
                   }
+                  addNode(depthString, indexString, node)
                   if (expand == "expand") {
                     toExpand += currentPath ++ Seq(node)
                   }
-                  addNode(depthString, indexString, node)
                 case _ =>
               }
 
             case "node" :: depthString :: indexString :: nodeName :: expand :: Nil =>
               val node = DirectoryNode(nodeName)
+              addNode(depthString, indexString, node)
               if (expand == "expand") {
                 toExpand += currentPath ++ Seq(node)
               }
-              addNode(depthString, indexString, node)
 
             case "cursor-position" :: positionString :: Nil =>
               try {
@@ -365,6 +365,7 @@ object ChiselGUI extends SwingApplication with Publisher {
 
   def expandNodesOnStartup(): Unit = {
     toExpand.foreach { path =>
+      println(s"Expanding path ${path}")
       mainWindow.signalAndWavePanel.tree.expandPath(path)
     }
   }

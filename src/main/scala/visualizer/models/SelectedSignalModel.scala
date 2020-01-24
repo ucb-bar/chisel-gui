@@ -48,7 +48,7 @@ class SelectedSignalModel extends Publisher {
     * @param index       index within the parent children
     */
   def insertUnder(parentPath: Path[GenericTreeNode], nodeToAdd: GenericTreeNode, index: Int): Unit = {
-    println(s"SelectedSignalModel: Adding ${nodeToAdd.name}")
+    println(s"SelectedSignalModel: Adding ${nodeToAdd.nodeId} : ${nodeToAdd.name} at ${parentPath} ${nodeToAdd}")
     treeModel.insertUnder(parentPath, nodeToAdd, index)
     nodeToAdd match {
       case WaveFormNode(_, signal, _) => signal.makeWaves()
