@@ -51,7 +51,9 @@ class Wave {
 
   def value(index: Int): BigInt = values(index)
 
-  def length: Int = starts.length
+  def length:   Int = starts.length
+  def nonEmpty: Boolean = starts.nonEmpty
+  def isEmpty:  Boolean = starts.isEmpty
 
   def toTransitions: Seq[Transition] = {
     starts.indices.map { index =>
@@ -86,12 +88,7 @@ class Wave {
 object Waves {
   var vcd: VCD = new VCD("", "", "", "", "", false)
 
-  val nameToWave: mutable.HashMap[String, Wave] = new mutable.HashMap[String, Wave]() {
-    override def default(key: String): Wave = {
-      this (key) = new Wave()
-      this (key)
-    }
-  }
+  val nameToWave: mutable.HashMap[String, Wave] = new mutable.HashMap[String, Wave]()
 
   def get(name: String): Option[Wave] = nameToWave.get(name)
 
@@ -100,6 +97,9 @@ object Waves {
   }
 
   def apply(name: String): Wave = {
+    if (!nameToWave.contains(name)) {
+      println(s"Problems, not finding Waves($name)")
+    }
     nameToWave(name)
   }
 
@@ -126,7 +126,7 @@ object Waves {
           change.wire.fullName == name
         } match {
           case Some(change) => Some(Transition(time, change.value))
-          case _ => None
+          case _            => None
         }
     }.toSeq.sortBy(transition => transition.timestamp)
     wave.addChanges(changes)

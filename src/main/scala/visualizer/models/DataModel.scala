@@ -31,6 +31,14 @@ class DataModel extends Publisher {
         case vcd: VCD =>
           Waves.refreshWaves(vcd)
           dataModel.setMaxTimestamp(vcd.events.last)
+
+          dataModel.nameToSignal.values.foreach {
+            case decoupledSignalGroup: DecoupledSignalGroup =>
+              decoupledSignalGroup.updateValues()
+            case validSignalGroup: ValidSignalGroup =>
+              validSignalGroup.updateValues()
+            case _ =>
+          }
         case _ =>
       }
     }

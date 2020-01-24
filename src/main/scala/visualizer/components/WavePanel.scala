@@ -31,7 +31,7 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
 
     // Draw waveforms
     TreeHelper.viewableDepthFirstIterator(tree).zipWithIndex.foreach {
-      case (_: DirectoryNode, _) =>
+      case (_:    DirectoryNode, _) =>
       case (node: SignalTreeNode, row) =>
         val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
         node.signal match {

@@ -70,6 +70,7 @@ class SignalSelectorModel extends Publisher {
         pathAccumulator :+ dirNode
       }
       val node = WaveFormNode(signalName, signal)
+
       insertUnderSorted(parentPath, node)
 
       node.signal match {
@@ -139,13 +140,13 @@ object DirectoryNodeOrdering extends Ordering[GenericTreeNode] {
   * @param pattern           add a search pattern
   */
 case class SelectionModelFilter(
-                                 showTempVariables: Boolean = false,
-                                 showGenVariables: Boolean = false,
-                                 showOnlyRegisters: Boolean = false,
-                                 rollupDecoupled: Boolean = true,
-                                 hiddenDecoupled: Seq[String] = Seq.empty,
-                                 pattern: String = ".*"
-                               ) {
+  showTempVariables: Boolean = false,
+  showGenVariables:  Boolean = false,
+  showOnlyRegisters: Boolean = false,
+  rollupDecoupled:   Boolean = true,
+  hiddenDecoupled:   Seq[String] = Seq.empty,
+  pattern:           String = ".*"
+) {
   val patternRegex: Regex = pattern.r
 
   def allow(s: String): Boolean = {
@@ -157,9 +158,9 @@ case class SelectionModelFilter(
 
     val isAllowed = {
       patternRegex.findFirstIn(s).isDefined &&
-        (!(s.endsWith("_T") || s.contains("_T_")) || showTempVariables) &&
-        (!(s.endsWith("_GEN") || s.contains("_GEN_")) || showGenVariables) &&
-        (!isHiddenDecoupledSignal)
+      (!(s.endsWith("_T") || s.contains("_T_")) || showTempVariables) &&
+      (!(s.endsWith("_GEN") || s.contains("_GEN_")) || showGenVariables) &&
+      (!isHiddenDecoupledSignal)
     }
     isAllowed
   }

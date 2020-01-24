@@ -67,9 +67,9 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
             contents += new MenuItem(Action("Show driving logic") {
               val logic =
                 tester.engine.expressionViewRenderer.render(symbol,
-                  ChiselGUI.selectedSignalModel.cursorPosition,
-                  dataFormat.dataFormat.getOrElse(DecFormat).radixChar,
-                  showValues = false)
+                                                            ChiselGUI.selectedSignalModel.cursorPosition,
+                                                            dataFormat.dataFormat.getOrElse(DecFormat).radixChar,
+                                                            showValues = false)
               Dialog.showMessage(this, logic, s"Logic for ${symbol.name}")
             })
           }
@@ -160,7 +160,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
                         case DecoupledSignalGroup.Fired => "Fired"
                         case DecoupledSignalGroup.Ready => "Ready"
                         case DecoupledSignalGroup.Valid => "Wait"
-                        case DecoupledSignalGroup.Busy => "Busy"
+                        case DecoupledSignalGroup.Busy  => "Busy"
                       }
                     case _ => ""
                   }

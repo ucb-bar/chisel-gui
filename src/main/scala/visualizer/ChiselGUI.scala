@@ -40,11 +40,11 @@ object ChiselGUI extends SwingApplication with Publisher {
   val saveFilePrefix = "."
   val saveFileSuffix = ".chiselgui"
 
-  var testerOpt: Option[TreadleTester] = None
-  var vcdOpt: Option[treadle.vcd.VCD] = None
+  var testerOpt:       Option[TreadleTester] = None
+  var vcdOpt:          Option[treadle.vcd.VCD] = None
   var rollupDecoupled: Boolean = true
 
-  val dataModel: DataModel = new DataModel
+  val dataModel:           DataModel = new DataModel
   val signalSelectorModel: SignalSelectorModel = new SignalSelectorModel
   val selectedSignalModel: SelectedSignalModel = new SelectedSignalModel
 
@@ -54,12 +54,12 @@ object ChiselGUI extends SwingApplication with Publisher {
   var mainWindowSize = new Dimension(1000, 600)
   var startupMarkers = new mutable.ArrayBuffer[Marker]()
 
-  var startupCursorPosition: Long = 0L
-  var startupScale: Double = 10.0
-  var startupVisibleX: Int = -1
-  var startUpColorScheme: String = "default"
+  var startupCursorPosition:         Long = 0L
+  var startupScale:                  Double = 10.0
+  var startupVisibleX:               Int = -1
+  var startUpColorScheme:            String = "default"
   var startupAggregateDecoupledFlag: Boolean = true
-  var startupShowSignalSelector: Boolean = true
+  var startupShowSignalSelector:     Boolean = true
 
   var toExpand = new mutable.ArrayBuffer[Tree.Path[GenericTreeNode]]()
 
@@ -82,20 +82,23 @@ object ChiselGUI extends SwingApplication with Publisher {
       }
     }
 
-    val headerBarTitle = (firrtlFileNameOpt, vcdFileNameOpt) match {
+    var headerBarTitle: String = "ChiselGUI"
+
+    //
+    // firrtl and vcd resources are read in here and dataModel is populated
+    //
+    (firrtlFileNameOpt, vcdFileNameOpt) match {
       case (Some(firrtlFileName), Some(vcdFile)) =>
         setupTreadle(firrtlFileName, startAnnotations)
         setupVcdInput(vcdFile)
-        s"$firrtlFileName - $vcdFile"
+        headerBarTitle = s"$firrtlFileName - $vcdFile"
       case (Some(firrtlFileName), None) =>
         setupTreadle(firrtlFileName, startAnnotations)
-        s"$firrtlFileName"
+        headerBarTitle = s"$firrtlFileName"
       case (None, Some(vcdFile)) =>
         setupVcdInput(vcdFile)
-        s"$vcdFile"
+        headerBarTitle = s"$vcdFile"
       case _ =>
-        // Cannot get here. Should be trapped by shell.parse
-        "ChiselGUI"
     }
 
     addDecoupledSignals()
@@ -115,14 +118,6 @@ object ChiselGUI extends SwingApplication with Publisher {
 
     mainWindow.title = headerBarTitle
 
-    populateWaveForms()
-
-    dataModel.nameToSignal.values.foreach {
-      case decoupledSignalGroup: DecoupledSignalGroup =>
-        decoupledSignalGroup.updateValues()
-      case _ =>
-    }
-
     signalSelectorModel.dataModelFilter = signalSelectorModel.dataModelFilter.copy(
       hiddenDecoupled = DecoupledHandler.signalNameToDecouple.values.flatMap(_.getChildNames).toSeq
     )
@@ -130,12 +125,19 @@ object ChiselGUI extends SwingApplication with Publisher {
     signalSelectorModel.updateTreeModel()
     mainWindow.signalSelectorPanel.updateModel()
 
+    populateWaveForms()
+
     if (startupScale > 0.0 && startupVisibleX >= 0) {
       mainWindow.signalAndWavePanel.setScaleAndVisible(startupScale, startupVisibleX)
     }
 
     testerOpt.foreach { t =>
       t.engine.vcdOption.foreach { vcd =>
+        dataModel.nameToSignal.values.foreach {
+          case p: PureSignal =>
+            if (Waves.exists(p.name)) Waves(p.name).clear()
+          case _ =>
+        }
         Waves.refreshWaves(vcd)
       }
     }
@@ -256,7 +258,7 @@ object ChiselGUI extends SwingApplication with Publisher {
       }
 
       try {
-        selectedSignalModel.treeModel.insertUnder(currentPath, node, index)
+        selectedSignalModel.insertUnder(currentPath, node, index)
         node match {
           case w: WaveFormNode => Waves.addEntryFor(w.name)
           case _ =>
@@ -280,7 +282,7 @@ object ChiselGUI extends SwingApplication with Publisher {
               mainWindowSize = new Dimension(widthString.toInt, heightString.toInt)
 
             case "signal_node" :: depthString :: indexString ::
-              nodeName :: signalName :: formatString :: expand :: Nil =>
+                  nodeName :: signalName :: formatString :: expand :: Nil =>
               dataModel.nameToSignal.get(signalName) match {
                 case Some(pureSignal: PureSignal) =>
                   val node = WaveFormNode(nodeName, pureSignal)
@@ -295,7 +297,7 @@ object ChiselGUI extends SwingApplication with Publisher {
               }
 
             case "decoupled_node" :: depthString :: indexString ::
-              nodeName :: signalName :: formatString :: expand :: Nil =>
+                  nodeName :: signalName :: formatString :: expand :: Nil =>
               dataModel.nameToSignal.get(signalName) match {
                 case Some(decoupledSignalGroup: DecoupledSignalGroup) =>
                   val node = WaveFormNode(nodeName, decoupledSignalGroup)
@@ -310,7 +312,7 @@ object ChiselGUI extends SwingApplication with Publisher {
               }
 
             case "valid_node" :: depthString :: indexString ::
-              nodeName :: signalName :: formatString :: expand :: Nil =>
+                  nodeName :: signalName :: formatString :: expand :: Nil =>
               dataModel.nameToSignal.get(signalName) match {
                 case Some(validSignalGroup: ValidSignalGroup) =>
                   val node = WaveFormNode(nodeName, validSignalGroup)
@@ -479,10 +481,7 @@ object ChiselGUI extends SwingApplication with Publisher {
   }
 
   def populateWaveForms(): Unit = {
-    vcdOpt.foreach { vcd =>
-      Waves.refreshWaves(vcd)
-      dataModel.setMaxTimestamp(vcd.events.lastOption.getOrElse(0L))
-    }
+    dataModel.loadMoreWaveformValues()
   }
 
   def loadDrivingSignals(signal: PureSignal, maxDepth: Int): Unit = {

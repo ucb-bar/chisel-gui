@@ -39,12 +39,29 @@ class SelectedSignalModel extends Publisher {
 
   def timestampToXCoordinate(timestamp: Long): Int = (timestamp * scale).toInt
 
+  /** This is a trap point for all nodes added to the wave form view.
+    * This creates a Wave for each node, including any sub-nodes needed by complex nodes
+    * E.g. Decoupled needs waves for ready and valid even though they are not directly visible
+    *
+    * @param parentPath  where to put it
+    * @param nodeToAdd   what to put
+    * @param index       index within the parent children
+    */
+  def insertUnder(parentPath: Path[GenericTreeNode], nodeToAdd: GenericTreeNode, index: Int): Unit = {
+    println(s"SelectedSignalModel: Adding ${nodeToAdd.name}")
+    treeModel.insertUnder(parentPath, nodeToAdd, index)
+    nodeToAdd match {
+      case WaveFormNode(_, signal, _) => signal.makeWaves()
+      case _                          =>
+    }
+  }
+
   ///////////////////////////////////////////////////////////////////////////
   // Signals
   ///////////////////////////////////////////////////////////////////////////
   def addFromDirectoryToInspected(node: GenericTreeNode, source: Component): Unit = {
     val inspectedNode = node
-    treeModel.insertUnder(RootPath, inspectedNode, treeModel.getChildrenOf(RootPath).size)
+    insertUnder(RootPath, inspectedNode, treeModel.getChildrenOf(RootPath).size)
 
     node match {
       case waveFormNode: WaveFormNode =>
@@ -54,6 +71,14 @@ class SelectedSignalModel extends Publisher {
     publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
   }
 
+  /** This is how nodes are added from the signal selector
+    *
+    * @param addDirection       where to add based on current head of selection
+    * @param genericTreeNode    node to add
+    * @param source             swing component that is selector panel
+    * @param targetPathOpt      overrides direction
+    * @return
+    */
   def addNodes(addDirection:    AddDirection,
                genericTreeNode: GenericTreeNode,
                source:          Component,
@@ -85,17 +110,17 @@ class SelectedSignalModel extends Publisher {
               treeModel.insertBefore(path, genericTreeNode)
               path.tail ++ Seq(genericTreeNode)
             case _ =>
-              treeModel.insertUnder(RootPath, genericTreeNode, treeModel.getChildrenOf(RootPath).size)
+              insertUnder(RootPath, genericTreeNode, treeModel.getChildrenOf(RootPath).size)
               RootPath ++ Seq(genericTreeNode)
           }
 
         case InsertInto =>
           targetPath match {
             case Some(path) =>
-              treeModel.insertUnder(path, genericTreeNode, treeModel.getChildrenOf(path).size)
+              insertUnder(path, genericTreeNode, treeModel.getChildrenOf(path).size)
               path ++ Seq(genericTreeNode)
             case _ =>
-              treeModel.insertUnder(RootPath, genericTreeNode, treeModel.getChildrenOf(RootPath).size)
+              insertUnder(RootPath, genericTreeNode, treeModel.getChildrenOf(RootPath).size)
               RootPath ++ Seq(genericTreeNode)
           }
 
@@ -105,12 +130,12 @@ class SelectedSignalModel extends Publisher {
               treeModel.insertAfter(path, genericTreeNode)
               path.tail ++ Seq(genericTreeNode)
             case _ =>
-              treeModel.insertUnder(RootPath, genericTreeNode, treeModel.getChildrenOf(RootPath).size)
+              insertUnder(RootPath, genericTreeNode, treeModel.getChildrenOf(RootPath).size)
               RootPath ++ Seq(genericTreeNode)
           }
 
         case AppendToEnd =>
-          treeModel.insertUnder(RootPath, genericTreeNode, treeModel.getChildrenOf(RootPath).size)
+          insertUnder(RootPath, genericTreeNode, treeModel.getChildrenOf(RootPath).size)
           RootPath ++ Seq(genericTreeNode)
 
       }
@@ -137,7 +162,7 @@ class SelectedSignalModel extends Publisher {
 
   def addGroup(newGroupName: String): Unit = {
     val node = DirectoryNode(newGroupName)
-    treeModel.insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
+    insertUnder(RootPath, node, treeModel.getChildrenOf(RootPath).size)
   }
 
   // Removes all selected signals, selected groups, and children of selected groups

@@ -22,10 +22,10 @@ import BorderPanel.Position._
   * @param selectedSignalModel underlying model for signals that have been selected for viewing
   */
 class SignalSelectorPanel(
-                           dataModel: DataModel,
-                           signalSelectorModel: SignalSelectorModel,
-                           selectedSignalModel: SelectedSignalModel
-                         ) extends BorderPanel {
+  dataModel:           DataModel,
+  signalSelectorModel: SignalSelectorModel,
+  selectedSignalModel: SelectedSignalModel
+) extends BorderPanel {
 
   ///////////////////////////////////////////////////////////////////////////
   // View

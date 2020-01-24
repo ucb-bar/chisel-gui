@@ -27,7 +27,7 @@ class SingleBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter
               var index = wave.findStartIndex(startTimestamp)
 
               while (index < wave.length) {
-                val left: Int = selectedSignalModel.timestampToXCoordinate(wave.start(index))
+                val left:  Int = selectedSignalModel.timestampToXCoordinate(wave.start(index))
                 val right: Int = selectedSignalModel.timestampToXCoordinate(wave.end(index))
                 val value = wave.value(index)
                 val z = if (value == 0) DrawMetrics.WaveformHeight else 0

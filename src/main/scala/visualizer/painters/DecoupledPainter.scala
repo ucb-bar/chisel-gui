@@ -18,7 +18,7 @@ class DecoupledPainter(selectedSignalModel: SelectedSignalModel) extends Painter
       var index = wave.findStartIndex(startTimestamp)
 
       while (index < wave.length) {
-        val left: Int = selectedSignalModel.timestampToXCoordinate(wave.start(index))
+        val left:  Int = selectedSignalModel.timestampToXCoordinate(wave.start(index))
         val right: Int = selectedSignalModel.timestampToXCoordinate(wave.end(index))
         val value = wave.value(index)
         drawSegment(g, left, right, top, value)
@@ -37,8 +37,9 @@ class DecoupledPainter(selectedSignalModel: SelectedSignalModel) extends Painter
 
           case validSignalGroup: ValidSignalGroup =>
             val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
-            Waves.get(validSignalGroup.name).foreach { wave =>
-              paintSignal(wave, startTimestamp)
+            Waves.get(validSignalGroup.name).foreach {
+              case wave if wave.nonEmpty =>
+                paintSignal(wave, startTimestamp)
             }
         }
     }
