@@ -365,7 +365,6 @@ object ChiselGUI extends SwingApplication with Publisher {
 
   def expandNodesOnStartup(): Unit = {
     toExpand.foreach { path =>
-      println(s"Expanding path ${path}")
       mainWindow.signalAndWavePanel.tree.expandPath(path)
     }
   }
@@ -426,7 +425,7 @@ object ChiselGUI extends SwingApplication with Publisher {
           seedFromVcd(vcd, stopAtTime = Long.MaxValue)
           dataModel.setMaxTimestamp(vcd.valuesAtTime.keys.max)
           vcdOpt = tester.engine.vcdOption
-          Waves.setVcd(vcd)
+          Waves.setVcd(tester.engine.vcdOption.get)
         case _ =>
           DecoupledHandler.lookForReadyValidBundles(vcd.wires.keys.toSeq)
           setupSignalsFromVcd(vcd)
