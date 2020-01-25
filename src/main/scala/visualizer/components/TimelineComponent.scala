@@ -28,40 +28,56 @@ class TimelineComponent(dataModel: DataModel, selectedSignalModel: SelectedSigna
     val visibleRect = peer.getVisibleRect
     val metrics = g.getFontMetrics
 
-    selectedSignalModel.clock match {
-      case Some(clk) if selectedSignalModel.useClock =>
-        val startTime: Long = math.max(((visibleRect.x - 100) / selectedSignalModel.scale).toLong - clk.initialOffset,
-                                       0) / clk.period * clk.period + clk.initialOffset
-        val endTime: Long = ((visibleRect.x + visibleRect.width) / selectedSignalModel.scale).toLong
+    selectedSignalModel.timeSieveOpt match {
+      case Some(timeSieve) =>
+        val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
+        var sieveIndex = timeSieve.findStartIndex(startTimestamp)
 
-        for (ts: Long <- startTime until endTime by clk.period) {
-          val x: Int = (ts * selectedSignalModel.scale).toInt
-          if ((((ts - clk.initialOffset) / clk.period) / selectedSignalModel.clkMinorTickInterval) % 5 == 0) {
-            g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
-            g.drawString(((ts - clk.initialOffset) / clk.period).toString,
-                         x + 3,
-                         DrawMetrics.MinorTickTop - metrics.getDescent - 2)
-          } else {
-            g.drawLine(x, DrawMetrics.MinorTickTop, x, DrawMetrics.TimescaleHeight)
-          }
+        while (sieveIndex < timeSieve.length) {
+          val timeSum = timeSieve.start(sieveIndex)
+          val x = selectedSignalModel.timestampToXCoordinate(timeSieve.timeSum(sieveIndex))
+          g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
+          g.drawString(timeSum + " " + unit, x + 3, DrawMetrics.MinorTickTop - metrics.getDescent - 2)
+          sieveIndex += 1
         }
       case _ =>
-        // The -100 in start time keeps labels that are to the left of the window from not being drawn
-        // (which causes artifacts when scrolling).  It needs to be bigger than the largest label.
-        val startTime
-          : Long = math.max(((visibleRect.x - 100) / selectedSignalModel.scale).toLong, 0) / selectedSignalModel.minorTickInterval * selectedSignalModel.minorTickInterval
-        val endTime: Long = ((visibleRect.x + visibleRect.width) / selectedSignalModel.scale).toLong
+        selectedSignalModel.clock match {
+          case Some(clk) if selectedSignalModel.useClock =>
+            val startTime: Long = math.max(
+              ((visibleRect.x - 100) / selectedSignalModel.scale).toLong - clk.initialOffset,
+              0
+            ) / clk.period * clk.period + clk.initialOffset
+            val endTime: Long = ((visibleRect.x + visibleRect.width) / selectedSignalModel.scale).toLong
 
-        for (ts: Long <- startTime until endTime by selectedSignalModel.minorTickInterval) {
-          val x: Int = (ts * selectedSignalModel.scale).toInt
-          if ((ts / selectedSignalModel.minorTickInterval) % 10 == 0) {
-            g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
-            g.drawString((ts / unitMagnitude).toString + " " + unit,
-                         x + 3,
-                         DrawMetrics.MinorTickTop - metrics.getDescent - 2)
-          } else {
-            g.drawLine(x, DrawMetrics.MinorTickTop, x, DrawMetrics.TimescaleHeight)
-          }
+            for (ts: Long <- startTime until endTime by clk.period) {
+              val x: Int = (ts * selectedSignalModel.scale).toInt
+              if ((((ts - clk.initialOffset) / clk.period) / selectedSignalModel.clkMinorTickInterval) % 5 == 0) {
+                g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
+                g.drawString(((ts - clk.initialOffset) / clk.period).toString,
+                             x + 3,
+                             DrawMetrics.MinorTickTop - metrics.getDescent - 2)
+              } else {
+                g.drawLine(x, DrawMetrics.MinorTickTop, x, DrawMetrics.TimescaleHeight)
+              }
+            }
+          case _ =>
+            // The -100 in start time keeps labels that are to the left of the window from not being drawn
+            // (which causes artifacts when scrolling).  It needs to be bigger than the largest label.
+            val startTime
+              : Long = math.max(((visibleRect.x - 100) / selectedSignalModel.scale).toLong, 0) / selectedSignalModel.minorTickInterval * selectedSignalModel.minorTickInterval
+            val endTime: Long = ((visibleRect.x + visibleRect.width) / selectedSignalModel.scale).toLong
+
+            for (ts: Long <- startTime until endTime by selectedSignalModel.minorTickInterval) {
+              val x: Int = (ts * selectedSignalModel.scale).toInt
+              if ((ts / selectedSignalModel.minorTickInterval) % 10 == 0) {
+                g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
+                g.drawString((ts / unitMagnitude).toString + " " + unit,
+                             x + 3,
+                             DrawMetrics.MinorTickTop - metrics.getDescent - 2)
+              } else {
+                g.drawLine(x, DrawMetrics.MinorTickTop, x, DrawMetrics.TimescaleHeight)
+              }
+            }
         }
     }
 

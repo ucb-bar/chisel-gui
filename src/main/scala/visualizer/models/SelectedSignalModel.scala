@@ -29,8 +29,9 @@ class SelectedSignalModel extends Publisher {
   var useClock:             Boolean = false
   var clock:                Option[ClockInfo] = None
 
-  var timeSieveOpt: Option[TimeSieve] = None
-
+  var timeSieveOpt:                 Option[TimeSieve] = None
+  var currentDecoupledSieveSignal:  String = ""
+  var currentDecoupledSieveTrigger: BigInt = 0
   // initial/constructor
   setScale(10, null)
 
@@ -180,6 +181,36 @@ class SelectedSignalModel extends Publisher {
   }
 
   ///////////////////////////////////////////////////////////////////////////
+  // Create a hard-code time sieve based on fire events in Decoupled Group
+  ///////////////////////////////////////////////////////////////////////////
+
+  def createDecoupledTimeSieve(groupName: String, triggerValue: BigInt): Unit = {
+    val timeSieve = new TimeSieve
+    timeSieveOpt = Some(timeSieve)
+    Waves.get(groupName).foreach { wave =>
+      var accumulatedTime = -1L
+      println(s"Wave:      $wave")
+      wave.indices.foreach {
+        case index if wave.value(index) == triggerValue =>
+          val (start, end) = (wave.start(index), wave.end(index))
+          if (accumulatedTime < 0) accumulatedTime = start
+          timeSieve.add(start, end)
+          accumulatedTime += start
+        case _ => None
+      }
+      currentDecoupledSieveSignal = groupName
+      currentDecoupledSieveTrigger = triggerValue
+      println(s"TimeSieve: $timeSieve")
+    }
+  }
+
+  def clearTimeSieve(): Unit = {
+    timeSieveOpt = None
+  }
+
+  def usingSieve = timeSieveOpt.isDefined
+
+  ///////////////////////////////////////////////////////////////////////////
   // Wave Display Format
   ///////////////////////////////////////////////////////////////////////////
   def setWaveFormat(source: Component, nodes: Iterator[GenericTreeNode], format: Format): Unit = {
@@ -232,6 +263,10 @@ class SelectedSignalModel extends Publisher {
         publish(TimeUnitsChanged(null))
       case _ => // No clock set up
     }
+  }
+
+  def refreshTimeline(): Unit = {
+    publish(TimeUnitsChanged(null))
   }
 
   var restrictedTransitionTimes: mutable.ArrayBuffer[Transition] = new mutable.ArrayBuffer()

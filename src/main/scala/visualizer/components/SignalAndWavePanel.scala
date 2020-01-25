@@ -97,41 +97,38 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
           }
         }
       case Some(decoupledSignalGroup: DecoupledSignalGroup) =>
-        val (message, menu2) = if (selectedSignalModel.timeSieveOpt.isEmpty) {
-          ("Compress time to Fire", "Only show time during FIRE for this group?")
+        val message = if (selectedSignalModel.timeSieveOpt.isEmpty) {
+          "Show signal values only for times during FIRE event"
         } else {
-          ("Turn Off Time compression", "Turn of compressed time")
+          "Turn off FIRE event compression"
         }
 
         contents += new MenuItem(Action(message) {
-          val result = Dialog.showConfirmation(
-            this,
-            "Only show time during FIRE for this group?",
-            title = "Time Compress",
-          )
-          if (result == Dialog.Result.Ok) {
-            if (selectedSignalModel.timeSieveOpt.isDefined) {
-              selectedSignalModel.timeSieveOpt = None
-            } else {
-              println("Git fired up")
-              val timeSieve = new TimeSieve
-              selectedSignalModel.timeSieveOpt = Some(timeSieve)
-              Waves.get(decoupledSignalGroup.name).foreach { wave =>
-                var accumulatedTime = -1L
-                println(s"Wave:      $wave")
-                wave.indices.foreach {
-                  case index if wave.value(index) == DecoupledSignalGroup.Fired =>
-                    val (start, end) = (wave.start(index), wave.end(index))
-                    if (accumulatedTime < 0) accumulatedTime = start
-                    timeSieve.add(start, end)
-                    accumulatedTime += start
-                  case _ => None
-                }
-                println(s"TimeSieve: $timeSieve")
-                publish(WaveFormatChanged(this))
-              }
-            }
+          if (selectedSignalModel.timeSieveOpt.isDefined) {
+            selectedSignalModel.timeSieveOpt = None
+          } else {
+            selectedSignalModel.createDecoupledTimeSieve(decoupledSignalGroup.name, DecoupledSignalGroup.Fired)
           }
+          SwingUtilities.invokeLater(() => repaint())
+          updateWaveView()
+          selectedSignalModel.refreshTimeline()
+        })
+      case Some(validSignalGroup: ValidSignalGroup) =>
+        val message = if (selectedSignalModel.timeSieveOpt.isEmpty) {
+          "Show signal values only for times during VALID event"
+        } else {
+          "Turn off VALID event compression"
+        }
+
+        contents += new MenuItem(Action(message) {
+          if (selectedSignalModel.timeSieveOpt.isDefined) {
+            selectedSignalModel.timeSieveOpt = None
+          } else {
+            selectedSignalModel.createDecoupledTimeSieve(validSignalGroup.name, DecoupledSignalGroup.Valid)
+          }
+          SwingUtilities.invokeLater(() => repaint())
+          updateWaveView()
+          selectedSignalModel.refreshTimeline()
         })
       case _ =>
     }

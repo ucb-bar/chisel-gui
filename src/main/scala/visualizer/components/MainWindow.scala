@@ -321,6 +321,14 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     writer.println(s"show_signal_selector,$isSignalSelectorVisible")
 
+    if (selectedSignalModel.currentDecoupledSieveSignal.nonEmpty) {
+      writer.println(
+        s"decoupled_sieve_signal," +
+          s"${selectedSignalModel.currentDecoupledSieveSignal}," +
+          s"${selectedSignalModel.currentDecoupledSieveTrigger}"
+      )
+    }
+
     writer.close()
   }
 

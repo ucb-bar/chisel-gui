@@ -59,6 +59,8 @@ object ChiselGUI extends SwingApplication with Publisher {
   var startUpColorScheme:            String = "default"
   var startupAggregateDecoupledFlag: Boolean = true
   var startupShowSignalSelector:     Boolean = true
+  var startupSieveSignal:            String = ""
+  var startupSieveTrigger:           BigInt = BigInt(0)
 
   var toExpand = new mutable.ArrayBuffer[Tree.Path[GenericTreeNode]]()
 
@@ -135,6 +137,10 @@ object ChiselGUI extends SwingApplication with Publisher {
     }
 
     expandNodesOnStartup()
+
+    if (startupSieveSignal.nonEmpty) {
+      selectedSignalModel.createDecoupledTimeSieve(groupName = startupSieveSignal, startupSieveTrigger)
+    }
 
     publish(new PureSignalsChanged)
 
@@ -360,6 +366,10 @@ object ChiselGUI extends SwingApplication with Publisher {
 
             case "show_signal_selector" :: boolString :: Nil =>
               startupShowSignalSelector = boolString.toBoolean
+
+            case "decoupled_sieve_signal" :: name :: triggerString :: Nil =>
+              startupSieveSignal = name
+              startupSieveTrigger = BigInt(triggerString)
 
             case _ =>
               println(s"Invalid line $line in save file")
