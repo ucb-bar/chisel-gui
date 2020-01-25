@@ -9,6 +9,8 @@ This is the alpha version of a waveform viewer that can be coupled to the
 ## Features
 
 - Automatic saving of state, including selected fields position in a VCD
+- Compress time scale to just ready valid (/RV) fire events or valid /V valid events
+  - Just right click on a /RV or /V signal in selected signals panel
 - Jump to Chisel source file from a signal
 - Manual peek and poke top level IO ports and step the DUT
 - Aggregate Ready/Valid and Valid IO bundles and show with color coded waveform state
@@ -100,3 +102,16 @@ Port values can be set then poked. Poking does not advance the clock, to do that
 hit the `step` button.
 
 > All ports will be poked with the current visible values when the `poke` button is hit.
+>
+>
+
+## Ideas / To Do
+
+- Searching for events in VCD
+  - by one or more signals
+  - at multiple times (with specified relationships between times)
+- More VCD manipulation
+  - Go back in time
+- Input manipulation
+  - pick up values from earlier in VCD
+  - force arbitrary signals to a value

@@ -38,12 +38,13 @@ class MultiBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter(
 
             // Only paint from first transition at or before the start timestamp
             // up until the first transition after the end timestamp
-            val wave = Waves(pureSignal.name)
+//            val wave = Waves(pureSignal.name)
+            val wave = getWave(pureSignal.name, startTimestamp).get
             var index = wave.findStartIndex(startTimestamp)
             var useHalfHexagon = false
             while (index < wave.length) {
               val left: Int = selectedSignalModel.timestampToXCoordinate(wave.start(index))
-              val right: Int = if (index < wave.length - 1) {
+              val right: Int = if (index < wave.length - 1 || selectedSignalModel.timeSieveOpt.isDefined) {
                 selectedSignalModel.timestampToXCoordinate(wave.end(index))
               } else {
                 val lastTime = minLastEndTimestamp.max(wave.end(index))

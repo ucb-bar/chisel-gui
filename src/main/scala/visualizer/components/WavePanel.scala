@@ -57,7 +57,7 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
 
     // Draw cursor
     g.setColor(ColorTable(ColorTable.waveCursor))
-    val cursorX = selectedSignalModel.timestampToXCoordinate(selectedSignalModel.cursorPosition)
+    val cursorX = selectedSignalModel.sievedTimestampToXCoordinate(selectedSignalModel.cursorPosition)
     g.drawLine(cursorX, visibleRect.y, cursorX, visibleRect.y + visibleRect.height)
   }
 
@@ -69,7 +69,7 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
 
     g.setColor(ColorTable(ColorTable.waveMarker))
     selectedSignalModel.markers.slice(startIndex, endIndex + 1).foreach { marker =>
-      val x = selectedSignalModel.timestampToXCoordinate(marker.timestamp)
+      val x = selectedSignalModel.sievedTimestampToXCoordinate(marker.timestamp)
       g.drawLine(x, 0, x, visibleRect.y + visibleRect.height)
       g.drawString(marker.description,
                    x + DrawMetrics.MarkerNameXOffset,
@@ -79,8 +79,8 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
   }
 
   def drawGridLines(g: Graphics2D, visibleRect: Rectangle): Unit = {
-    val startTime = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
-    val endTime = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x + visibleRect.width)
+    val startTime = selectedSignalModel.xCoordinateToSievedTimestamp(visibleRect.x)
+    val endTime = selectedSignalModel.xCoordinateToSievedTimestamp(visibleRect.x + visibleRect.width)
     val clockPeriod: Long = ChiselGUI.testerOpt match {
       case Some(tester) => tester.clockInfoList.head.period * 10
       case _            => 10L
@@ -130,8 +130,9 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
       val timestamp = selectedSignalModel.xCoordinateToTimestamp(e.peer.getX)
       if (selectedSignalModel.cursorPosition != selectedSignalModel.selectionStart)
         repaint()
-      if (!e.peer.isShiftDown)
+      if (!e.peer.isShiftDown) {
         selectedSignalModel.selectionStart = timestamp
+      }
       selectedSignalModel.setCursorPosition(timestamp)
     // selectedSignalModel.adjustingCursor = true
     case _: MouseReleased => // selectedSignalModel.adjustingCursor = false

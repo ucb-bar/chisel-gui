@@ -2,12 +2,12 @@ package visualizer.components
 
 import java.io.{File, PrintWriter}
 
-import javax.swing.{BorderFactory, SwingUtilities}
 import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
+import javax.swing.{BorderFactory, SwingUtilities}
 import scalaswingcontrib.tree.Tree
 import visualizer.config.ColorTable
 import visualizer.models._
-import visualizer.{ChiselGUI, CursorSet, DependencyComponentRequested, MaxTimestampChanged, PanelsChanged}
+import visualizer.{ChiselGUI, CursorSet, DependencyComponentRequested, MaxTimestampChanged}
 
 import scala.swing.Swing._
 import scala.swing._
@@ -53,31 +53,26 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     markerCursorLabel.text = s"Cursor: $time "
   }
 
-  private val toolbar = new ToolBar() {
+  val toolbar = new ToolBar() {
     peer.setFloatable(false)
 
     contents += HStrut(300)
 
     contents += new Label("Zoom")
 
-    val zoomToStart = Button("⇤") {
-      signalAndWavePanel.zoomToStart(this)
-    }
+    val zoomToStart = Button("⇤") { signalAndWavePanel.zoomToStart(this) }
     zoomToStart.tooltip = "Zoom to Start"
     contents += zoomToStart
-    val zoomIn = Button("⇥ ⇤") {
-      signalAndWavePanel.zoomIn(this)
-    }
+
+    val zoomIn = Button("⇥ ⇤") { signalAndWavePanel.zoomIn(this) }
     zoomIn.tooltip = "Zoom In"
     contents += zoomIn
-    val zoomOut = Button("⇤ ⇥") {
-      signalAndWavePanel.zoomOut(this)
-    }
+
+    val zoomOut = Button("⇤ ⇥") { signalAndWavePanel.zoomOut(this) }
     zoomOut.tooltip = "Zoom Out"
     contents += zoomOut
-    val zoomEnd = Button("⇥") {
-      signalAndWavePanel.zoomToEnd(this)
-    }
+
+    val zoomEnd = Button("⇥") { signalAndWavePanel.zoomToEnd(this) }
     zoomEnd.tooltip = "Zoom to End"
     contents += zoomEnd
 
@@ -101,6 +96,13 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
         case _ =>
       }
     }
+
+    contents += HStrut(20)
+
+    val toggleSieve = Button("Toggle sieve mode") { signalAndWavePanel.toggleSieveMode(this) }
+    toggleSieve.visible = false
+    toggleSieve.tooltip = "Toggle compressed time mode for RV or V group"
+    contents += toggleSieve
   }
 
   private val statusBar = new ToolBar() {
@@ -320,6 +322,14 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     writer.println(s"aggregate_decoupled,${selectionModel.dataModelFilter.rollupDecoupled.toString}")
 
     writer.println(s"show_signal_selector,$isSignalSelectorVisible")
+
+    if (selectedSignalModel.currentDecoupledSieveSignal.nonEmpty) {
+      writer.println(
+        s"decoupled_sieve_signal," +
+          s"${selectedSignalModel.currentDecoupledSieveSignal}," +
+          s"${selectedSignalModel.currentDecoupledSieveTrigger}"
+      )
+    }
 
     writer.close()
   }

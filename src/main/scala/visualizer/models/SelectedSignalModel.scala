@@ -29,6 +29,9 @@ class SelectedSignalModel extends Publisher {
   var useClock:             Boolean = false
   var clock:                Option[ClockInfo] = None
 
+  var timeSieveOpt:                 Option[TimeSieve] = None
+  var currentDecoupledSieveSignal:  String = ""
+  var currentDecoupledSieveTrigger: BigInt = 0
   // initial/constructor
   setScale(10, null)
 
@@ -37,7 +40,27 @@ class SelectedSignalModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   def xCoordinateToTimestamp(x: Int): Long = (x / scale).toLong
 
+  def xCoordinateToSievedTimestamp(x: Int): Long = {
+    val unsievedTimestamp = xCoordinateToTimestamp(x)
+    timeSieveOpt match {
+      case Some(timeSieve) =>
+        timeSieve.logicalTimeToSieveTime(unsievedTimestamp)
+      case _ =>
+        unsievedTimestamp
+    }
+  }
+
   def timestampToXCoordinate(timestamp: Long): Int = (timestamp * scale).toInt
+
+  def sievedTimestampToXCoordinate(sievedTimestamp: Long): Int = {
+    val timestamp = timeSieveOpt match {
+      case Some(timeSieve) =>
+        timeSieve.sieveTimeToLogicalTime(sievedTimestamp)
+      case _ =>
+        sievedTimestamp
+    }
+    timestampToXCoordinate(timestamp)
+  }
 
   /** This is a trap point for all nodes added to the wave form view.
     * This creates a Wave for each node, including any sub-nodes needed by complex nodes
@@ -48,7 +71,6 @@ class SelectedSignalModel extends Publisher {
     * @param index       index within the parent children
     */
   def insertUnder(parentPath: Path[GenericTreeNode], nodeToAdd: GenericTreeNode, index: Int): Unit = {
-    println(s"SelectedSignalModel: Adding ${nodeToAdd.nodeId} : ${nodeToAdd.name} at ${parentPath} ${nodeToAdd}")
     treeModel.insertUnder(parentPath, nodeToAdd, index)
     nodeToAdd match {
       case WaveFormNode(_, signal, _) => signal.makeWaves()
@@ -179,6 +201,35 @@ class SelectedSignalModel extends Publisher {
   }
 
   ///////////////////////////////////////////////////////////////////////////
+  // Create a hard-code time sieve based on fire events in Decoupled Group
+  ///////////////////////////////////////////////////////////////////////////
+
+  def createDecoupledTimeSieve(groupName: String, triggerValue: BigInt): Unit = {
+    val timeSieve = new TimeSieve
+    timeSieveOpt = Some(timeSieve)
+    Waves.get(groupName).foreach { wave =>
+      var accumulatedTime = -1L
+      wave.indices.foreach {
+        case index if wave.value(index) == triggerValue =>
+          val (start, end) = (wave.start(index), wave.end(index))
+          if (accumulatedTime < 0) accumulatedTime = start
+          timeSieve.add(start, end)
+          accumulatedTime += start
+        case _ => None
+      }
+      currentDecoupledSieveSignal = groupName
+      currentDecoupledSieveTrigger = triggerValue
+      ChiselGUI.mainWindow.toolbar.toggleSieve.visible = true
+    }
+  }
+
+  def clearTimeSieve(): Unit = {
+    timeSieveOpt = None
+  }
+
+  def usingSieve: Boolean = timeSieveOpt.isDefined
+
+  ///////////////////////////////////////////////////////////////////////////
   // Wave Display Format
   ///////////////////////////////////////////////////////////////////////////
   def setWaveFormat(source: Component, nodes: Iterator[GenericTreeNode], format: Format): Unit = {
@@ -233,6 +284,10 @@ class SelectedSignalModel extends Publisher {
     }
   }
 
+  def refreshTimeline(): Unit = {
+    publish(TimeUnitsChanged(null))
+  }
+
   var restrictedTransitionTimes: mutable.ArrayBuffer[Transition] = new mutable.ArrayBuffer()
 
   /** Currently only works on [[DecoupledSignalGroup]] will only show time on
@@ -256,9 +311,22 @@ class SelectedSignalModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   var cursorPosition: Long = 0
 
+  /** if a sieve is in active use it map the timestamp
+    *
+    * @param timestamp  cursor time to save
+    */
   def setCursorPosition(timestamp: Long): Unit = {
-    cursorPosition = timestamp
+    cursorPosition = timeSieveOpt match {
+      case Some(timeSieve) =>
+        timeSieve.logicalTimeToSieveTime(timestamp)
+      case _ =>
+        timestamp
+    }
     publish(CursorSet(null))
+  }
+
+  def getCursorPosition: Long = {
+    cursorPosition
   }
 
   var selectionStart: Long = 0

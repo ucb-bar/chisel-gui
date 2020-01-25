@@ -55,8 +55,7 @@ class DecoupledSignalGroup(
   val bitsSignals: Seq[PureSignal]
 ) extends Signal {
   if (name == "") {
-    println(s"DecoupledSignalGroup: Creating $name")
-    throw new Exception("YCUJ")
+    throw new Exception("s\"DecoupledSignalGroup: Creating empty name\"")
   }
   def updateValues(): Unit = {
     DecoupledSignalGroup.combineReadyValid(name, readySignal.name, validSignal.name)

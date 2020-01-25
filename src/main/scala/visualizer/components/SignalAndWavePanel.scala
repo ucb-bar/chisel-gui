@@ -97,15 +97,38 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
           }
         }
       case Some(decoupledSignalGroup: DecoupledSignalGroup) =>
-        contents += new MenuItem(Action("Fire Time Only") {
-          val result = Dialog.showConfirmation(
-            this,
-            "Only show time during FIRE for this group?",
-            title = "Time Compress",
-          )
-          if (result == Dialog.Result.Ok) {
-            println("Git fired up")
+        val message = if (selectedSignalModel.timeSieveOpt.isEmpty) {
+          "Show signal values only for times during FIRE event"
+        } else {
+          "Turn off FIRE event compression"
+        }
+
+        contents += new MenuItem(Action(message) {
+          if (selectedSignalModel.timeSieveOpt.isDefined) {
+            selectedSignalModel.timeSieveOpt = None
+          } else {
+            selectedSignalModel.createDecoupledTimeSieve(decoupledSignalGroup.name, DecoupledSignalGroup.Fired)
           }
+          SwingUtilities.invokeLater(() => repaint())
+          updateWaveView()
+          selectedSignalModel.refreshTimeline()
+        })
+      case Some(validSignalGroup: ValidSignalGroup) =>
+        val message = if (selectedSignalModel.timeSieveOpt.isEmpty) {
+          "Show signal values only for times during VALID event"
+        } else {
+          "Turn off VALID event compression"
+        }
+
+        contents += new MenuItem(Action(message) {
+          if (selectedSignalModel.timeSieveOpt.isDefined) {
+            selectedSignalModel.timeSieveOpt = None
+          } else {
+            selectedSignalModel.createDecoupledTimeSieve(validSignalGroup.name, DecoupledSignalGroup.Valid)
+          }
+          SwingUtilities.invokeLater(() => repaint())
+          updateWaveView()
+          selectedSignalModel.refreshTimeline()
         })
       case _ =>
     }
@@ -222,8 +245,6 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
               popupMenu(Some(waveFormNode.signal)).show(this, e.point.x, e.point.y)
             case _ =>
           }
-        } else {
-          println("Doesn't seem to be in a node a")
         }
       } else {
         if (e.clicks == 1) {
@@ -300,11 +321,12 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
   ///////////////////////////////////////////////////////////////////////////
   def setScaleKeepCentered(newScale: Double, source: Component): Unit = {
     val oldVisibleRect = wavePanel.peer.getVisibleRect
-    val centerTimestamp = ((oldVisibleRect.x + oldVisibleRect.width / 2) / selectedSignalModel.scale).toLong
+
+    val centerTimestamp = selectedSignalModel.xCoordinateToSievedTimestamp(oldVisibleRect.x + oldVisibleRect.width / 2)
 
     selectedSignalModel.setScale(newScale, source)
 
-    val centerX = (centerTimestamp * newScale).toInt
+    val centerX = selectedSignalModel.sievedTimestampToXCoordinate(centerTimestamp)
     val newVisibleRect = wavePanel.peer.getVisibleRect
     newVisibleRect.x = centerX - newVisibleRect.width / 2
     wavePanel.peer.scrollRectToVisible(newVisibleRect)
@@ -361,6 +383,23 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     val newVisibleRect = wavePanel.peer.getVisibleRect
     newVisibleRect.x = centerX - newVisibleRect.width / 2
     wavePanel.peer.scrollRectToVisible(newVisibleRect)
+  }
+
+  def toggleSieveMode(source: Component): Unit = {
+    val model = selectedSignalModel
+    if (model.currentDecoupledSieveSignal.nonEmpty) {
+      model.timeSieveOpt match {
+        case Some(timeSieve) => model.timeSieveOpt = None
+        case _ =>
+          model.createDecoupledTimeSieve(model.currentDecoupledSieveSignal, model.currentDecoupledSieveTrigger)
+      }
+      SwingUtilities.invokeLater(() => {
+        repaint()
+        updateWaveView()
+        selectedSignalModel.refreshTimeline()
+      })
+
+    }
   }
 
   def removeSignals(source: Component): Unit = {

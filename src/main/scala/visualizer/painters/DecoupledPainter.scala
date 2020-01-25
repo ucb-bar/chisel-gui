@@ -23,7 +23,7 @@ class DecoupledPainter(selectedSignalModel: SelectedSignalModel) extends Painter
 
       while (index < wave.length) {
         val left: Int = selectedSignalModel.timestampToXCoordinate(wave.start(index))
-        val right: Int = if (index < wave.length - 1) {
+        val right: Int = if (index < wave.length - 1 || selectedSignalModel.timeSieveOpt.isDefined) {
           selectedSignalModel.timestampToXCoordinate(wave.end(index))
         } else {
           val lastTime = minLastEndTimestamp.max(wave.end(index))
@@ -39,12 +39,12 @@ class DecoupledPainter(selectedSignalModel: SelectedSignalModel) extends Painter
       case waveFormNode: WaveFormNode =>
         waveFormNode.signal match {
           case decoupledSignalGroup: DecoupledSignalGroup =>
-            Waves.get(decoupledSignalGroup.name).foreach { wave =>
+            getWave(decoupledSignalGroup.name, startTimestamp).foreach { wave =>
               paintSignal(wave, startTimestamp)
             }
 
           case validSignalGroup: ValidSignalGroup =>
-            Waves.get(validSignalGroup.name).foreach {
+            getWave(validSignalGroup.name, startTimestamp).foreach {
               case wave if wave.nonEmpty =>
                 paintSignal(wave, startTimestamp)
             }
