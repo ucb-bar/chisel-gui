@@ -42,14 +42,22 @@ class TimeSieve {
 
   def logicalTimeToSieveTime(time: Long): Long = {
     val index = findTimeSumIndex(time)
-    val segmentStart = start(index)
-    segmentStart + (time - timeSum(index))
+    if(index >= 0) {
+      val segmentStart = start(index)
+      segmentStart + (time - timeSum(index))
+    } else {
+      ends.last
+    }
   }
 
   def sieveTimeToLogicalTime(time: Long): Long = {
     val index = findStartIndex(time)
-    val accTime = timeSum(index)
-    accTime + (time - start(index))
+    if(index >= 0) {
+      val accTime = timeSum(index)
+      accTime + (time - start(index))
+    } else {
+      timeSums.last
+    }
   }
 
   /** This answers the question, if I want to display numbers from unseived time, what is the

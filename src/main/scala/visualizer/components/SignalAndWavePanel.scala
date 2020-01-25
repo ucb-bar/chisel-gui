@@ -321,11 +321,12 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
   ///////////////////////////////////////////////////////////////////////////
   def setScaleKeepCentered(newScale: Double, source: Component): Unit = {
     val oldVisibleRect = wavePanel.peer.getVisibleRect
-    val centerTimestamp = ((oldVisibleRect.x + oldVisibleRect.width / 2) / selectedSignalModel.scale).toLong
+
+    val centerTimestamp = selectedSignalModel.xCoordinateToSievedTimestamp(oldVisibleRect.x + oldVisibleRect.width / 2)
 
     selectedSignalModel.setScale(newScale, source)
 
-    val centerX = (centerTimestamp * newScale).toInt
+    val centerX = selectedSignalModel.sievedTimestampToXCoordinate(centerTimestamp)
     val newVisibleRect = wavePanel.peer.getVisibleRect
     newVisibleRect.x = centerX - newVisibleRect.width / 2
     wavePanel.peer.scrollRectToVisible(newVisibleRect)

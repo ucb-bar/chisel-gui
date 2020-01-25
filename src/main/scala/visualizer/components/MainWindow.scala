@@ -60,24 +60,19 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     contents += new Label("Zoom")
 
-    val zoomToStart = Button("⇤") {
-      signalAndWavePanel.zoomToStart(this)
-    }
+    val zoomToStart = Button("⇤") { signalAndWavePanel.zoomToStart(this) }
     zoomToStart.tooltip = "Zoom to Start"
     contents += zoomToStart
-    val zoomIn = Button("⇥ ⇤") {
-      signalAndWavePanel.zoomIn(this)
-    }
+
+    val zoomIn = Button("⇥ ⇤") { signalAndWavePanel.zoomIn(this) }
     zoomIn.tooltip = "Zoom In"
     contents += zoomIn
-    val zoomOut = Button("⇤ ⇥") {
-      signalAndWavePanel.zoomOut(this)
-    }
+
+    val zoomOut = Button("⇤ ⇥") { signalAndWavePanel.zoomOut(this) }
     zoomOut.tooltip = "Zoom Out"
     contents += zoomOut
-    val zoomEnd = Button("⇥") {
-      signalAndWavePanel.zoomToEnd(this)
-    }
+
+    val zoomEnd = Button("⇥") { signalAndWavePanel.zoomToEnd(this) }
     zoomEnd.tooltip = "Zoom to End"
     contents += zoomEnd
 
