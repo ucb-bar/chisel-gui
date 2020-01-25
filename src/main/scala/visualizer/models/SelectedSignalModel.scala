@@ -29,7 +29,7 @@ class SelectedSignalModel extends Publisher {
   var useClock:             Boolean = false
   var clock:                Option[ClockInfo] = None
 
-  var timeSieveOpt: Option[TimeSieveModel] = None
+  var timeSieveOpt: Option[TimeSieve] = None
 
   // initial/constructor
   setScale(10, null)

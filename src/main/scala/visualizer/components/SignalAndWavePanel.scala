@@ -7,7 +7,7 @@ import javax.swing.{BorderFactory, DropMode, SwingUtilities}
 import scalaswingcontrib.tree.Tree
 import visualizer.config.DrawMetrics
 import visualizer.models._
-import visualizer.{ChiselGUI, SignalsChanged}
+import visualizer.{ChiselGUI, SignalsChanged, WaveFormatChanged}
 
 import scala.swing.BorderPanel.Position._
 import scala.swing._
@@ -97,24 +97,40 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
           }
         }
       case Some(decoupledSignalGroup: DecoupledSignalGroup) =>
-        contents += new MenuItem(Action("Fire Time Only") {
+        val (message, menu2) = if (selectedSignalModel.timeSieveOpt.isEmpty) {
+          ("Compress time to Fire", "Only show time during FIRE for this group?")
+        } else {
+          ("Turn Off Time compression", "Turn of compressed time")
+        }
+
+        contents += new MenuItem(Action(message) {
           val result = Dialog.showConfirmation(
             this,
             "Only show time during FIRE for this group?",
             title = "Time Compress",
           )
           if (result == Dialog.Result.Ok) {
-            println("Git fired up")
-            val timeSieveModel = new TimeSieveModel
-            selectedSignalModel.timeSieveOpt = Some(timeSieveModel)
-            Waves.get(decoupledSignalGroup.name).foreach { wave =>
-              timeSieveModel ++= wave.indices.flatMap {
-                case index if wave.value(index) == DecoupledSignalGroup.Fired =>
-                  Some(TimeSegment(wave.start(index), wave.end(index)))
-                case _ => None
+            if (selectedSignalModel.timeSieveOpt.isDefined) {
+              selectedSignalModel.timeSieveOpt = None
+            } else {
+              println("Git fired up")
+              val timeSieve = new TimeSieve
+              selectedSignalModel.timeSieveOpt = Some(timeSieve)
+              Waves.get(decoupledSignalGroup.name).foreach { wave =>
+                var accumulatedTime = -1L
+                println(s"Wave:      $wave")
+                wave.indices.foreach {
+                  case index if wave.value(index) == DecoupledSignalGroup.Fired =>
+                    val (start, end) = (wave.start(index), wave.end(index))
+                    if (accumulatedTime < 0) accumulatedTime = start
+                    timeSieve.add(start, end)
+                    accumulatedTime += start
+                  case _ => None
+                }
+                println(s"TimeSieve: $timeSieve")
+                publish(WaveFormatChanged(this))
               }
             }
-            println(s"TimeSieve: $timeSieveModel")
           }
         })
       case _ =>

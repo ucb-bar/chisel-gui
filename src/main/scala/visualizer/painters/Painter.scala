@@ -3,11 +3,28 @@ package visualizer.painters
 import java.awt.{FontMetrics, Polygon, Rectangle}
 
 import visualizer.config.DrawMetrics
-import visualizer.models.{GenericTreeNode, PureSignal, SelectedSignalModel}
+import visualizer.models.{GenericTreeNode, PureSignal, SelectedSignalModel, Wave, Waves}
 
 import scala.swing.{Font, Graphics2D}
 
 abstract class Painter(selectedSignalModel: SelectedSignalModel) {
+  def getWave(name: String, startTime: Long): Option[Wave] = {
+    Waves.get(name) match {
+      case Some(wave) =>
+        selectedSignalModel.timeSieveOpt match {
+          case Some(timeSieve) =>
+            val strainedWave = timeSieve.strain(wave, startTime)
+            println(s"wave     $wave")
+            println(s"sieve    $timeSieve")
+            println(s"new wave $strainedWave")
+            Some(strainedWave)
+          case _ =>
+            Some(wave)
+        }
+      case _ => None
+    }
+  }
+
   def paintWaveform(g: Graphics2D, visibleRect: Rectangle, top: Int, node: GenericTreeNode, maxTimestamp: Long): Unit
 }
 

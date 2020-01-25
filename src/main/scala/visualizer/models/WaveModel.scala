@@ -84,6 +84,10 @@ class Wave {
   def addOneTransition(transition: Transition): Unit = {
     add(transition.timestamp, transition.value)
   }
+
+  override def toString: String = {
+    indices.map { i => s"(${start(i)},${end(i)},${value(i)})" }.mkString(", ")
+  }
 }
 
 object Waves {
