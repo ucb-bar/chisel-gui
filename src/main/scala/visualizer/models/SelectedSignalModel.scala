@@ -40,7 +40,27 @@ class SelectedSignalModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   def xCoordinateToTimestamp(x: Int): Long = (x / scale).toLong
 
+  def xCoordinateToSievedTimestamp(x: Int): Long = {
+    val unsievedTimestamp = xCoordinateToTimestamp(x)
+    timeSieveOpt match {
+      case Some(timeSieve) =>
+        timeSieve.logicalTimeToSieveTime(unsievedTimestamp)
+      case _ =>
+        unsievedTimestamp
+    }
+  }
+
   def timestampToXCoordinate(timestamp: Long): Int = (timestamp * scale).toInt
+
+  def sievedTimestampToXCoordinate(sievedTimestamp: Long): Int = {
+    val timestamp = timeSieveOpt match {
+      case Some(timeSieve) =>
+        timeSieve.sieveTimeToLogicalTime(sievedTimestamp)
+      case _ =>
+        sievedTimestamp
+    }
+    timestampToXCoordinate(timestamp)
+  }
 
   /** This is a trap point for all nodes added to the wave form view.
     * This creates a Wave for each node, including any sub-nodes needed by complex nodes
@@ -206,7 +226,7 @@ class SelectedSignalModel extends Publisher {
     timeSieveOpt = None
   }
 
-  def usingSieve = timeSieveOpt.isDefined
+  def usingSieve: Boolean = timeSieveOpt.isDefined
 
   ///////////////////////////////////////////////////////////////////////////
   // Wave Display Format
@@ -290,9 +310,22 @@ class SelectedSignalModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   var cursorPosition: Long = 0
 
+  /** if a sieve is in active use it map the timestamp
+    *
+    * @param timestamp  cursor time to save
+    */
   def setCursorPosition(timestamp: Long): Unit = {
-    cursorPosition = timestamp
+    cursorPosition = timeSieveOpt match {
+      case Some(timeSieve) =>
+        timeSieve.logicalTimeToSieveTime(timestamp)
+      case _ =>
+        timestamp
+    }
     publish(CursorSet(null))
+  }
+
+  def getCursorPosition: Long = {
+    cursorPosition
   }
 
   var selectionStart: Long = 0

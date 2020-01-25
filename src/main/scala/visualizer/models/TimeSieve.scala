@@ -2,8 +2,8 @@
 
 package visualizer.models
 
-import scala.collection.mutable
 import scala.collection.Searching._
+import scala.collection.mutable
 
 case class TimeSegment(start: Long, stop: Long, accumulatedTime: Long)
 
@@ -40,17 +40,54 @@ class TimeSieve {
     timeSum(index) + end(index)
   }
 
-  /** This answers the question, if I want to display numbers from unstrained time, what are the
-    * synthetic time range I should use starting from this point
+  def logicalTimeToSieveTime(time: Long): Long = {
+    val index = findTimeSumIndex(time)
+    val segmentStart = start(index)
+    segmentStart + (time - timeSum(index))
+  }
+
+  def sieveTimeToLogicalTime(time: Long): Long = {
+    val index = findStartIndex(time)
+    val accTime = timeSum(index)
+    accTime + (time - start(index))
+  }
+
+  /** This answers the question, if I want to display numbers from unseived time, what is the
+    * index of the synthetic time range I should use
     *
     * Use system binary search to find index of timeSums
     * unlike a Wave this can fail, which is indicated by returning -1
     *
     * @param time find the index in starts for this time
     */
-  def findStartIndex(time: Long): Int = {
+  def findTimeSumIndex(time: Long): Int = {
     assert(time >= 0)
     timeSums.search(time) match {
+      case InsertionPoint(insertionPointIndex) =>
+        if (insertionPointIndex > 0 && time < logicalTimeEnd(insertionPointIndex - 1)) {
+          insertionPointIndex - 1
+        } else if (insertionPointIndex >= length) {
+          -1
+        } else {
+          insertionPointIndex
+        }
+      case Found(index) => index
+      case _ =>
+        -1
+    }
+  }
+
+  /** This answers the question, if I want to display numbers from unseived time, what is the
+    * index of the synthetic time range I should use
+    *
+    * Use system binary search to find index of starts
+    * unlike a Wave this can fail, which is indicated by returning -1
+    *
+    * @param time find the index in starts for this time
+    */
+  def findStartIndex(time: Long): Int = {
+    assert(time >= 0)
+    starts.search(time) match {
       case InsertionPoint(insertionPointIndex) =>
         if (insertionPointIndex > 0 && time < logicalTimeEnd(insertionPointIndex - 1)) {
           insertionPointIndex - 1
@@ -74,7 +111,7 @@ class TimeSieve {
     */
   def strain(wave: Wave, startTime: Long): Wave = {
     var time = startTime
-    var sieveIndex = findStartIndex(time)
+    var sieveIndex = findTimeSumIndex(time)
     val waveLength = wave.length
 
     val strainedWave = new Wave

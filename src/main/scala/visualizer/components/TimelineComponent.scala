@@ -31,7 +31,7 @@ class TimelineComponent(dataModel: DataModel, selectedSignalModel: SelectedSigna
     selectedSignalModel.timeSieveOpt match {
       case Some(timeSieve) =>
         val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
-        var sieveIndex = timeSieve.findStartIndex(startTimestamp)
+        var sieveIndex = timeSieve.findTimeSumIndex(startTimestamp)
 
         while (sieveIndex < timeSieve.length) {
           val timeSum = timeSieve.start(sieveIndex)
