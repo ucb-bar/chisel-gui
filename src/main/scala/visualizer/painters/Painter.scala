@@ -14,9 +14,6 @@ abstract class Painter(selectedSignalModel: SelectedSignalModel) {
         selectedSignalModel.timeSieveOpt match {
           case Some(timeSieve) =>
             val strainedWave = timeSieve.strain(wave, startTime)
-            println(s"wave     $wave")
-            println(s"sieve    $timeSieve")
-            println(s"new wave $strainedWave")
             Some(strainedWave)
           case _ =>
             Some(wave)

@@ -245,8 +245,6 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
               popupMenu(Some(waveFormNode.signal)).show(this, e.point.x, e.point.y)
             case _ =>
           }
-        } else {
-          println("Doesn't seem to be in a node a")
         }
       } else {
         if (e.clicks == 1) {

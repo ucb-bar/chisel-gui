@@ -189,7 +189,6 @@ class SelectedSignalModel extends Publisher {
     timeSieveOpt = Some(timeSieve)
     Waves.get(groupName).foreach { wave =>
       var accumulatedTime = -1L
-      println(s"Wave:      $wave")
       wave.indices.foreach {
         case index if wave.value(index) == triggerValue =>
           val (start, end) = (wave.start(index), wave.end(index))
@@ -200,7 +199,6 @@ class SelectedSignalModel extends Publisher {
       }
       currentDecoupledSieveSignal = groupName
       currentDecoupledSieveTrigger = triggerValue
-      println(s"TimeSieve: $timeSieve")
     }
   }
 

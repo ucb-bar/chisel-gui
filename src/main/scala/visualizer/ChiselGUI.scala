@@ -146,7 +146,6 @@ object ChiselGUI extends SwingApplication with Publisher {
 
     startupWarnings.foreach { warning =>
       val result = Dialog.showConfirmation(mainWindow, s"$warning\nContinue?", "Warning during startup")
-      println(result)
       if (result != Result.Yes) {
         System.exit(1)
       }
@@ -208,9 +207,6 @@ object ChiselGUI extends SwingApplication with Publisher {
 
           engine.symbolTable.get(change.wire.fullName) match {
             case Some(symbol) =>
-              if (change.wire.fullName == "rDone") {
-                println(s"seed treadle time: $time change: $change")
-              }
               engine.setValue(symbol.name, change.value, force = true)
               if (symbol.firrtlType == ClockType) {
                 clockHalfPeriodGuess = time - lastClockTransitionTime
@@ -519,19 +515,13 @@ object ChiselGUI extends SwingApplication with Publisher {
 
         val showDepth = symbolsAtDepth.count(_.nonEmpty)
         for (depth <- 0 until showDepth) {
-          var added = 0
-
-          println(s"driving symbols at distance $depth")
           symbolsAtDepth(depth).toSeq.map(_.name).filterNot(symbolsSeen.contains).sorted.foreach { signalName =>
             dataModel.nameToSignal.get(signalName).foreach { drivingSignal =>
-              print(signalName)
-              added += 1
               symbolsSeen += signalName
               val otherNode = WaveFormNode(signalName, drivingSignal)
               selectedSignalModel.addFromDirectoryToInspected(otherNode, mainWindow.signalSelectorPanel)
             }
           }
-          if (added > 0) println()
         }
       }
     }
