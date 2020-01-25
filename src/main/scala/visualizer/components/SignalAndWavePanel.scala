@@ -7,7 +7,7 @@ import javax.swing.{BorderFactory, DropMode, SwingUtilities}
 import scalaswingcontrib.tree.Tree
 import visualizer.config.DrawMetrics
 import visualizer.models._
-import visualizer.{ChiselGUI, SignalsChanged, WaveFormatChanged}
+import visualizer.{ChiselGUI, SignalsChanged}
 
 import scala.swing.BorderPanel.Position._
 import scala.swing._
@@ -383,6 +383,23 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     val newVisibleRect = wavePanel.peer.getVisibleRect
     newVisibleRect.x = centerX - newVisibleRect.width / 2
     wavePanel.peer.scrollRectToVisible(newVisibleRect)
+  }
+
+  def toggleSieveMode(source: Component): Unit = {
+    val model = selectedSignalModel
+    if (model.currentDecoupledSieveSignal.nonEmpty) {
+      model.timeSieveOpt match {
+        case Some(timeSieve) => model.timeSieveOpt = None
+        case _ =>
+          model.createDecoupledTimeSieve(model.currentDecoupledSieveSignal, model.currentDecoupledSieveTrigger)
+      }
+      SwingUtilities.invokeLater(() => {
+        repaint()
+        updateWaveView()
+        selectedSignalModel.refreshTimeline()
+      })
+
+    }
   }
 
   def removeSignals(source: Component): Unit = {

@@ -2,12 +2,12 @@ package visualizer.components
 
 import java.io.{File, PrintWriter}
 
-import javax.swing.{BorderFactory, SwingUtilities}
 import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
+import javax.swing.{BorderFactory, SwingUtilities}
 import scalaswingcontrib.tree.Tree
 import visualizer.config.ColorTable
 import visualizer.models._
-import visualizer.{ChiselGUI, CursorSet, DependencyComponentRequested, MaxTimestampChanged, PanelsChanged}
+import visualizer.{ChiselGUI, CursorSet, DependencyComponentRequested, MaxTimestampChanged}
 
 import scala.swing.Swing._
 import scala.swing._
@@ -53,7 +53,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     markerCursorLabel.text = s"Cursor: $time "
   }
 
-  private val toolbar = new ToolBar() {
+  val toolbar = new ToolBar() {
     peer.setFloatable(false)
 
     contents += HStrut(300)
@@ -96,6 +96,13 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
         case _ =>
       }
     }
+
+    contents += HStrut(20)
+
+    val toggleSieve = Button("Toggle sieve mode") { signalAndWavePanel.toggleSieveMode(this) }
+    toggleSieve.visible = false
+    toggleSieve.tooltip = "Toggle compressed time mode for RV or V group"
+    contents += toggleSieve
   }
 
   private val statusBar = new ToolBar() {

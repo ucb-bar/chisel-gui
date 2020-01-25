@@ -219,6 +219,7 @@ class SelectedSignalModel extends Publisher {
       }
       currentDecoupledSieveSignal = groupName
       currentDecoupledSieveTrigger = triggerValue
+      ChiselGUI.mainWindow.toolbar.toggleSieve.visible = true
     }
   }
 
