@@ -2,8 +2,9 @@ package visualizer.models
 
 import treadle.vcd.VCD
 import visualizer.ChiselGUI.dataModel
-import visualizer.{ChiselGUI, MaxTimestampChanged, Util}
+import visualizer.{ChiselGUI, MaxTimestampChanged}
 
+import scala.collection.Searching._
 import scala.collection.mutable
 import scala.swing.Publisher
 
@@ -30,7 +31,7 @@ class DataModel extends Publisher {
       t.engine.vcdOption.foreach {
         case vcd: VCD =>
           Waves.refreshWaves(vcd)
-          dataModel.setMaxTimestamp(vcd.events.last)
+          dataModel.setMaxTimestamp(vcd.timeStamp)
 
           dataModel.nameToSignal.values.foreach {
             case decoupledSignalGroup: DecoupledSignalGroup =>
@@ -42,6 +43,41 @@ class DataModel extends Publisher {
         case _ =>
       }
     }
+  }
+
+  def grabInputs(time: Long): Map[String, BigInt] = {
+    val inputMap = new mutable.HashMap[String, BigInt]
+
+    ChiselGUI.testerOpt.foreach { t =>
+      val inputNames = t.engine.getInputPorts.toSet
+      val numInputs = t.engine.getInputPorts.length
+
+      t.engine.vcdOption.foreach {
+        case vcd: VCD =>
+          val eventTimes = vcd.events
+
+          var index = vcd.events.search(time) match {
+            case InsertionPoint(insertionPointIndex) => insertionPointIndex
+            case Found(index)                        => index + 1
+            case _                                   => -1
+          }
+
+          while (index > 0 && inputMap.size < numInputs) {
+            index -= 1
+            vcd.valuesAtTime(eventTimes(index)).foreach { change =>
+              val signalName = change.wire.fullName
+              if (inputNames.contains(signalName)) {
+                if (!inputMap.contains(signalName)) {
+                  inputMap(signalName) = change.value
+                }
+              }
+            }
+          }
+        case _ =>
+      }
+    }
+
+    inputMap.toMap
   }
 
   ///////////////////////////////////////////////////////////////////////////

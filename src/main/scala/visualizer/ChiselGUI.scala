@@ -11,7 +11,7 @@ import firrtl.{AnnotationSeq, FileUtils, InstanceKind, MemKind}
 import javax.imageio.ImageIO
 import javax.swing.UIManager
 import scalaswingcontrib.tree.Tree
-import treadle.executable.{Symbol, SymbolTable}
+import treadle.executable.{Symbol, SymbolTable, VcdHook}
 import treadle.vcd.VCD
 import treadle.{TreadleTester, WriteVcdAnnotation}
 import visualizer.components.MainWindow
@@ -95,6 +95,8 @@ object ChiselGUI extends SwingApplication with Publisher {
         headerBarTitle = s"$firrtlFileName - $vcdFile"
       case (Some(firrtlFileName), None) =>
         setupTreadle(firrtlFileName, startAnnotations)
+        vcdOpt = testerOpt.get.engine.vcdOption
+        Waves.setVcd(vcdOpt.get)
         headerBarTitle = s"$firrtlFileName"
       case (None, Some(vcdFile)) =>
         setupVcdInput(vcdFile)
@@ -198,7 +200,10 @@ object ChiselGUI extends SwingApplication with Publisher {
     var clockHalfPeriodGuess = 0L
     var lastClockValue = 0L
 
-    engine.vcdOption = None
+    engine.dataStore.plugins.values.foreach {
+      case vcdHook: VcdHook => vcdHook.setEnabled(false)
+      case _ =>
+    }
 
     vcd.valuesAtTime.keys.toSeq.sorted.foreach { time =>
       for (change <- vcd.valuesAtTime(time)) {
@@ -222,7 +227,11 @@ object ChiselGUI extends SwingApplication with Publisher {
         }
       }
     }
-    engine.vcdOption = Some(vcd)
+
+    engine.dataStore.plugins.values.foreach {
+      case vcdHook: VcdHook => vcdHook.setEnabled(true)
+      case _ =>
+    }
 
     if (lastClockValue == 0L) {
       testerOpt.get.advanceTime(clockHalfPeriodGuess)

@@ -2,5 +2,5 @@
 
 # This may be a brittle way to find $(root_dir)/utils/bin, is there a better way?
 path=`dirname "$0"`
-cmd="java -cp ${path}/chisel-gui.jar visualizer.AppController ${@:1}"
+cmd="java -cp ${path}/chisel-gui.jar visualizer.ChiselGUI ${@:1}"
 eval $cmd
