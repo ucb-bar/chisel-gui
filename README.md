@@ -100,6 +100,7 @@ This panel allows the user to continue execution of the circuit.
 This panel presents a list of the top level IO ports.
 Port values can be set then poked. Poking does not advance the clock, to do that you must
 hit the `step` button.
+Input fields can be populated from the input values under the cursor
 
 > All ports will be poked with the current visible values when the `poke` button is hit.
 >
@@ -113,5 +114,5 @@ hit the `step` button.
 - More VCD manipulation
   - Go back in time
 - Input manipulation
-  - pick up values from earlier in VCD
   - force arbitrary signals to a value
+  - History mechanism for 
