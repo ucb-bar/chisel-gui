@@ -1,8 +1,8 @@
 package visualizer.components
 
 import treadle.executable.StopException
-import visualizer.{ChiselGUI, PureSignalsChanged}
 import visualizer.models.{DataModel, SelectedSignalModel}
+import visualizer.{ChiselGUI, PureSignalsChanged}
 
 import scala.swing._
 
@@ -66,10 +66,22 @@ class InputControlPanel(dataModel: DataModel, selectedSignalModel: SelectedSigna
             columns = 10
             editable = false
           }
-          add(new FlowPanel {
-            contents += new Label("Clock")
-            contents += clockTextField
-          }, constraints(0, currentRow))
+//          add(new FlowPanel {
+//            contents += new Label("Clock")
+//            contents += clockTextField
+//          }, constraints(0, currentRow))
+
+          add(
+            new FlowPanel {
+              val grabInputButton = Button("Populate Inputs from cursor") {
+                println("hello")
+                dataModel.grabInputs(selectedSignalModel.getCursorPosition)
+              }
+              grabInputButton.tooltip = "Grab input"
+              contents += grabInputButton
+            },
+            constraints(0, currentRow)
+          )
 
           currentRow += 1
           for ((inputPort, textField) <- inputNames.zip(inputValues)) {
