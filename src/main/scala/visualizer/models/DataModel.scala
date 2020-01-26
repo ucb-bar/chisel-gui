@@ -31,7 +31,7 @@ class DataModel extends Publisher {
       t.engine.vcdOption.foreach {
         case vcd: VCD =>
           Waves.refreshWaves(vcd)
-          dataModel.setMaxTimestamp(vcd.events.last)
+          dataModel.setMaxTimestamp(vcd.timeStamp)
 
           dataModel.nameToSignal.values.foreach {
             case decoupledSignalGroup: DecoupledSignalGroup =>
@@ -73,8 +73,6 @@ class DataModel extends Publisher {
               }
             }
           }
-
-          println(s"Got inputs\n${inputMap.mkString("\n")}")
         case _ =>
       }
     }
