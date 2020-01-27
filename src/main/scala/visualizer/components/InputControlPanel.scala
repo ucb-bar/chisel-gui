@@ -16,6 +16,19 @@ class InputControlPanel(dataModel: DataModel, selectedSignalModel: SelectedSigna
   val textArea: TextArea = new TextArea { editable = false }
 
   val inputTextBoxes: mutable.HashMap[String, TextField] = new mutable.HashMap()
+  val historyLabel = new Label("      ")
+  def setHistoryLabel(): Unit = {
+    historyLabel.text = s"${dataModel.currentPokeHistoryIndex + 1} of ${dataModel.pokeHistory.length}"
+  }
+
+  def setTextBoxes(pokeValues: Map[String, String]): Unit = {
+    pokeValues.foreach {
+      case (name, value) =>
+        if (inputTextBoxes.contains(name)) {
+          inputTextBoxes(name).text = value
+        }
+    }
+  }
 
   val inputArea: Component = new GridBagPanel {
     def constraints(x:          Int,
@@ -63,19 +76,62 @@ class InputControlPanel(dataModel: DataModel, selectedSignalModel: SelectedSigna
 
         add(
           new FlowPanel {
-            val grabInputButton = Button("Populate Inputs from cursor") {
-              val newInputValues = dataModel.grabInputs(selectedSignalModel.getCursorPosition)
-              newInputValues.foreach {
-                case (name, value) =>
-                  if (inputTextBoxes.contains(name)) {
-                    inputTextBoxes(name).text = value.toString()
-                  }
+
+            val toolBar = new ToolBar() {
+              peer.setFloatable(false)
+
+              val grabInputButton = Button("Get values from cursor") {
+                val newInputValues = dataModel.grabInputs(selectedSignalModel.getCursorPosition)
+                newInputValues.foreach {
+                  case (name, value) =>
+                    if (inputTextBoxes.contains(name)) {
+                      inputTextBoxes(name).text = value.toString()
+                    }
+                }
               }
+              grabInputButton.tooltip = "Grab"
+              contents += grabInputButton
             }
-            grabInputButton.tooltip = "Grab input"
-            contents += grabInputButton
+            contents += toolBar
           },
-          constraints(0, currentRow)
+          constraints(0, currentRow, gridWidth = 2)
+        )
+        currentRow += 1
+
+        add(
+          new FlowPanel {
+            val toolBar = new ToolBar() {
+              peer.setFloatable(false)
+
+              contents += new Label(" History:")
+
+              val backHistory = Button("←") {
+                if (dataModel.currentPokeHistoryIndex > 0) {
+                  dataModel.currentPokeHistoryIndex -= 1
+                  setTextBoxes(dataModel.pokeHistory(dataModel.currentPokeHistoryIndex))
+                  setHistoryLabel()
+                }
+              }
+              backHistory.tooltip = "Go back in poke history"
+              contents += backHistory
+
+              contents += historyLabel
+
+              val forwardHistory = Button("→") {
+                if (dataModel.currentPokeHistoryIndex < dataModel.pokeHistory.length - 1) {
+                  dataModel.currentPokeHistoryIndex += 1
+                  setTextBoxes(dataModel.pokeHistory(dataModel.currentPokeHistoryIndex))
+                  setHistoryLabel()
+                }
+              }
+              forwardHistory.tooltip = "Go forward in poke history"
+              contents += forwardHistory
+            }
+
+            contents += toolBar
+
+          },
+          constraints(0, currentRow, 2)
         )
 
         currentRow += 1
@@ -104,6 +160,8 @@ class InputControlPanel(dataModel: DataModel, selectedSignalModel: SelectedSigna
               case _: NumberFormatException => // TODO: Notify that value is invalid
             }
           }
+          dataModel.savePokeValues(inputTextBoxes.map { case (key, value) => (key, value.text) }.toMap)
+          historyLabel.text = s"${dataModel.currentPokeHistoryIndex + 1} of ${dataModel.pokeHistory.length}"
         }
 
         currentRow += 1

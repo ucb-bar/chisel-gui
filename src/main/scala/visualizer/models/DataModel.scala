@@ -45,6 +45,33 @@ class DataModel extends Publisher {
     }
   }
 
+  ///////////////////////////////////////////////////////////////////////////
+  // Input panel stuff
+  ///////////////////////////////////////////////////////////////////////////
+
+  val pokeHistory: mutable.ArrayBuffer[Map[String, String]] = new mutable.ArrayBuffer()
+  var currentPokeHistoryIndex = 0
+
+  def savePokeValues(pokeData: Map[String, String]): Unit = {
+    pokeHistory.lastOption match {
+      case Some(lastPokeData) =>
+        val thereWereChanges = (lastPokeData.keys ++ pokeData.keys).exists { key =>
+          lastPokeData.getOrElse(key, "") != pokeData.getOrElse(key, "")
+        }
+        if (thereWereChanges) {
+          pokeHistory += pokeData
+          currentPokeHistoryIndex = pokeHistory.length - 1
+        }
+      case _ =>
+        pokeHistory += pokeData
+        currentPokeHistoryIndex = pokeHistory.length - 1
+    }
+    if (pokeHistory.length > 50) {
+      // Throw away the old stuff
+      pokeHistory.remove(0, pokeHistory.length - 50)
+    }
+  }
+
   def grabInputs(time: Long): Map[String, BigInt] = {
     val inputMap = new mutable.HashMap[String, BigInt]
 

@@ -331,6 +331,12 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
       )
     }
 
+    if (dataModel.pokeHistory.nonEmpty) {
+      dataModel.pokeHistory.foreach { pokes =>
+        writer.println(s"poke_history,${pokes.map(x => s"${x._1},${x._2}").mkString(",")}")
+      }
+    }
+
     writer.close()
   }
 
