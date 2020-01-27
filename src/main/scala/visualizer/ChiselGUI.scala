@@ -17,7 +17,7 @@ import treadle.{TreadleTester, WriteVcdAnnotation}
 import visualizer.components.MainWindow
 import visualizer.config.ColorTable
 import visualizer.models._
-import visualizer.stage.{ChiselGuiCli, ChiselSourcePaths, VcdFile}
+import visualizer.stage.{ChiselGuiCli, ChiselSourceOpenCommand, ChiselSourcePaths, VcdFile}
 
 import scala.collection.mutable
 import scala.swing.Dialog.Result
@@ -47,7 +47,8 @@ object ChiselGUI extends SwingApplication with Publisher {
   val signalSelectorModel: SignalSelectorModel = new SignalSelectorModel
   val selectedSignalModel: SelectedSignalModel = new SelectedSignalModel
 
-  val sourceInfoMap: mutable.HashMap[String, String] = new mutable.HashMap()
+  val sourceInfoMap:     mutable.HashMap[String, String] = new mutable.HashMap()
+  var sourceOpenCommand: Seq[String] = Seq.empty
 
   var mainWindow: MainWindow = _
   var mainWindowSize = new Dimension(1000, 600)
@@ -72,6 +73,15 @@ object ChiselGUI extends SwingApplication with Publisher {
     val firrtlFileNameOpt = startAnnotations.collectFirst { case a: ProgramArgsAnnotation => a.arg }
 
     val vcdFileNameOpt = startAnnotations.collectFirst { case a: VcdFile => a.vcdFileName }
+
+    sourceOpenCommand = startAnnotations.collectFirst { case ChiselSourceOpenCommand(paths) => paths }.getOrElse(
+      Seq(
+        "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea",
+        "--line",
+        s"[[LINE]]",
+        s"[[FILE]]"
+      )
+    )
 
     if (firrtlFileNameOpt.isEmpty && vcdFileNameOpt.isEmpty) {}
 
