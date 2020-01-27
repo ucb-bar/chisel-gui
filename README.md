@@ -98,13 +98,28 @@ relative state of the flow control signals.
 ### The Input Control Panel
 This panel allows the user to continue execution of the circuit.
 This panel presents a list of the top level IO ports.
+Values will be checked for format and legal range. 
+Input Format allowed currently are
+- 0xNNN or xNNN for hex
+- bNNN for binary
+- NNNN for decimal
+
+where N is a digit appropriate for the radix.
+A minus sign can be placed at the front of any of the above
+if the input is an SInt.
+
 Port values can be set then poked. Poking does not advance the clock, to do that you must
 hit the `step` button.
-Input fields can be populated from the input values under the cursor
 
-> All ports will be poked with the current visible values when the `poke` button is hit.
->
->
+Input fields can be populated from the input values under the cursor.
+ 
+The input control panel
+keeps a history of any time a set of values is successfully poked.
+History will not add two entries adjacently that are the same, but non-adjacent duplicates
+can occur. There is an arbitrary limit of 50 entries in the history at the moment
+
+> All ports will be poked with the current visible values when the `poke` button is hit. A blank field
+> will not be poked, but is not an error
 
 ## Ideas / To Do
 
@@ -115,4 +130,4 @@ Input fields can be populated from the input values under the cursor
   - Go back in time
 - Input manipulation
   - force arbitrary signals to a value
-  - History mechanism for 
+  

@@ -89,7 +89,7 @@ class InputControlPanel(dataModel: DataModel, selectedSignalModel: SelectedSigna
                     }
                 }
               }
-              grabInputButton.tooltip = "Grab"
+              grabInputButton.tooltip = "Grab all the input values at the time of the cursor position"
               contents += grabInputButton
             }
             contents += toolBar
@@ -149,19 +149,30 @@ class InputControlPanel(dataModel: DataModel, selectedSignalModel: SelectedSigna
         }
 
         def pokeAll(): Unit = {
-          for (inputPort <- inputNames) {
-            try {
-              val textField = inputTextBoxes(inputPort)
-              val value = BigInt(textField.text)
+          val pokeMap = inputTextBoxes.map { case (key, value) => (key, value.text) }.toMap
 
-              tester.poke(inputPort, value) // TODO: Verify value is allowed (number, width)
-              textArea.append(s"Poke $inputPort with value $value\n")
-            } catch {
-              case _: NumberFormatException => // TODO: Notify that value is invalid
+          val errors = dataModel.findBadPokedValues(pokeMap)
+          if (errors.nonEmpty) {
+            Dialog.showMessage(this, errors.mkString("\n"), "INPUT VALUE ERRORS")
+          } else {
+            for (inputPort <- inputNames) {
+              val valueText = inputTextBoxes(inputPort).text
+              if (valueText.trim.nonEmpty) {
+                val value = dataModel.parseSignalValue(valueText) match {
+                  case Left(_) =>
+                    // Should not be here fields were validated above
+                    BigInt(0)
+                  case Right(parsedValue) =>
+                    parsedValue
+                }
+
+                tester.poke(inputPort, value)
+                textArea.append(s"Poke $inputPort with value $value\n")
+              }
             }
+            dataModel.savePokeValues(pokeMap)
+            historyLabel.text = s"${dataModel.currentPokeHistoryIndex + 1} of ${dataModel.pokeHistory.length}"
           }
-          dataModel.savePokeValues(inputTextBoxes.map { case (key, value) => (key, value.text) }.toMap)
-          historyLabel.text = s"${dataModel.currentPokeHistoryIndex + 1} of ${dataModel.pokeHistory.length}"
         }
 
         currentRow += 1
