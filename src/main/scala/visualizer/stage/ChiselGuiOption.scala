@@ -15,10 +15,25 @@ trait ChiselGuiCli extends FirrtlCli {
   parser.note("ChiselGui Options")
   Seq(
     ChiselSourcePaths,
+    ChiselSourceOpenCommand,
     VcdFile,
     PrimaryClockName
   ).foreach(_.addOptions(parser))
 }
+
+object ChiselSourceOpenCommand extends HasShellOptions {
+  override def options: Seq[ShellOption[_]] = Seq(
+    new ShellOption[Seq[String]](
+      longOption = "chisel-source-open-command",
+      toAnnotationSeq = a => Seq(ChiselSourceOpenCommand(a)),
+      helpText = s"A sequence of strings, that together" +
+        s" are the command to open the chisel source associated with a signal\n" +
+        s"Use [[FILE]] and [[LINE]] (case matters) as substitution points for the file and for the line number to jump to"
+    )
+  )
+}
+
+case class ChiselSourceOpenCommand(paths: Seq[String]) extends NoTargetAnnotation with ChiselGuiOption
 
 object ChiselSourcePaths extends HasShellOptions {
   override def options: Seq[ShellOption[_]] = Seq(

@@ -1,5 +1,6 @@
 package visualizer.models
 
+import treadle.executable.{SignedInt, UnsignedInt}
 import treadle.vcd.VCD
 import visualizer.ChiselGUI.dataModel
 import visualizer.{ChiselGUI, MaxTimestampChanged}
@@ -45,6 +46,33 @@ class DataModel extends Publisher {
     }
   }
 
+  ///////////////////////////////////////////////////////////////////////////
+  // Input panel stuff
+  ///////////////////////////////////////////////////////////////////////////
+
+  val pokeHistory: mutable.ArrayBuffer[Map[String, String]] = new mutable.ArrayBuffer()
+  var currentPokeHistoryIndex = 0
+
+  def savePokeValues(pokeData: Map[String, String]): Unit = {
+    pokeHistory.lastOption match {
+      case Some(lastPokeData) =>
+        val thereWereChanges = (lastPokeData.keys ++ pokeData.keys).exists { key =>
+          lastPokeData.getOrElse(key, "") != pokeData.getOrElse(key, "")
+        }
+        if (thereWereChanges) {
+          pokeHistory += pokeData
+          currentPokeHistoryIndex = pokeHistory.length - 1
+        }
+      case _ =>
+        pokeHistory += pokeData
+        currentPokeHistoryIndex = pokeHistory.length - 1
+    }
+    if (pokeHistory.length > 50) {
+      // Throw away the old stuff
+      pokeHistory.remove(0, pokeHistory.length - 50)
+    }
+  }
+
   def grabInputs(time: Long): Map[String, BigInt] = {
     val inputMap = new mutable.HashMap[String, BigInt]
 
@@ -78,6 +106,61 @@ class DataModel extends Publisher {
     }
 
     inputMap.toMap
+  }
+
+  def parseSignalValue(s: String): Either[String, BigInt] = {
+    var ss = s
+    val sign = if (s.startsWith("-")) { -1 } else { 1 }
+    if (sign < 0) { ss = ss.drop(1) }
+    val radix = if (ss.startsWith("0x")) {
+      ss = ss.drop(2)
+      16
+    } else if (ss.startsWith("x")) {
+      ss = ss.drop(1)
+      16
+    } else if (ss.startsWith("b")) {
+      ss = ss.drop(1)
+      2
+    } else {
+      10
+    }
+    try {
+      Right(BigInt(ss, radix) * sign)
+    } catch {
+      case _: Throwable =>
+        Left(s"Unable to parse '$ss' as a number")
+    }
+  }
+
+  def findBadPokedValues(pokeMap: Map[String, String]): Seq[String] = {
+    pokeMap.flatMap {
+      case (key, valueString) =>
+        nameToSignal.get(key) match {
+          case Some(signal: PureSignal) if signal.symbolOpt.isDefined && valueString.trim.nonEmpty =>
+            parseSignalValue(valueString) match {
+              case Left(message) =>
+                Some(s"$key: $message")
+              case Right(value) =>
+                val symbol = signal.symbolOpt.get
+                val (low, high) = symbol.dataType match {
+                  case SignedInt =>
+                    treadle.extremaOfSIntOfWidth(symbol.bitWidth)
+                  case UnsignedInt =>
+                    treadle.extremaOfUIntOfWidth(symbol.bitWidth)
+                  case _ =>
+                    (BigInt(0), BigInt(1))
+                }
+
+                if (value < low || high < value) {
+                  Some(s"$key must be between $low and $high")
+                } else {
+                  None
+                }
+            }
+          case _ =>
+            None
+        }
+    }.toSeq
   }
 
   ///////////////////////////////////////////////////////////////////////////

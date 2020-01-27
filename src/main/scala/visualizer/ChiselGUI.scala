@@ -17,7 +17,7 @@ import treadle.{TreadleTester, WriteVcdAnnotation}
 import visualizer.components.MainWindow
 import visualizer.config.ColorTable
 import visualizer.models._
-import visualizer.stage.{ChiselGuiCli, ChiselSourcePaths, VcdFile}
+import visualizer.stage.{ChiselGuiCli, ChiselSourceOpenCommand, ChiselSourcePaths, VcdFile}
 
 import scala.collection.mutable
 import scala.swing.Dialog.Result
@@ -47,7 +47,8 @@ object ChiselGUI extends SwingApplication with Publisher {
   val signalSelectorModel: SignalSelectorModel = new SignalSelectorModel
   val selectedSignalModel: SelectedSignalModel = new SelectedSignalModel
 
-  val sourceInfoMap: mutable.HashMap[String, String] = new mutable.HashMap()
+  val sourceInfoMap:     mutable.HashMap[String, String] = new mutable.HashMap()
+  var sourceOpenCommand: Seq[String] = Seq.empty
 
   var mainWindow: MainWindow = _
   var mainWindowSize = new Dimension(1000, 600)
@@ -61,6 +62,7 @@ object ChiselGUI extends SwingApplication with Publisher {
   var startupShowSignalSelector:     Boolean = true
   var startupSieveSignal:            String = ""
   var startupSieveTrigger:           BigInt = BigInt(0)
+  val startupPokeHistory:            mutable.ArrayBuffer[mutable.HashMap[String, String]] = new mutable.ArrayBuffer()
 
   var toExpand = new mutable.ArrayBuffer[Tree.Path[GenericTreeNode]]()
 
@@ -72,6 +74,15 @@ object ChiselGUI extends SwingApplication with Publisher {
     val firrtlFileNameOpt = startAnnotations.collectFirst { case a: ProgramArgsAnnotation => a.arg }
 
     val vcdFileNameOpt = startAnnotations.collectFirst { case a: VcdFile => a.vcdFileName }
+
+    sourceOpenCommand = startAnnotations.collectFirst { case ChiselSourceOpenCommand(paths) => paths }.getOrElse(
+      Seq(
+        "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea",
+        "--line",
+        s"[[LINE]]",
+        s"[[FILE]]"
+      )
+    )
 
     if (firrtlFileNameOpt.isEmpty && vcdFileNameOpt.isEmpty) {}
 
@@ -143,6 +154,14 @@ object ChiselGUI extends SwingApplication with Publisher {
     if (startupSieveSignal.nonEmpty) {
       selectedSignalModel.createDecoupledTimeSieve(groupName = startupSieveSignal, startupSieveTrigger)
     }
+
+    startupPokeHistory.foreach { pokes =>
+      dataModel.savePokeValues(pokes.toMap)
+    }
+    startupPokeHistory.lastOption.foreach { pokes =>
+      mainWindow.inputControlPanel.setTextBoxes(pokes.toMap)
+    }
+    mainWindow.inputControlPanel.setHistoryLabel()
 
     publish(new PureSignalsChanged)
 
@@ -376,6 +395,16 @@ object ChiselGUI extends SwingApplication with Publisher {
               startupSieveSignal = name
               startupSieveTrigger = BigInt(triggerString)
 
+            case "poke_history" :: tail =>
+              val pokeMap = new mutable.HashMap[String, String]()
+              tail.sliding(2, 2).foreach {
+                case key :: value :: Nil =>
+                  pokeMap += key -> value
+                case _ =>
+              }
+              if (pokeMap.nonEmpty) {
+                startupPokeHistory += pokeMap
+              }
             case _ =>
               println(s"Invalid line $line in save file")
 

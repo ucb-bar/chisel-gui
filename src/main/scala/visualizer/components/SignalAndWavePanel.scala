@@ -79,12 +79,19 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
               s.info.string match {
                 case SourceInfoPattern(file, line) =>
                   ChiselGUI.sourceInfoMap.get(file).foreach { targetFile =>
-                    val command = Seq(
-                      "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea",
-                      "--line",
-                      s"$line",
-                      s"$targetFile"
-                    )
+                    val command = ChiselGUI.sourceOpenCommand.map { string =>
+                      val s1 = if (string.contains("[[LINE]]")) {
+                        string.replace("[[LINE]]", line)
+                      } else {
+                        string
+                      }
+                      val s2 = if (string.contains("[[FILE]]")) {
+                        s1.replace("[[FILE]]", targetFile)
+                      } else {
+                        s1
+                      }
+                      s2
+                    }
 
                     println(command.mkString(" "))
                     contents += new MenuItem(Action(s"Jump to source $file : $line") {
