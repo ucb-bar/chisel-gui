@@ -53,7 +53,10 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
             case Some(depthString) =>
               try {
                 val depth = depthString.toInt
-                ChiselGUI.loadDrivingSignals(pureSignal, depth)
+                val getDrivingSignalNodes = ChiselGUI.loadDrivingSignals(pureSignal, depth)
+                getDrivingSignalNodes.foreach { node =>
+                  selectedSignalModel.addNodes(InsertInto, node, this)
+                }
               } catch {
                 case _: Throwable =>
               }

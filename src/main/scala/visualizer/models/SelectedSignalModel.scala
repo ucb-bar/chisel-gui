@@ -81,17 +81,6 @@ class SelectedSignalModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Signals
   ///////////////////////////////////////////////////////////////////////////
-  def addFromDirectoryToInspected(node: GenericTreeNode, source: Component): Unit = {
-    val inspectedNode = node
-    insertUnder(RootPath, inspectedNode, treeModel.getChildrenOf(RootPath).size)
-
-    node match {
-      case waveFormNode: WaveFormNode =>
-        waveDisplaySettings.getOrElseUpdate(waveFormNode.name, WaveDisplaySetting())
-      case _ =>
-    }
-    publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
-  }
 
   /** This is how nodes are added from the signal selector
     *
