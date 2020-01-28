@@ -167,9 +167,22 @@ class SelectedSignalModel extends Publisher {
           waveFormNode.signal match {
             case p: PureSignal =>
               waveDisplaySettings.getOrElseUpdate(p.name, WaveDisplaySetting())
+              Waves.updateWave(waveFormNode.signal.name)
+            case d: DecoupledSignalGroup =>
+              Waves.updateWave(d.readySignal.name)
+              Waves.updateWave(d.validSignal.name)
+              d.bitsSignals.foreach { bitSignal =>
+                Waves.updateWave(bitSignal.name)
+              }
+              d.updateValues()
+            case v: ValidSignalGroup =>
+              Waves.updateWave(v.validSignal.name)
+              v.bitsSignals.foreach { bitSignal =>
+                Waves.updateWave(bitSignal.name)
+              }
+              v.updateValues()
             case _ =>
           }
-          Waves.updateWave(waveFormNode.signal.name)
         case _ =>
       }
 

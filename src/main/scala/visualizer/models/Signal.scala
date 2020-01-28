@@ -65,6 +65,9 @@ class DecoupledSignalGroup(
     super.makeWaves()
     Waves.addEntryFor(readySignal.name)
     Waves.addEntryFor(validSignal.name)
+    bitsSignals.foreach { bitSignal =>
+      Waves.addEntryFor(bitSignal.name)
+    }
   }
 }
 
