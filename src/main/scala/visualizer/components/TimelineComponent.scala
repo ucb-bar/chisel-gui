@@ -43,41 +43,69 @@ class TimelineComponent(dataModel: DataModel, selectedSignalModel: SelectedSigna
       case _ =>
         selectedSignalModel.clock match {
           case Some(clk) if selectedSignalModel.useClock =>
-            val startTime: Long = math.max(
-              ((visibleRect.x - 100) / selectedSignalModel.scale).toLong - clk.initialOffset,
-              0
-            ) / clk.period * clk.period + clk.initialOffset
-            val endTime: Long = ((visibleRect.x + visibleRect.width) / selectedSignalModel.scale).toLong
 
-            for (ts: Long <- startTime until endTime by clk.period) {
-              val x: Int = (ts * selectedSignalModel.scale).toInt
-              if ((((ts - clk.initialOffset) / clk.period) / selectedSignalModel.clkMinorTickInterval) % 5 == 0) {
-                g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
-                g.drawString(((ts - clk.initialOffset) / clk.period).toString,
-                             x + 3,
-                             DrawMetrics.MinorTickTop - metrics.getDescent - 2)
-              } else {
-                g.drawLine(x, DrawMetrics.MinorTickTop, x, DrawMetrics.TimescaleHeight)
-              }
+            val ssm = selectedSignalModel
+            val start = ((ssm.xCoordinateToSievedTimestamp(visibleRect.x - 100) - clk.initialOffset).max(0L) /
+            clk.period) * clk.period + clk.initialOffset
+
+            val end = ssm.xCoordinateToSievedTimestamp(visibleRect.x + visibleRect.width)
+            val minor = (((end - start) / 10) / clk.period * clk.period).max(10L)
+
+            for(t <- start to end by minor) {
+              val x = ssm.timestampToXCoordinate(t)
+              g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
+              g.drawString((t / unitMagnitude).toString + " " + "cyc", x + 3,
+                DrawMetrics.MinorTickTop - metrics.getDescent - 2)
             }
+
+//
+//            val startTime: Long = math.max(
+//              ((visibleRect.x - 100) / selectedSignalModel.scale).toLong - clk.initialOffset,
+//              0
+//            ) / clk.period * clk.period + clk.initialOffset
+//            val endTime: Long = ((visibleRect.x + visibleRect.width) / selectedSignalModel.scale).toLong
+//
+//            for (ts: Long <- startTime until endTime by clk.period) {
+//              val x: Int = (ts * selectedSignalModel.scale).toInt
+//              if ((((ts - clk.initialOffset) / clk.period) / selectedSignalModel.clkMinorTickInterval) % 5 == 0) {
+//                g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
+//                g.drawString(((ts - clk.initialOffset) / clk.period).toString,
+//                             x + 3,
+//                             DrawMetrics.MinorTickTop - metrics.getDescent - 2)
+//              } else {
+//                g.drawLine(x, DrawMetrics.MinorTickTop, x, DrawMetrics.TimescaleHeight)
+//              }
+//            }
           case _ =>
             // The -100 in start time keeps labels that are to the left of the window from not being drawn
             // (which causes artifacts when scrolling).  It needs to be bigger than the largest label.
-            val startTime
-              : Long = math.max(((visibleRect.x - 100) / selectedSignalModel.scale).toLong, 0) / selectedSignalModel.minorTickInterval * selectedSignalModel.minorTickInterval
-            val endTime: Long = ((visibleRect.x + visibleRect.width) / selectedSignalModel.scale).toLong
+            val ssm = selectedSignalModel
+            val start = ssm.xCoordinateToSievedTimestamp(visibleRect.x - 100)
+            val end = ssm.xCoordinateToSievedTimestamp(visibleRect.x + visibleRect.width)
+            val minor = ((end - start) / 10).max(10)
 
-            for (ts: Long <- startTime until endTime by selectedSignalModel.minorTickInterval) {
-              val x: Int = (ts * selectedSignalModel.scale).toInt
-              if ((ts / selectedSignalModel.minorTickInterval) % 10 == 0) {
-                g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
-                g.drawString((ts / unitMagnitude).toString + " " + unit,
-                             x + 3,
-                             DrawMetrics.MinorTickTop - metrics.getDescent - 2)
-              } else {
-                g.drawLine(x, DrawMetrics.MinorTickTop, x, DrawMetrics.TimescaleHeight)
-              }
+            for(t <- start to end by minor) {
+              val x = ssm.timestampToXCoordinate(t)
+              g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
+              g.drawString((t / unitMagnitude).toString + " " + unit, x + 3,
+                DrawMetrics.MinorTickTop - metrics.getDescent - 2)
             }
+
+//            val startTime
+//              : Long = math.max(((visibleRect.x - 100) / selectedSignalModel.scale).toLong, 0) / selectedSignalModel.minorTickInterval * selectedSignalModel.minorTickInterval
+//            val endTime: Long = ((visibleRect.x + visibleRect.width) / selectedSignalModel.scale).toLong
+//
+//            for (ts: Long <- startTime until endTime by selectedSignalModel.minorTickInterval) {
+//              val x: Int = (ts * selectedSignalModel.scale).toInt
+//              if ((ts / selectedSignalModel.minorTickInterval) % 10 == 0) {
+//                g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
+//                g.drawString((ts / unitMagnitude).toString + " " + unit,
+//                             x + 3,
+//                             DrawMetrics.MinorTickTop - metrics.getDescent - 2)
+//              } else {
+//                g.drawLine(x, DrawMetrics.MinorTickTop, x, DrawMetrics.TimescaleHeight)
+//              }
+//            }
         }
     }
 
