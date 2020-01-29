@@ -124,17 +124,18 @@ object Waves {
     * @param name the wave to be updated
     */
   def updateWave(name: String): Unit = {
-    val wave = nameToWave(name)
-    val changes = vcd.valuesAtTime.flatMap {
-      case (time, changeSet) =>
-        changeSet.find { change =>
-          change.wire.fullName == name
-        } match {
-          case Some(change) => Some(Transition(time, change.value))
-          case _            => None
+    addEntryFor(name)
+    val wave = nameToWave.getOrElseUpdate(name, new Wave)
+    val transitions = new mutable.ArrayBuffer[Transition]
+    vcd.valuesAtTime.foreach { case (time, changeSet) =>
+      changeSet.foreach { change =>
+        if(change.wire.fullName == name) {
+          transitions += Transition(time, change.value)
         }
-    }.toSeq.sortBy(transition => transition.timestamp)
-    wave.addChanges(changes)
+      }
+    }
+    val sortedTransitions = transitions.sortBy(transition => transition.timestamp)
+    wave.addChanges(sortedTransitions)
   }
 
   /** This will update only the existing waves with all the

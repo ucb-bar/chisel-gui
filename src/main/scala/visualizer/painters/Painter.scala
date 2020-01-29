@@ -44,23 +44,39 @@ object Painter {
     * @return
     */
   def hexagon(left: Int, right: Int, bottom: Int): Polygon = {
-    val xs = new Array[Int](6)
-    xs(0) = left
-    xs(1) = left + DrawMetrics.Foo
-    xs(2) = right - DrawMetrics.Foo
-    xs(3) = right
-    xs(4) = xs(2)
-    xs(5) = xs(1)
+    if(left + DrawMetrics.Foo * 8 < right ) {
+      val xs = new Array[Int](6)
+      xs(0) = left
+      xs(1) = left + DrawMetrics.Foo
+      xs(2) = right - DrawMetrics.Foo
+      xs(3) = right
+      xs(4) = xs(2)
+      xs(5) = xs(1)
 
-    val ys = new Array[Int](6)
-    ys(0) = bottom + DrawMetrics.WaveformHeight / 2
-    ys(1) = bottom
-    ys(2) = bottom
-    ys(3) = ys(0)
-    ys(4) = bottom + DrawMetrics.WaveformHeight
-    ys(5) = ys(4)
+      val ys = new Array[Int](6)
+      ys(0) = bottom + DrawMetrics.WaveformHeight / 2
+      ys(1) = bottom
+      ys(2) = bottom
+      ys(3) = ys(0)
+      ys(4) = bottom + DrawMetrics.WaveformHeight
+      ys(5) = ys(4)
 
-    new Polygon(xs, ys, 6)
+      new Polygon(xs, ys, 6)
+    } else {
+      val xs = new Array[Int](4)
+      xs(0) = left
+      xs(1) = left
+      xs(2) = right
+      xs(3) = right
+
+      val ys = new Array[Int](4)
+      ys(0) = bottom + DrawMetrics.WaveformHeight
+      ys(1) = bottom
+      ys(2) = bottom
+      ys(3) = bottom + DrawMetrics.WaveformHeight
+
+      new Polygon(xs, ys, 4)
+    }
   }
 
   /** Draws a half hexagon, with the right side open

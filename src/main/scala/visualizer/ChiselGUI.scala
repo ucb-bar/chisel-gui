@@ -62,6 +62,7 @@ object ChiselGUI extends SwingApplication with Publisher {
   var startupShowSignalSelector:     Boolean = true
   var startupSieveSignal:            String = ""
   var startupSieveTrigger:           BigInt = BigInt(0)
+  var startupSieveEnabled:           Boolean = false
   val startupPokeHistory:            mutable.ArrayBuffer[mutable.HashMap[String, String]] = new mutable.ArrayBuffer()
 
   var toExpand = new mutable.ArrayBuffer[Tree.Path[GenericTreeNode]]()
@@ -152,7 +153,9 @@ object ChiselGUI extends SwingApplication with Publisher {
     expandNodesOnStartup()
 
     if (startupSieveSignal.nonEmpty) {
-      selectedSignalModel.createDecoupledTimeSieve(groupName = startupSieveSignal, startupSieveTrigger)
+      selectedSignalModel.createDecoupledTimeSieve(groupName = startupSieveSignal,
+                                                   startupSieveTrigger,
+                                                   startupSieveEnabled)
     }
 
     startupPokeHistory.foreach { pokes =>
@@ -391,9 +394,10 @@ object ChiselGUI extends SwingApplication with Publisher {
             case "show_signal_selector" :: boolString :: Nil =>
               startupShowSignalSelector = boolString.toBoolean
 
-            case "decoupled_sieve_signal" :: name :: triggerString :: Nil =>
+            case "decoupled_sieve_signal" :: name :: triggerString :: stateString :: Nil =>
               startupSieveSignal = name
               startupSieveTrigger = BigInt(triggerString)
+              startupSieveEnabled = stateString.toBoolean
 
             case "poke_history" :: tail =>
               val pokeMap = new mutable.HashMap[String, String]()
@@ -523,45 +527,51 @@ object ChiselGUI extends SwingApplication with Publisher {
     dataModel.loadMoreWaveformValues()
   }
 
-  def loadDrivingSignals(signal: PureSignal, maxDepth: Int): Unit = {
-    testerOpt.foreach { tester =>
-      val engine = tester.engine
-      val digraph = engine.symbolTable.parentsOf
+  def loadDrivingSignals(signal: PureSignal, maxDepth: Int): Seq[GenericTreeNode] = {
+    testerOpt match {
+      case Some(tester) =>
+        val engine = tester.engine
+        val digraph = engine.symbolTable.parentsOf
 
-      val table = engine.symbolTable
-      val symbol = engine.symbolTable(signal.name)
-      val symbolsSeen = new mutable.HashSet[String]()
-      val symbolsAtDepth = Array.fill(maxDepth + 1) {
-        new mutable.HashSet[Symbol]
-      }
+        val table = engine.symbolTable
+        val symbol = engine.symbolTable(signal.name)
+        val symbolsSeen = new mutable.HashSet[String]()
+        val symbolsAtDepth = Array.fill(maxDepth + 1) {
+          new mutable.HashSet[Symbol]
+        }
 
-      symbolsSeen += signal.name
-      walkGraph(symbol, depth = 0)
+        val nodesToAdd = new mutable.ArrayBuffer[GenericTreeNode]()
 
-      def walkGraph(symbol: Symbol, depth: Int): Unit = {
-        symbolsAtDepth(depth) += symbol
+        symbolsSeen += signal.name
+        walkGraph(symbol, depth = 0)
 
-        if (depth < maxDepth) {
-          digraph.getEdges(symbol).toSeq.sortBy(_.name).foreach { childSymbol =>
-            walkGraph(childSymbol, depth + 1)
+        def walkGraph(symbol: Symbol, depth: Int): Unit = {
+          symbolsAtDepth(depth) += symbol
 
-            if (table.isRegister(symbol.name)) {
-              walkGraph(table(SymbolTable.makeRegisterInputName(symbol)), depth + 1)
+          if (depth < maxDepth) {
+            digraph.getEdges(symbol).toSeq.sortBy(_.name).foreach { childSymbol =>
+              walkGraph(childSymbol, depth + 1)
+
+              if (table.isRegister(symbol.name)) {
+                walkGraph(table(SymbolTable.makeRegisterInputName(symbol)), depth + 1)
+              }
+            }
+          }
+
+          val showDepth = symbolsAtDepth.count(_.nonEmpty)
+          for (depth <- 0 until showDepth) {
+            symbolsAtDepth(depth).toSeq.map(_.name).filterNot(symbolsSeen.contains).sorted.foreach { signalName =>
+              dataModel.nameToSignal.get(signalName).foreach { drivingSignal =>
+                symbolsSeen += signalName
+                val otherNode = WaveFormNode(signalName, drivingSignal)
+                nodesToAdd += otherNode
+              }
             }
           }
         }
-
-        val showDepth = symbolsAtDepth.count(_.nonEmpty)
-        for (depth <- 0 until showDepth) {
-          symbolsAtDepth(depth).toSeq.map(_.name).filterNot(symbolsSeen.contains).sorted.foreach { signalName =>
-            dataModel.nameToSignal.get(signalName).foreach { drivingSignal =>
-              symbolsSeen += signalName
-              val otherNode = WaveFormNode(signalName, drivingSignal)
-              selectedSignalModel.addFromDirectoryToInspected(otherNode, mainWindow.signalSelectorPanel)
-            }
-          }
-        }
-      }
+        nodesToAdd
+      case _ =>
+        Seq.empty
     }
   }
 

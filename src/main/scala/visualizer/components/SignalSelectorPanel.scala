@@ -56,12 +56,7 @@ class SignalSelectorPanel(
             println(s"Got mouse click in tree ${m.clicks}")
           } else if (m.clicks == 2) {
             println(s"mouse double clicked in tree ${m.clicks}")
-            selection.cellValues.foreach {
-              case directoryNode: DirectoryNode =>
-                selectedSignalModel.addFromDirectoryToInspected(directoryNode.copy(), this)
-              case otherNode =>
-                selectedSignalModel.addFromDirectoryToInspected(otherNode, this)
-            }
+            addToSelectedSignalsModel(AppendToEnd)
           }
         }
     }

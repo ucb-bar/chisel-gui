@@ -327,7 +327,8 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
       writer.println(
         s"decoupled_sieve_signal," +
           s"${selectedSignalModel.currentDecoupledSieveSignal}," +
-          s"${selectedSignalModel.currentDecoupledSieveTrigger}"
+          s"${selectedSignalModel.currentDecoupledSieveTrigger}," +
+          s"${selectedSignalModel.timeSieveOpt.isDefined.toString}"
       )
     }
 

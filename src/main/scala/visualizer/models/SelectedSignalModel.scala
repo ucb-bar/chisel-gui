@@ -81,17 +81,6 @@ class SelectedSignalModel extends Publisher {
   ///////////////////////////////////////////////////////////////////////////
   // Signals
   ///////////////////////////////////////////////////////////////////////////
-  def addFromDirectoryToInspected(node: GenericTreeNode, source: Component): Unit = {
-    val inspectedNode = node
-    insertUnder(RootPath, inspectedNode, treeModel.getChildrenOf(RootPath).size)
-
-    node match {
-      case waveFormNode: WaveFormNode =>
-        waveDisplaySettings.getOrElseUpdate(waveFormNode.name, WaveDisplaySetting())
-      case _ =>
-    }
-    publish(SignalsChanged(source)) // TODO: Rename to NodesChanged
-  }
 
   /** This is how nodes are added from the signal selector
     *
@@ -167,9 +156,22 @@ class SelectedSignalModel extends Publisher {
           waveFormNode.signal match {
             case p: PureSignal =>
               waveDisplaySettings.getOrElseUpdate(p.name, WaveDisplaySetting())
+              Waves.updateWave(waveFormNode.signal.name)
+            case d: DecoupledSignalGroup =>
+              Waves.updateWave(d.readySignal.name)
+              Waves.updateWave(d.validSignal.name)
+              d.bitsSignals.foreach { bitSignal =>
+                Waves.updateWave(bitSignal.name)
+              }
+              d.updateValues()
+            case v: ValidSignalGroup =>
+              Waves.updateWave(v.validSignal.name)
+              v.bitsSignals.foreach { bitSignal =>
+                Waves.updateWave(bitSignal.name)
+              }
+              v.updateValues()
             case _ =>
           }
-          Waves.updateWave(waveFormNode.signal.name)
         case _ =>
       }
 
@@ -204,9 +206,9 @@ class SelectedSignalModel extends Publisher {
   // Create a hard-code time sieve based on fire events in Decoupled Group
   ///////////////////////////////////////////////////////////////////////////
 
-  def createDecoupledTimeSieve(groupName: String, triggerValue: BigInt): Unit = {
+  def createDecoupledTimeSieve(groupName: String, triggerValue: BigInt, enable: Boolean = true): Unit = {
     val timeSieve = new TimeSieve
-    timeSieveOpt = Some(timeSieve)
+    timeSieveOpt = if (enable) { Some(timeSieve) } else { None }
     Waves.get(groupName).foreach { wave =>
       var accumulatedTime = -1L
       wave.indices.foreach {

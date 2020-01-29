@@ -40,6 +40,8 @@ class TimeSieve {
     timeSum(index) + end(index)
   }
 
+  def highestSieveTime: Long = ends.lastOption.getOrElse(0L)
+
   def logicalTimeToSieveTime(time: Long): Long = {
     val index = findTimeSumIndex(time)
     if(index >= 0) {
