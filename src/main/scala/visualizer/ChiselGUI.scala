@@ -62,6 +62,7 @@ object ChiselGUI extends SwingApplication with Publisher {
   var startupShowSignalSelector:     Boolean = true
   var startupSieveSignal:            String = ""
   var startupSieveTrigger:           BigInt = BigInt(0)
+  var startupSieveEnabled:           Boolean = false
   val startupPokeHistory:            mutable.ArrayBuffer[mutable.HashMap[String, String]] = new mutable.ArrayBuffer()
 
   var toExpand = new mutable.ArrayBuffer[Tree.Path[GenericTreeNode]]()
@@ -152,7 +153,9 @@ object ChiselGUI extends SwingApplication with Publisher {
     expandNodesOnStartup()
 
     if (startupSieveSignal.nonEmpty) {
-      selectedSignalModel.createDecoupledTimeSieve(groupName = startupSieveSignal, startupSieveTrigger)
+      selectedSignalModel.createDecoupledTimeSieve(groupName = startupSieveSignal,
+                                                   startupSieveTrigger,
+                                                   startupSieveEnabled)
     }
 
     startupPokeHistory.foreach { pokes =>
@@ -391,9 +394,10 @@ object ChiselGUI extends SwingApplication with Publisher {
             case "show_signal_selector" :: boolString :: Nil =>
               startupShowSignalSelector = boolString.toBoolean
 
-            case "decoupled_sieve_signal" :: name :: triggerString :: Nil =>
+            case "decoupled_sieve_signal" :: name :: triggerString :: stateString :: Nil =>
               startupSieveSignal = name
               startupSieveTrigger = BigInt(triggerString)
+              startupSieveEnabled = stateString.toBoolean
 
             case "poke_history" :: tail =>
               val pokeMap = new mutable.HashMap[String, String]()
@@ -566,9 +570,9 @@ object ChiselGUI extends SwingApplication with Publisher {
           }
         }
         nodesToAdd
-    case _ =>
-      Seq.empty
-  }
+      case _ =>
+        Seq.empty
+    }
   }
 
   /** This changes the dock and the command-tab and has been tested on osx 🚩

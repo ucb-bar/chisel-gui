@@ -206,9 +206,9 @@ class SelectedSignalModel extends Publisher {
   // Create a hard-code time sieve based on fire events in Decoupled Group
   ///////////////////////////////////////////////////////////////////////////
 
-  def createDecoupledTimeSieve(groupName: String, triggerValue: BigInt): Unit = {
+  def createDecoupledTimeSieve(groupName: String, triggerValue: BigInt, enable: Boolean = true): Unit = {
     val timeSieve = new TimeSieve
-    timeSieveOpt = Some(timeSieve)
+    timeSieveOpt = if (enable) { Some(timeSieve) } else { None }
     Waves.get(groupName).foreach { wave =>
       var accumulatedTime = -1L
       wave.indices.foreach {

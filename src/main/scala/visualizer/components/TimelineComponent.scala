@@ -43,19 +43,19 @@ class TimelineComponent(dataModel: DataModel, selectedSignalModel: SelectedSigna
       case _ =>
         selectedSignalModel.clock match {
           case Some(clk) if selectedSignalModel.useClock =>
-
             val ssm = selectedSignalModel
             val start = ((ssm.xCoordinateToSievedTimestamp(visibleRect.x - 100) - clk.initialOffset).max(0L) /
-            clk.period) * clk.period + clk.initialOffset
+              clk.period) * clk.period + clk.initialOffset
 
             val end = ssm.xCoordinateToSievedTimestamp(visibleRect.x + visibleRect.width)
             val minor = (((end - start) / 10) / clk.period * clk.period).max(10L)
 
-            for(t <- start to end by minor) {
+            for (t <- start to end by minor) {
               val x = ssm.timestampToXCoordinate(t)
               g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
-              g.drawString((t / unitMagnitude).toString + " " + "cyc", x + 3,
-                DrawMetrics.MinorTickTop - metrics.getDescent - 2)
+              g.drawString((t / unitMagnitude).toString + " " + "cyc",
+                           x + 3,
+                           DrawMetrics.MinorTickTop - metrics.getDescent - 2)
             }
 
 //
@@ -84,11 +84,12 @@ class TimelineComponent(dataModel: DataModel, selectedSignalModel: SelectedSigna
             val end = ssm.xCoordinateToSievedTimestamp(visibleRect.x + visibleRect.width)
             val minor = ((end - start) / 10).max(10)
 
-            for(t <- start to end by minor) {
+            for (t <- start to end by minor) {
               val x = ssm.timestampToXCoordinate(t)
               g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
-              g.drawString((t / unitMagnitude).toString + " " + unit, x + 3,
-                DrawMetrics.MinorTickTop - metrics.getDescent - 2)
+              g.drawString((t / unitMagnitude).toString + " " + unit,
+                           x + 3,
+                           DrawMetrics.MinorTickTop - metrics.getDescent - 2)
             }
 
 //            val startTime
