@@ -44,9 +44,7 @@ object Painter {
     * @return
     */
   def hexagon(left: Int, right: Int, bottom: Int): Polygon = {
-    var f1 = left + DrawMetrics.Foo * 6
-    var f2 = right - DrawMetrics.Foo
-    if(f1 < f2 ) {
+    if(left + DrawMetrics.Foo * 8 < right ) {
       val xs = new Array[Int](6)
       xs(0) = left
       xs(1) = left + DrawMetrics.Foo
