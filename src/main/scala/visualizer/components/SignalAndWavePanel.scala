@@ -157,7 +157,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
             pureSignal.symbolOpt match {
               case Some(symbol) =>
                 symbol.info match {
-                  case s: FileInfo =>
+                  case _: FileInfo =>
                     "⇡ "
                   case _ =>
                     ""
@@ -373,26 +373,29 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     wavePanel.peer.scrollRectToVisible(newVisibleRect)
   }
 
+  def effectiveMaxTimestamp: Long = {
+    selectedSignalModel.timeSieveOpt match {
+      case Some(timeSieve) =>
+        timeSieve.highestSieveTime
+      case _ =>
+        dataModel.maxTimestamp
+    }
+  }
   /**
     * move wave view to end, keeping the current scale
     *
     * @param source component to scroll
     */
   def zoomToEnd(source: Component): Unit = {
+    var maxTimestamp = effectiveMaxTimestamp
+
     val oldVisibleRect = wavePanel.peer.getVisibleRect
-    val maxTimestamp = dataModel.maxTimestamp
-
-    val clockTickWidth = oldVisibleRect.width / selectedSignalModel.scale
-
-    val minTimestamp = (maxTimestamp - clockTickWidth).max(0)
-
-    val centerTimestamp = (maxTimestamp - minTimestamp) / 2 + minTimestamp
-
-    val centerX = (centerTimestamp * selectedSignalModel.scale).toInt
-
-    val newVisibleRect = wavePanel.peer.getVisibleRect
-    newVisibleRect.x = centerX - newVisibleRect.width / 2
-    wavePanel.peer.scrollRectToVisible(newVisibleRect)
+    val ssm = selectedSignalModel
+    val time1 = ssm.xCoordinateToSievedTimestamp(oldVisibleRect.x)
+    val time2 = ssm.xCoordinateToSievedTimestamp(oldVisibleRect.x + oldVisibleRect.width)
+    val timeWidthHalf = (time2 - time1) / 2
+    maxTimestamp -= timeWidthHalf
+    zoomToTime(maxTimestamp, source)
   }
 
   /** Zoom to a particular time
@@ -401,7 +404,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     */
   def zoomToTime(time: Long, source: Component): Unit = {
     val oldVisibleRect = wavePanel.peer.getVisibleRect
-    val maxTimestamp = dataModel.maxTimestamp
+    val maxTimestamp = effectiveMaxTimestamp
     val ssm = selectedSignalModel
 
     var centerTimeStamp = time
@@ -416,13 +419,13 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
       centerTimeStamp += leftEdgeTime // left is negative so this moves us over
       leftEdgeTime = 0L
     } else {
-      if (rightEdgeTime > dataModel.maxTimestamp) {
-        val overlap = rightEdgeTime - dataModel.maxTimestamp
+      if (rightEdgeTime > effectiveMaxTimestamp) {
+        val overlap = rightEdgeTime - effectiveMaxTimestamp
         leftEdgeTime -= overlap
         leftEdgeTime = leftEdgeTime.max(0L)
       }
     }
-    val leftX = ssm.timestampToXCoordinate(leftEdgeTime)
+    val leftX = ssm.sievedTimestampToXCoordinate(leftEdgeTime)
 
     val newVisibleRect = wavePanel.peer.getVisibleRect
     newVisibleRect.x = leftX
