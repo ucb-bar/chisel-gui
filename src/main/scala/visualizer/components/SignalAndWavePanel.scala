@@ -395,6 +395,40 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     wavePanel.peer.scrollRectToVisible(newVisibleRect)
   }
 
+  /** Zoom to a particular time
+    *
+    * @param source component to scroll
+    */
+  def zoomToTime(time: Long, source: Component): Unit = {
+    val oldVisibleRect = wavePanel.peer.getVisibleRect
+    val maxTimestamp = dataModel.maxTimestamp
+    val ssm = selectedSignalModel
+
+    var centerTimeStamp = time
+    val time1 = ssm.xCoordinateToSievedTimestamp(oldVisibleRect.x)
+    val time2 = ssm.xCoordinateToSievedTimestamp(oldVisibleRect.x + oldVisibleRect.width)
+    val timeWidthHalf = (time2 - time1) / 2
+
+    var leftEdgeTime = centerTimeStamp - timeWidthHalf
+    var rightEdgeTime = centerTimeStamp + timeWidthHalf
+
+    if (leftEdgeTime < 0L) {
+      centerTimeStamp += leftEdgeTime // left is negative so this moves us over
+      leftEdgeTime = 0L
+    } else {
+      if (rightEdgeTime > dataModel.maxTimestamp) {
+        val overlap = rightEdgeTime - dataModel.maxTimestamp
+        leftEdgeTime -= overlap
+        leftEdgeTime = leftEdgeTime.max(0L)
+      }
+    }
+    val leftX = ssm.timestampToXCoordinate(leftEdgeTime)
+
+    val newVisibleRect = wavePanel.peer.getVisibleRect
+    newVisibleRect.x = leftX
+    wavePanel.peer.scrollRectToVisible(newVisibleRect)
+  }
+
   def toggleSieveMode(source: Component): Unit = {
     val model = selectedSignalModel
     if (model.currentDecoupledSieveSignal.nonEmpty) {
@@ -403,6 +437,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
         case _ =>
           model.createDecoupledTimeSieve(model.currentDecoupledSieveSignal, model.currentDecoupledSieveTrigger)
       }
+      zoomToTime(selectedSignalModel.getCursorPosition, source)
       SwingUtilities.invokeLater(() => {
         repaint()
         updateWaveView()
