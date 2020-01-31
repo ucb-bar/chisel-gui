@@ -33,11 +33,21 @@ class TimelineComponent(dataModel: DataModel, selectedSignalModel: SelectedSigna
         val startTimestamp = selectedSignalModel.xCoordinateToTimestamp(visibleRect.x)
         var sieveIndex = timeSieve.findTimeSumIndex(startTimestamp)
 
+        var lastLabelLocation = -10000
         while (sieveIndex < timeSieve.length) {
           val timeSum = timeSieve.start(sieveIndex)
           val x = selectedSignalModel.timestampToXCoordinate(timeSieve.timeSum(sieveIndex))
-          g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
-          g.drawString(timeSum + " " + unit, x + 3, DrawMetrics.MinorTickTop - metrics.getDescent - 2)
+
+          if (x > lastLabelLocation) {
+            g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
+            val timeLabel = timeSum + " " + unit
+            val stringWidth = metrics.stringWidth(timeLabel) + 10
+            val t = selectedSignalModel.xCoordinateToSievedTimestamp(x)
+            g.drawString(t.toString + " " + unit, x + 3, DrawMetrics.MinorTickTop - metrics.getDescent - 2)
+            lastLabelLocation = x + stringWidth
+          } else {
+            g.drawLine(x, DrawMetrics.MinorTickTop, x, DrawMetrics.TimescaleHeight)
+          }
           sieveIndex += 1
         }
       case _ =>
