@@ -5,7 +5,8 @@ import java.io.File
 
 import com.apple.eawt.Application
 import firrtl.ir.ClockType
-import firrtl.options.{ProgramArgsAnnotation, Shell}
+import firrtl.options.phases.GetIncludes
+import firrtl.options.{InputAnnotationFileAnnotation, ProgramArgsAnnotation, Shell}
 import firrtl.stage.FirrtlSourceAnnotation
 import firrtl.{AnnotationSeq, FileUtils, InstanceKind, MemKind}
 import javax.imageio.ImageIO
@@ -442,6 +443,19 @@ object ChiselGUI extends SwingApplication with Publisher {
     * @param annotations    Annotation that have been provided from command line
     */
   def setupTreadle(firrtlFileName: String, annotations: AnnotationSeq): Unit = {
+
+    class GetAnnos extends firrtl.options.Stage {
+      override val shell: Shell = new Shell("dog")
+
+      override def run(annotations: AnnotationSeq): AnnotationSeq = {
+        transform(annotations)
+      }
+    }
+
+
+    val myAnnos= (new GetIncludes).transform(annotations.filter(_.isInstanceOf[InputAnnotationFileAnnotation]))
+    println(s"my annos $myAnnos")
+
     if (new File(firrtlFileName).exists) {
       val firrtlString = FileUtils.getText(firrtlFileName)
       val treadleTester = treadle.TreadleTester(
