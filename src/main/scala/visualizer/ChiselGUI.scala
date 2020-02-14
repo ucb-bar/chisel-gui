@@ -584,14 +584,39 @@ object ChiselGUI extends SwingApplication with Publisher {
   //TODO: Test this on other systems
   def setDockIcon(): Unit = {
     try {
-      import com.apple.eawt.Application
-
-      val application = Application.getApplication
       val r = ImageIO.read(getClass.getResource("/images/chisel-gui-icon.png"))
-      application.setDockIconImage(r)
+
+      //
+      // This method works if you can find the jar
+      //
+//      val classLoader = new java.net.URLClassLoader(
+//        Array(
+//          new File("/Users/chick/.ivy2/cache/com.apple/AppleJavaExtensions/jars/AppleJavaExtensions-1.4.jar").toURI.toURL
+//        ),
+//        this.getClass.getClassLoader
+//      )
+//
+//      val a = classLoader.loadClass("com.apple.eawt.Application")
+////      println(a.getMethods.mkString("a methods", "\n", "\nend"))
+//      val app = a.getMethod("getApplication").invoke(a.newInstance())
+//
+//      println(app.getClass.getMethods.mkString("app methods\n", "\n", "\nend"))
+//      val method = app.getClass.getMethods.filter(_.getName == "setDockIconImage").head
+//      method.invoke(app, r)
+//      println("image set")
+//
+
+      //
+      // This method works on mac but renders program uncompilable on other platforms
+      //
+//      import com.apple.eawt.Application
+//
+//      val application = Application.getApplication
+////      val r = ImageIO.read(getClass.getResource("/images/chisel-gui-icon.png"))
+//      application.setDockIconImage(r)
     } catch {
       case t: Throwable =>
-        println(t.getMessage)
+        println("oops we have a problem" + t.getMessage)
     }
   }
 
