@@ -6,7 +6,7 @@ import scalaswingcontrib.tree.Tree
 import visualizer._
 import visualizer.config.{ColorTable, DrawMetrics}
 import visualizer.models._
-import visualizer.painters.{DecoupledPainter, MultiBitPainter, SingleBitPainter}
+import visualizer.painters.{DecoupledPainter, EnumPainter, MultiBitPainter, SingleBitPainter}
 
 import scala.swing._
 import scala.swing.event._
@@ -20,6 +20,12 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
   private val multiBitPainter = new MultiBitPainter(selectedSignalModel)
   private val singleBitPainter = new SingleBitPainter(selectedSignalModel)
   private val decoupledPainter = new DecoupledPainter(selectedSignalModel)
+  private val enumPainters = {
+    EnumManager.signalNameToDefinition.map { case (signalName, definition) =>
+      val signal = dataModel.nameToSignal(signalName)
+      signal -> new EnumPainter(selectedSignalModel, definition)
+    }
+  }
 
   override def paintComponent(g: Graphics2D): Unit = {
     super.paintComponent(g)
@@ -36,7 +42,10 @@ class WavePanel(dataModel: DataModel, selectedSignalModel: SelectedSignalModel, 
         val y = row * DrawMetrics.WaveformVerticalSpacing + DrawMetrics.WaveformVerticalGap
         node.signal match {
           case signal: PureSignal =>
-            if (signal.isBinary) {
+            if (enumPainters.contains(signal)) {
+              val painter = enumPainters(signal)
+              painter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
+            } else if (signal.isBinary) {
               singleBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)
             } else {
               multiBitPainter.paintWaveform(g, visibleRect, y, node, dataModel.maxTimestamp)

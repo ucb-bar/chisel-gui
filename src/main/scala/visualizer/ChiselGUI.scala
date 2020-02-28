@@ -117,6 +117,11 @@ object ChiselGUI extends SwingApplication with Publisher {
       case _ =>
     }
 
+
+    testerOpt.foreach { tester =>
+      EnumManager.init(startAnnotations, dataModel, tester)
+    }
+
     addDecoupledSignals()
 
     loadSaveFileOnStartUp()
@@ -184,7 +189,7 @@ object ChiselGUI extends SwingApplication with Publisher {
 
   def addDecoupledSignals(): Unit = {
     DecoupledHandler.signalNameToDecouple.foreach {
-      case (name, decoupledHandler) =>
+      case (_, decoupledHandler) =>
         try {
           (decoupledHandler.readyNameOpt, decoupledHandler.validNameOpt) match {
             case (Some(readyName), Some(validName)) =>
@@ -209,7 +214,7 @@ object ChiselGUI extends SwingApplication with Publisher {
           }
 
         } catch {
-          case t: Throwable =>
+          case _: Throwable =>
             println(s"Unable to add $decoupledHandler")
         }
     }
@@ -443,18 +448,6 @@ object ChiselGUI extends SwingApplication with Publisher {
     * @param annotations    Annotation that have been provided from command line
     */
   def setupTreadle(firrtlFileName: String, annotations: AnnotationSeq): Unit = {
-
-    class GetAnnos extends firrtl.options.Stage {
-      override val shell: Shell = new Shell("dog")
-
-      override def run(annotations: AnnotationSeq): AnnotationSeq = {
-        transform(annotations)
-      }
-    }
-
-
-    val myAnnos= (new GetIncludes).transform(annotations.filter(_.isInstanceOf[InputAnnotationFileAnnotation]))
-    println(s"my annos $myAnnos")
 
     if (new File(firrtlFileName).exists) {
       val firrtlString = FileUtils.getText(firrtlFileName)

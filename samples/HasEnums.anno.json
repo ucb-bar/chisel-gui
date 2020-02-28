@@ -5,12 +5,38 @@
   },
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"HasEnums.NextState.nextState",
+    "enumTypeName":"gcd.Eaters"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"HasEnums.NextState.state",
+    "enumTypeName":"gcd.Eaters"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
     "target":"HasEnums.HasEnums.stateReg",
-    "enumTypeName":"gcd.States"
+    "enumTypeName":"gcd.Eaters"
   },
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumDefAnnotation",
-    "typeName":"gcd.States",
+    "typeName":"gcd.Eatees",
+    "definition":{
+      "nut":4,
+      "rat":2,
+      "bug":0,
+      "fly":1,
+      "hog":3
+    }
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"HasEnums.HasEnums.nextEatee",
+    "enumTypeName":"gcd.Eatees"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumDefAnnotation",
+    "typeName":"gcd.Eaters",
     "definition":{
       "bat":1,
       "ant":0,
@@ -22,7 +48,7 @@
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
     "target":"HasEnums.HasEnums.currentState",
-    "enumTypeName":"gcd.States"
+    "enumTypeName":"gcd.Eaters"
   },
   {
     "class":"firrtl.options.TargetDirAnnotation",

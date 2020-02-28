@@ -182,11 +182,23 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
 
                   val txt = signal match {
                     case pureSignal: PureSignal if value.asInstanceOf[BigInt] != null =>
-                      selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
+                      val numString = selectedSignalModel.waveDisplaySettings.get(pureSignal.name) match {
                         case Some(setting) =>
                           setting.dataFormat.getOrElse(DecFormat)(value.asInstanceOf[BigInt])
                         case _ =>
-                          value.asInstanceOf[BigInt]
+                          value.asInstanceOf[BigInt].toString
+                      }
+                      if (EnumManager.signalNameToDefinition.contains(signal.name)) {
+                        val definition = EnumManager.signalNameToDefinition(signal.name)
+                        val label = definition.get(value) match {
+                          case Some(enumName) =>
+                            s"$enumName($numString)"
+                          case _ =>
+                            numString
+                        }
+                        label
+                      } else {
+                        numString
                       }
                     case _: DecoupledSignalGroup | _: ValidSignalGroup =>
                       value match {
@@ -381,6 +393,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
         dataModel.maxTimestamp
     }
   }
+
   /**
     * move wave view to end, keeping the current scale
     *
@@ -404,7 +417,6 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     */
   def zoomToTime(time: Long, source: Component): Unit = {
     val oldVisibleRect = wavePanel.peer.getVisibleRect
-    val maxTimestamp = effectiveMaxTimestamp
     val ssm = selectedSignalModel
 
     var centerTimeStamp = time
@@ -413,7 +425,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     val timeWidthHalf = (time2 - time1) / 2
 
     var leftEdgeTime = centerTimeStamp - timeWidthHalf
-    var rightEdgeTime = centerTimeStamp + timeWidthHalf
+    val rightEdgeTime = centerTimeStamp + timeWidthHalf
 
     if (leftEdgeTime < 0L) {
       centerTimeStamp += leftEdgeTime // left is negative so this moves us over
@@ -436,7 +448,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
     val model = selectedSignalModel
     if (model.currentDecoupledSieveSignal.nonEmpty) {
       model.timeSieveOpt match {
-        case Some(timeSieve) => model.timeSieveOpt = None
+        case Some(_) => model.timeSieveOpt = None
         case _ =>
           model.createDecoupledTimeSieve(model.currentDecoupledSieveSignal, model.currentDecoupledSieveTrigger)
       }
