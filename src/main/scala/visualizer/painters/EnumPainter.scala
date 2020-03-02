@@ -1,17 +1,16 @@
 package visualizer.painters
 
-import java.awt.Rectangle
+import java.awt.{Color, Rectangle}
 
+import visualizer.config.DrawMetrics._
 import visualizer.config.{ColorTable, DrawMetrics}
 import visualizer.models._
 
+import scala.collection.mutable
 import scala.swing.Graphics2D
 
-/** This displays signals data that takes on integer values other than one and zero
-  *
-  * @param selectedSignalModel data to construct this kind of bar
-  */
-class MultiBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter(selectedSignalModel) {
+class EnumPainter(selectedSignalModel: SelectedSignalModel, definition: mutable.HashMap[BigInt, String])
+    extends Painter(selectedSignalModel) {
 
   def paintWaveform(g:            Graphics2D,
                     visibleRect:  Rectangle,
@@ -36,9 +35,6 @@ class MultiBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter(
 
             var lastTransitionValue = BigInt(0)
 
-            // Only paint from first transition at or before the start timestamp
-            // up until the first transition after the end timestamp
-//            val wave = Waves(pureSignal.name)
             val wave = getWave(pureSignal.name, startTimestamp).get
             var index = wave.findStartIndex(startTimestamp)
             var useHalfHexagon = false
@@ -66,7 +62,14 @@ class MultiBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter(
 
               val labelLeft = math.max(visibleRect.x, left + DrawMetrics.Foo)
               val labelRight = math.min(visibleRect.x + visibleRect.width, right - DrawMetrics.Foo)
-              drawLabel(g, labelLeft, labelRight, top, formatter(value))
+              val label = definition.get(value) match {
+                case Some(enumName) =>
+                  s"$enumName(${formatter(value)})"
+                case _ =>
+                  formatter(value)
+              }
+
+              drawLabel(g, labelLeft, labelRight, top, label)
               lastTransitionValue = value
               index += 1
             }
@@ -74,28 +77,48 @@ class MultiBitPainter(selectedSignalModel: SelectedSignalModel) extends Painter(
 
       case _ =>
     }
-  }
 
-  def drawLabel(g: Graphics2D, left: Int, right: Int, top: Int, label: String): Unit = {
-    val metrics = g.getFontMetrics(Painter.Arial)
-    val fontBaseline = top + (DrawMetrics.WaveformHeight + metrics.getHeight) / 2
-    val visibleWidth = right - left
+    def drawLabel(g: Graphics2D, left: Int, right: Int, top: Int, label: String): Unit = {
+      val metrics = g.getFontMetrics(Painter.Arial)
+      val fontBaseline = top + (DrawMetrics.WaveformHeight + metrics.getHeight) / 2
+      val visibleWidth = right - left
 
-    def tryToDrawString(str: String): Boolean = {
-      val stringWidth = metrics.stringWidth(str)
-      if (stringWidth < visibleWidth) {
-        val fontX = (visibleWidth - stringWidth) / 2 + left
-        g.drawString(str, fontX, fontBaseline)
-        true
-      } else {
-        false
+      def tryToDrawString(str: String): Boolean = {
+        val stringWidth = metrics.stringWidth(str)
+        if (stringWidth < visibleWidth) {
+          val fontX = (visibleWidth - stringWidth) / 2 + left
+          g.drawString(str, fontX, fontBaseline)
+          true
+        } else {
+          false
+        }
+      }
+
+      if (!tryToDrawString(label)) {
+        // Label doesn't fit so try to draw ellipsis
+        val ellipsis = "\u2026"
+        tryToDrawString(ellipsis)
       }
     }
+  }
 
-    if (!tryToDrawString(label)) {
-      // Label doesn't fit so try to draw ellipsis
-      val ellipsis = "\u2026"
-      tryToDrawString(ellipsis)
+  def drawSegment(g: Graphics2D, left: Int, right: Int, top: Int, state: BigInt): Unit = {
+    state match {
+      case DecoupledSignalGroup.Fired =>
+        g.setColor(FireColor)
+        g.fillPolygon(Painter.hexagon(left, right, top))
+      case DecoupledSignalGroup.Ready =>
+        g.setColor(ReadySetColor)
+        g.fillPolygon(Painter.hexagon(left, right, top))
+      case DecoupledSignalGroup.Valid =>
+        g.setColor(ValidSetColor)
+        g.fillPolygon(Painter.hexagon(left, right, top))
+      case DecoupledSignalGroup.Busy =>
+        g.setColor(Color.gray)
+        g.drawLine(left, top + WaveformHeight / 2, right, top + WaveformHeight / 2)
+      case _ =>
+        g.setColor(Color.gray)
+        g.drawLine(left, top + WaveformHeight / 2, right, top + WaveformHeight / 2)
     }
   }
 }

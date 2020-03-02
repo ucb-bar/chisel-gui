@@ -3,7 +3,8 @@ package visualizer
 import java.io.File
 
 import firrtl.ir.ClockType
-import firrtl.options.{ProgramArgsAnnotation, Shell}
+import firrtl.options.phases.GetIncludes
+import firrtl.options.{InputAnnotationFileAnnotation, ProgramArgsAnnotation, Shell}
 import firrtl.stage.FirrtlSourceAnnotation
 import firrtl.{AnnotationSeq, FileUtils, InstanceKind, MemKind}
 import javax.imageio.ImageIO
@@ -113,6 +114,11 @@ object ChiselGUI extends SwingApplication with Publisher {
         setupVcdInput(vcdFile)
         headerBarTitle = s"$vcdFile"
       case _ =>
+    }
+
+
+    testerOpt.foreach { tester =>
+      EnumManager.init(startAnnotations, dataModel, tester)
     }
 
     addDecoupledSignals()
@@ -446,6 +452,7 @@ object ChiselGUI extends SwingApplication with Publisher {
     * @param annotations    Annotation that have been provided from command line
     */
   def setupTreadle(firrtlFileName: String, annotations: AnnotationSeq): Unit = {
+
     if (new File(firrtlFileName).exists) {
       val firrtlString = FileUtils.getText(firrtlFileName)
       val treadleTester = treadle.TreadleTester(
