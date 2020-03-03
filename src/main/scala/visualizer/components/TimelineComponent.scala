@@ -52,7 +52,7 @@ class TimelineComponent(dataModel: DataModel, selectedSignalModel: SelectedSigna
         }
       case _ =>
         selectedSignalModel.clock match {
-          case Some(clk) if false =>
+          case Some(clk) if selectedSignalModel.useClock =>
             val ssm = selectedSignalModel
             val start = ((ssm.xCoordinateToSievedTimestamp(visibleRect.x - 100) - clk.initialOffset).max(0L) /
               clk.period) * clk.period + clk.initialOffset
