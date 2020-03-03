@@ -172,7 +172,7 @@ class SignalAndWavePanel(dataModel: DataModel, selectedSignalModel: SelectedSign
         case _: DirectoryNode =>
           a.name
         case signalTreeNode: SignalTreeNode =>
-          dataModel.nameToSignal.get(signalTreeNode.name) match {
+          dataModel.nameToSignal.get(signalTreeNode.signal.name) match {
             case Some(signal) =>
               Waves.get(signal.name) match {
                 case Some(wave) if wave.length > 0 =>
