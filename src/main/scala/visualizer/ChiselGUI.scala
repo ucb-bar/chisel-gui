@@ -1,11 +1,10 @@
 package visualizer
 
-import java.awt.TrayIcon
 import java.io.File
 
-import com.apple.eawt.Application
 import firrtl.ir.ClockType
-import firrtl.options.{ProgramArgsAnnotation, Shell}
+import firrtl.options.phases.GetIncludes
+import firrtl.options.{InputAnnotationFileAnnotation, ProgramArgsAnnotation, Shell}
 import firrtl.stage.FirrtlSourceAnnotation
 import firrtl.{AnnotationSeq, FileUtils, InstanceKind, MemKind}
 import javax.imageio.ImageIO
@@ -60,6 +59,7 @@ object ChiselGUI extends SwingApplication with Publisher {
   var startUpColorScheme:            String = "default"
   var startupAggregateDecoupledFlag: Boolean = true
   var startupShowSignalSelector:     Boolean = true
+  var startupShowInputPanel:         Boolean = true
   var startupSieveSignal:            String = ""
   var startupSieveTrigger:           BigInt = BigInt(0)
   var startupSieveEnabled:           Boolean = false
@@ -116,6 +116,11 @@ object ChiselGUI extends SwingApplication with Publisher {
       case _ =>
     }
 
+
+    testerOpt.foreach { tester =>
+      EnumManager.init(startAnnotations, dataModel, tester)
+    }
+
     addDecoupledSignals()
 
     loadSaveFileOnStartUp()
@@ -164,6 +169,7 @@ object ChiselGUI extends SwingApplication with Publisher {
     startupPokeHistory.lastOption.foreach { pokes =>
       mainWindow.inputControlPanel.setTextBoxes(pokes.toMap)
     }
+    mainWindow.inputControlPanel.visible = startupShowInputPanel
     mainWindow.inputControlPanel.setHistoryLabel()
 
     publish(new PureSignalsChanged)
@@ -183,7 +189,7 @@ object ChiselGUI extends SwingApplication with Publisher {
 
   def addDecoupledSignals(): Unit = {
     DecoupledHandler.signalNameToDecouple.foreach {
-      case (name, decoupledHandler) =>
+      case (_, decoupledHandler) =>
         try {
           (decoupledHandler.readyNameOpt, decoupledHandler.validNameOpt) match {
             case (Some(readyName), Some(validName)) =>
@@ -205,10 +211,11 @@ object ChiselGUI extends SwingApplication with Publisher {
                 }
               )
               dataModel.addSignal(validSignal.name, validSignal)
+            case _ =>
           }
 
         } catch {
-          case t: Throwable =>
+          case _: Throwable =>
             println(s"Unable to add $decoupledHandler")
         }
     }
@@ -394,6 +401,9 @@ object ChiselGUI extends SwingApplication with Publisher {
             case "show_signal_selector" :: boolString :: Nil =>
               startupShowSignalSelector = boolString.toBoolean
 
+            case "show_input_panel" :: boolString :: Nil =>
+              startupShowInputPanel = boolString.toBoolean
+
             case "decoupled_sieve_signal" :: name :: triggerString :: stateString :: Nil =>
               startupSieveSignal = name
               startupSieveTrigger = BigInt(triggerString)
@@ -442,6 +452,7 @@ object ChiselGUI extends SwingApplication with Publisher {
     * @param annotations    Annotation that have been provided from command line
     */
   def setupTreadle(firrtlFileName: String, annotations: AnnotationSeq): Unit = {
+
     if (new File(firrtlFileName).exists) {
       val firrtlString = FileUtils.getText(firrtlFileName)
       val treadleTester = treadle.TreadleTester(
@@ -580,35 +591,67 @@ object ChiselGUI extends SwingApplication with Publisher {
   //TODO: Test this on other systems
   def setDockIcon(): Unit = {
     try {
-      val application = Application.getApplication
       val r = ImageIO.read(getClass.getResource("/images/chisel-gui-icon.png"))
-      application.setDockIconImage(r)
+
+      //
+      // This method works if you can find the jar
+      //
+//      val classLoader = new java.net.URLClassLoader(
+//        Array(
+//          new File("/Users/chick/.ivy2/cache/com.apple/AppleJavaExtensions/jars/AppleJavaExtensions-1.4.jar").toURI.toURL
+//        ),
+//        this.getClass.getClassLoader
+//      )
+//
+//      val a = classLoader.loadClass("com.apple.eawt.Application")
+////      println(a.getMethods.mkString("a methods", "\n", "\nend"))
+//      val app = a.getMethod("getApplication").invoke(a.newInstance())
+//
+//      println(app.getClass.getMethods.mkString("app methods\n", "\n", "\nend"))
+//      val method = app.getClass.getMethods.filter(_.getName == "setDockIconImage").head
+//      method.invoke(app, r)
+//      println("image set")
+//
+
+      //
+      // This method works on mac but renders program uncompilable on other platforms
+      //
+//      import com.apple.eawt.Application
+//
+//      val application = Application.getApplication
+////      val r = ImageIO.read(getClass.getResource("/images/chisel-gui-icon.png"))
+//      application.setDockIconImage(r)
     } catch {
       case t: Throwable =>
-        println(t.getMessage)
+        println("oops we have a problem" + t.getMessage)
     }
   }
 
   /** This adds an icon to the top menu bar tray on osx, no real reason to use it at this time
     */
   def addTrayIcon(): Unit = {
-    import java.awt.SystemTray
+    try {
+      import java.awt.SystemTray
+      import java.awt.TrayIcon
 
-    if (!SystemTray.isSupported) {
-      println("SystemTray is not supported")
-    } else {
-      println("SystemTray IS supported")
-      val r = ImageIO.read(getClass.getResource("/images/chisel-gui-icon.png"))
-      val tray = SystemTray.getSystemTray
+      if (!SystemTray.isSupported) {
+        println("SystemTray is not supported")
+      } else {
+        println("SystemTray IS supported")
+        val r = ImageIO.read(getClass.getResource("/images/chisel-gui-icon.png"))
+        val tray = SystemTray.getSystemTray
 
-      val trayIcon = new TrayIcon(r)
+        val trayIcon = new TrayIcon(r)
 
-      try {
-        tray.add(trayIcon)
-      } catch {
-        case t: Throwable =>
-          println(s"Error trying to set app icon: ${t.getMessage}")
+        try {
+          tray.add(trayIcon)
+        } catch {
+          case t: Throwable =>
+            println(s"Error trying to set app icon: ${t.getMessage}")
+        }
       }
+    } catch {
+      case _: Throwable =>
     }
   }
 }

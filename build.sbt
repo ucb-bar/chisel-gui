@@ -18,6 +18,7 @@ resolvers ++= Seq(
 libraryDependencies ++= Seq(
   "org.scala-lang.modules" %% "scala-swing" % "2.0.3",
   "edu.berkeley.cs" %% "treadle" % "1.2-SNAPSHOT",
+  "edu.berkeley.cs" %% "chisel3" % "3.3-SNAPSHOT",
   "com.github.benhutchison" %% "scalaswingcontrib" % "1.7",
   "org.scalatest" %% "scalatest" % "3.0.8" % "test"
 )

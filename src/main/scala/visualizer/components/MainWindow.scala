@@ -60,19 +60,19 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
     contents += new Label("Zoom")
 
-    val zoomToStart = Button("⇤") { signalAndWavePanel.zoomToStart(this) }
+    val zoomToStart: Button = Button("⇤") { signalAndWavePanel.zoomToStart(this) }
     zoomToStart.tooltip = "Zoom to Start"
     contents += zoomToStart
 
-    val zoomIn = Button("⇥ ⇤") { signalAndWavePanel.zoomIn(this) }
+    val zoomIn: Button = Button("⇥ ⇤") { signalAndWavePanel.zoomIn(this) }
     zoomIn.tooltip = "Zoom In"
     contents += zoomIn
 
-    val zoomOut = Button("⇤ ⇥") { signalAndWavePanel.zoomOut(this) }
+    val zoomOut: Button = Button("⇤ ⇥") { signalAndWavePanel.zoomOut(this) }
     zoomOut.tooltip = "Zoom Out"
     contents += zoomOut
 
-    val zoomEnd = Button("⇥") { signalAndWavePanel.zoomToEnd(this) }
+    val zoomEnd: Button = Button("⇥") { signalAndWavePanel.zoomToEnd(this) }
     zoomEnd.tooltip = "Zoom to End"
     contents += zoomEnd
 
@@ -159,7 +159,7 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
 
       if (ChiselGUI.testerOpt.isDefined) {
         contents += new CheckMenuItem("") {
-          selected = true
+          selected = ChiselGUI.startupShowInputPanel
           action = Action("Show Input Panel") {
             inputControlPanel.visible = !inputControlPanel.visible
           }
@@ -322,6 +322,8 @@ class MainWindow(dataModel: DataModel, selectionModel: SignalSelectorModel, sele
     writer.println(s"aggregate_decoupled,${selectionModel.dataModelFilter.rollupDecoupled.toString}")
 
     writer.println(s"show_signal_selector,$isSignalSelectorVisible")
+
+    writer.println(s"show_input_panel,${inputControlPanel.visible}")
 
     if (selectedSignalModel.currentDecoupledSieveSignal.nonEmpty) {
       writer.println(
