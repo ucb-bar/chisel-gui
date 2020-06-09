@@ -66,7 +66,7 @@ class TimelineComponent(dataModel: DataModel, selectedSignalModel: SelectedSigna
             for (t <- start to end by minor) {
               periodNumber += 1
               val x = ssm.timestampToXCoordinate(t)
-              if (periodNumber % periodsPerMajor == 0) {
+              if (periodsPerMajor == 0 || periodNumber % periodsPerMajor == 0) {
                 if (selectedSignalModel.useClock && clk.period > 0) {
                   g.drawLine(x, 5, x, DrawMetrics.TimescaleHeight)
                   g.drawString(periodNumber.toString + "c", x + 3, DrawMetrics.MinorTickTop - metrics.getDescent - 2)
